@@ -2,16 +2,36 @@
 build/
 out/
 cmake-build-*/
-
-# IDE files
+x64/
+x86/
+Debug/
+Release/
 .vs/
-.vscode/
+
+# Visual Studio
 *.vcxproj.user
 *.suo
 *.user
+*.sln.docstates
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+*.tlog/
+*.log
+*.ipch
+*.aps
+*.ncb
+ipch/
+*.dir/
+
+# IDE files
+.vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # Compiled files
 *.obj
@@ -25,24 +45,31 @@ cmake-build-*/
 *.pdb
 *.ilk
 *.exp
+*.iobj
+*.ipdb
 
 # CMake
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
 Makefile
-*.cmake
-!CMakeLists.txt
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
 
 # Package managers
 vcpkg_installed/
+conan/
 
 # OS files
 .DS_Store
 Thumbs.db
 desktop.ini
+*.lnk
 
 # Temporary files
 *.tmp
 *.temp
-*.log
+*.bak
+*.orig

@@ -159,6 +159,10 @@ Renderer& Context::renderer() {
     return m_impl->renderer;
 }
 
+Window& Context::window() {
+    return *m_impl->currentWindow;
+}
+
 float Context::deltaTime() const {
     return m_impl->deltaTime;
 }

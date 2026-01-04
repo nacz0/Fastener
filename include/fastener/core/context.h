@@ -46,6 +46,7 @@ public:
     // Drawing
     DrawList& drawList();
     Renderer& renderer();
+    Window& window();
     
     // Time
     float deltaTime() const;

@@ -1,5 +1,7 @@
 #include "fastener/fastener.h"
 #include <string>
+#include <unordered_map>
+#include "fastener/widgets/text_editor.h"
 
 int main() {
     // Create window
@@ -59,6 +61,22 @@ int main() {
     // Create menu bar
     fst::MenuBar menuBar;
     std::string statusText = "Ready";
+    
+    std::unordered_map<std::string, fst::TextEditor> editors;
+    auto getOrCreateEditor = [&](const std::string& id) -> fst::TextEditor& {
+        auto it = editors.find(id);
+        if (it == editors.end()) {
+            it = editors.emplace(id, fst::TextEditor()).first;
+            if (id == "main.cpp") {
+                it->second.setText("// main.cpp\n\n#include <iostream>\n\nint main() {\n    std::cout << \"Hello, Fastener!\" << std::endl;\n    return 0;\n}\n");
+            } else if (id == "types.cpp") {
+                it->second.setText("// types.cpp\n#include \"fastener/core/types.h\"\n\nnamespace fst {\n    // Implementation here\n}\n");
+            } else if (id == "context.cpp") {
+                it->second.setText("// context.cpp\n#include \"fastener/core/context.h\"\n\nnamespace fst {\n    // Implementation here\n}\n");
+            }
+        }
+        return it->second;
+    };
     
     // File menu
     menuBar.addMenu("File", {
@@ -218,16 +236,15 @@ int main() {
         fst::Rect contentRect = tabs.render("editor_tabs", editorArea, tabOpts, tabEvents);
         
         // Editor content area
-        dl.addRectFilled(contentRect, theme.colors.panelBackground);
-        
-        // Show file content placeholder
-        if (ctx.font() && tabs.selectedTab()) {
-            dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 20),
-                       "// " + tabs.selectedTab()->label, theme.colors.textSecondary);
-            dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 50),
-                       "// File content would appear here", theme.colors.textSecondary);
-            dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 80),
-                       "// Double-click files in Explorer to open them", theme.colors.textSecondary);
+        if (tabs.selectedTab()) {
+            fst::TextEditor& editor = getOrCreateEditor(tabs.selectedTab()->id);
+            editor.render(contentRect);
+        } else {
+            dl.addRectFilled(contentRect, theme.colors.panelBackground);
+            if (ctx.font()) {
+                dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 20),
+                           "No file open", theme.colors.textSecondary);
+            }
         }
         
         // === STATUS BAR ===

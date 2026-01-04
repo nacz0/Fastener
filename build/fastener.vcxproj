@@ -321,6 +321,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\panel.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\slider.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tab_control.cpp" />
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\text_editor.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\text_input.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tree_view.cpp" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\core\context.h" />
@@ -343,6 +344,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\panel.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\slider.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\tab_control.h" />
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\text_editor.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\text_input.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\tree_view.h" />
   </ItemGroup>

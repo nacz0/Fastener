@@ -134,7 +134,7 @@ inline Theme Theme::dark() {
     // Background
     c.windowBackground = Color::fromHex(0x1a1a1a);
     c.panelBackground = Color::fromHex(0x242424);
-    c.popupBackground = Color::fromHex(0x2d2d2d);
+    c.popupBackground = Color::fromHex(0x363636);  // Brighter for better visibility
     
     // Primary
     c.primary = Color::fromHex(0x3b82f6);

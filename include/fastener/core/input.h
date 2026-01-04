@@ -129,6 +129,7 @@ public:
     Vec2 mousePos() const { return m_mousePos; }
     Vec2 mouseDelta() const { return m_mouseDelta; }
     Vec2 scrollDelta() const { return m_scrollDelta; }
+    Vec2 windowSize() const { return m_windowSize; }
     
     // Modifiers
     Modifiers modifiers() const { return m_modifiers; }
@@ -149,6 +150,7 @@ public:
     void onMouseScroll(float dx, float dy);
     void onTextInput(char32_t codepoint);
     void onModifiersChanged(bool shift, bool ctrl, bool alt, bool super);
+    void onResize(float width, float height);
     
 private:
     // Keyboard state
@@ -167,6 +169,7 @@ private:
     Vec2 m_lastMousePos;
     Vec2 m_mouseDelta;
     Vec2 m_scrollDelta;
+    Vec2 m_windowSize;
     
     Modifiers m_modifiers;
     std::string m_textInput;

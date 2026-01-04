@@ -117,8 +117,17 @@ bool Font::loadFromMemory(const void* data, size_t dataSize, float size) {
         bakeGlyph(c);
     }
     
-    // Create atlas texture
-    m_atlas.create(m_atlasWidth, m_atlasHeight, m_atlasData.data(), 1);
+    // Convert grayscale atlas to RGBA (white text with alpha from grayscale)
+    std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
+    for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
+        rgbaData[i * 4 + 0] = 255;              // R = white
+        rgbaData[i * 4 + 1] = 255;              // G = white
+        rgbaData[i * 4 + 2] = 255;              // B = white
+        rgbaData[i * 4 + 3] = m_atlasData[i];   // A = grayscale value
+    }
+    
+    // Create atlas texture as RGBA
+    m_atlas.create(m_atlasWidth, m_atlasHeight, rgbaData.data(), 4);
     
     m_isValid = true;
     return true;
@@ -236,7 +245,15 @@ bool Font::bakeGlyph(uint32_t codepoint) {
 
 void Font::updateAtlasTexture() {
     if (m_atlas.isValid()) {
-        m_atlas.update(0, 0, m_atlasWidth, m_atlasHeight, m_atlasData.data());
+        // Convert grayscale to RGBA for update
+        std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
+        for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
+            rgbaData[i * 4 + 0] = 255;
+            rgbaData[i * 4 + 1] = 255;
+            rgbaData[i * 4 + 2] = 255;
+            rgbaData[i * 4 + 3] = m_atlasData[i];
+        }
+        m_atlas.update(0, 0, m_atlasWidth, m_atlasHeight, rgbaData.data());
     }
 }
 

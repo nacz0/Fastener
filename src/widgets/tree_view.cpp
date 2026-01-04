@@ -1,4 +1,5 @@
 #include "fastener/widgets/tree_view.h"
+#include "fastener/widgets/menu.h"  // Added for input blocking
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
@@ -152,7 +153,7 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     Rect actualRow(bounds.x() + indent, y, bounds.width() - indent, options.rowHeight);
     
     // Hit testing
-    bool isHovered = rowBounds.contains(ctx->input().mousePos());
+    bool isHovered = rowBounds.contains(ctx->input().mousePos()) && !fst::IsMouseOverAnyMenu();
     if (isHovered) {
         m_hoveredNode = node;
     }

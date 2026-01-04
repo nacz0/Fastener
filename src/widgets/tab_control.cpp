@@ -1,4 +1,5 @@
 #include "fastener/widgets/tab_control.h"
+#include "fastener/widgets/menu.h"  // Added for input blocking
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
@@ -236,7 +237,7 @@ void TabControl::drawTab(int index, const Rect& tabRect,
     
     const TabItem& tab = m_tabs[index];
     bool isSelected = (index == m_selectedIndex);
-    bool isHovered = tabRect.contains(ctx->input().mousePos());
+    bool isHovered = tabRect.contains(ctx->input().mousePos()) && !fst::IsMouseOverAnyMenu();
     
     if (isHovered) {
         m_hoveredTab = index;

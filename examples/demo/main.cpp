@@ -89,9 +89,17 @@ int main() {
     });
     
     // View menu
+    fst::MenuItem appearance = fst::MenuItem::submenu("appearance", "Appearance");
+    appearance.add(fst::MenuItem::checkbox("fullScreen", "Full Screen", false));
+    appearance.add(fst::MenuItem::checkbox("distractionFree", "Distraction Free", false));
+    appearance.add(fst::MenuItem::separator());
+    appearance.add(fst::MenuItem("theme", "Color Theme..."));
+
     menuBar.addMenu("View", {
         fst::MenuItem::checkbox("explorer", "Explorer", true),
         fst::MenuItem::checkbox("terminal", "Terminal", false),
+        fst::MenuItem::separator(),
+        appearance,
         fst::MenuItem::separator(),
         fst::MenuItem("zoomIn", "Zoom In").withShortcut("Ctrl++"),
         fst::MenuItem("zoomOut", "Zoom Out").withShortcut("Ctrl+-")
@@ -237,7 +245,8 @@ int main() {
                        info, theme.colors.primaryText);
         }
         
-        // Render context menu (on top of everything)
+        // Render popups on top of everything
+        menuBar.renderPopups();
         fst::RenderContextMenu();
         
         ctx.endFrame();

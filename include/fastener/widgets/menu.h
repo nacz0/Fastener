@@ -89,6 +89,9 @@ public:
     // Render - returns height of menu bar
     float render(const Rect& bounds);
     
+    // Render popups (call at end of frame, after all other rendering)
+    void renderPopups();
+    
     // Check if menu is open
     bool isOpen() const { return m_openMenuIndex >= 0; }
     void closeAll() { m_openMenuIndex = -1; }
@@ -104,8 +107,18 @@ private:
     std::vector<TopMenu> m_menus;
     int m_openMenuIndex = -1;
     int m_hoveredIndex = -1;
+    float m_dropdownY = 0;
+    
+    // Submenu tracking
+    struct OpenSubmenu {
+        int itemIndex = -1;
+        Rect bounds;
+    };
+    int m_activeSubmenuIndex = -1;
+    Rect m_activeSubmenuBounds;
     
     void renderDropdown(const TopMenu& menu, const Vec2& pos);
+    void renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos);
 };
 
 //=============================================================================
@@ -141,6 +154,7 @@ private:
     
     float renderItems(const std::vector<MenuItem>& items, const Vec2& pos, 
                       int depth = 0);
+    void renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos);
 };
 
 //=============================================================================
@@ -150,5 +164,8 @@ void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position);
 void RenderContextMenu();  // Call at end of frame
 bool IsContextMenuOpen();
 void CloseContextMenu();
+
+// Input blocking
+bool IsMouseOverAnyMenu();
 
 } // namespace fst

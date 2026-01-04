@@ -64,6 +64,7 @@ void Context::beginFrame(Window& window) {
     s_current = this;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
+    m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
     
     // Calculate delta time
     auto now = std::chrono::steady_clock::now();

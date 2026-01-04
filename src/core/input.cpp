@@ -142,4 +142,8 @@ void InputState::onModifiersChanged(bool shift, bool ctrl, bool alt, bool super)
     m_modifiers.super = super;
 }
 
+void InputState::onResize(float width, float height) {
+    m_windowSize = {width, height};
+}
+
 } // namespace fst

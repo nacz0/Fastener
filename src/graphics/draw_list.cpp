@@ -72,7 +72,11 @@ void DrawList::addVertex(const Vec2& pos, const Vec2& uv, Color color) {
     DrawVertex v;
     v.pos = pos;
     v.uv = uv;
-    v.color = color.toABGR();
+    // Pack as RGBA for OpenGL (R in lowest byte on little endian)
+    v.color = (static_cast<uint32_t>(color.a) << 24) |
+              (static_cast<uint32_t>(color.b) << 16) |
+              (static_cast<uint32_t>(color.g) << 8) |
+              static_cast<uint32_t>(color.r);
     m_vertices.push_back(v);
 }
 
@@ -104,6 +108,7 @@ void DrawList::addQuad(const Vec2& p0, const Vec2& p1, const Vec2& p2, const Vec
 }
 
 void DrawList::addQuadFilled(const Rect& rect, Color color) {
+    setTexture(0);
     addQuad(
         rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft(),
         {0, 0}, {1, 0}, {1, 1}, {0, 1},
@@ -112,6 +117,7 @@ void DrawList::addQuadFilled(const Rect& rect, Color color) {
 }
 
 void DrawList::addRectFilled(const Rect& rect, Color color, float rounding) {
+    setTexture(0);
     if (rounding <= 0.0f) {
         addQuadFilled(rect, color);
     } else {
@@ -120,6 +126,7 @@ void DrawList::addRectFilled(const Rect& rect, Color color, float rounding) {
 }
 
 void DrawList::addRect(const Rect& rect, Color color, float rounding) {
+    setTexture(0);
     if (rounding <= 0.0f) {
         float thickness = 1.0f;
         addRectFilled(Rect(rect.x(), rect.y(), rect.width(), thickness), color);
@@ -133,6 +140,7 @@ void DrawList::addRect(const Rect& rect, Color color, float rounding) {
 
 void DrawList::addRectFilledMultiColor(const Rect& rect, Color topLeft, Color topRight,
                                         Color bottomRight, Color bottomLeft) {
+    setTexture(0);
     updateCommand();
     
     uint32_t idx = static_cast<uint32_t>(m_vertices.size());
@@ -215,6 +223,7 @@ void DrawList::primRect(const Rect& rect, Color color, float rounding) {
 }
 
 void DrawList::addLine(const Vec2& p1, const Vec2& p2, Color color, float thickness) {
+    setTexture(0);
     Vec2 dir = (p2 - p1).normalized();
     Vec2 normal = {-dir.y, dir.x};
     Vec2 offset = normal * (thickness * 0.5f);
@@ -245,6 +254,7 @@ void DrawList::addCircle(const Vec2& center, float radius, Color color, int segm
 }
 
 void DrawList::addCircleFilled(const Vec2& center, float radius, Color color, int segments) {
+    setTexture(0);
     if (segments <= 0) {
         segments = std::max(12, static_cast<int>(radius * 0.5f));
     }
@@ -274,6 +284,7 @@ void DrawList::addTriangle(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color
 }
 
 void DrawList::addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color) {
+    setTexture(0);
     updateCommand();
     
     uint32_t idx = static_cast<uint32_t>(m_vertices.size());

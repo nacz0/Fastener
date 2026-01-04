@@ -12,6 +12,11 @@ namespace fst {
 static ContextMenu g_contextMenu;
 static bool g_contextMenuActive = false;
 
+// Tracking for input blocking
+static Rect g_currentMenuBarDropdownRect;
+static bool g_menuBarOpen = false;
+static Rect g_currentContextMenuRect;
+
 //=============================================================================
 // MenuBar
 //=============================================================================
@@ -96,27 +101,33 @@ float MenuBar::render(const Rect& bounds) {
         x += menu.width;
     }
     
-    // Render open dropdown
-    if (m_openMenuIndex >= 0 && m_openMenuIndex < static_cast<int>(m_menus.size())) {
-        auto& menu = m_menus[m_openMenuIndex];
-        renderDropdown(menu, Vec2(menu.x, barRect.bottom()));
+    // Store dropdown position for deferred rendering
+    m_dropdownY = barRect.bottom();
+    
+    // Update global state for input blocking
+    g_menuBarOpen = m_openMenuIndex >= 0;
+    if (!g_menuBarOpen) {
+        g_currentMenuBarDropdownRect = Rect();
     }
     
     // Close on click outside
     if (m_openMenuIndex >= 0 && ctx->input().isMousePressed(MouseButton::Left)) {
         if (m_hoveredIndex < 0) {
-            // Check if click is in dropdown area
-            // For now, simple check
             Vec2 mousePos = ctx->input().mousePos();
             if (mousePos.y < barRect.bottom()) {
                 // Already handled above
-            } else {
-                // Will close after action is taken
             }
         }
     }
     
     return barHeight;
+}
+
+void MenuBar::renderPopups() {
+    if (m_openMenuIndex >= 0 && m_openMenuIndex < static_cast<int>(m_menus.size())) {
+        auto& menu = m_menus[m_openMenuIndex];
+        renderDropdown(menu, Vec2(menu.x, m_dropdownY));
+    }
 }
 
 void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
@@ -136,6 +147,11 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     float maxWidth = minWidth;
     float totalHeight = padding;
     
+    // Dim background to obscure content underneath
+    dl.setTexture(0);
+    dl.addRectFilled(fst::Rect(0.0f, 0.0f, ctx->input().windowSize().x, ctx->input().windowSize().y), 
+                     fst::Color(0, 0, 0, 40)); 
+    
     for (const auto& item : menu.items) {
         if (item.type == MenuItemType::Separator) {
             totalHeight += separatorHeight;
@@ -154,10 +170,17 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     
     Rect dropdownRect(pos.x, pos.y, maxWidth, totalHeight);
     
+    // Update global dropdown rect for occlusion testing
+    g_currentMenuBarDropdownRect = dropdownRect;
+    
+    // Reset texture to white texture for solid color background
+    dl.setTexture(0);
+    
     // Shadow
     dl.addShadow(dropdownRect, theme.colors.shadow, 8.0f, 4.0f);
     
-    // Background
+    // Background - solid opaque fill
+    dl.setTexture(0);
     dl.addRectFilled(dropdownRect, theme.colors.popupBackground, 4.0f);
     dl.addRect(dropdownRect, theme.colors.border, 4.0f);
     
@@ -210,22 +233,93 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
             }
         }
         
-        // Submenu arrow
-        if (item.type == MenuItemType::Submenu) {
-            float arrowX = pos.x + maxWidth - 15;
-            float arrowY = y + itemHeight / 2;
-            Vec2 p1(arrowX, arrowY - 4);
-            Vec2 p2(arrowX + 5, arrowY);
-            Vec2 p3(arrowX, arrowY + 4);
-            dl.addTriangleFilled(p1, p2, p3, textColor);
+        // Handle submenu hover
+        if (isHovered && item.type == MenuItemType::Submenu && item.enabled) {
+            m_activeSubmenuIndex = static_cast<int>(i);
+            m_activeSubmenuBounds = Rect(pos.x + maxWidth - 2, y, 0, 0); // Temporary
+        } else if (isHovered && item.type != MenuItemType::Submenu) {
+            // Keep current submenu if mouse is still in it, otherwise clear it later if mouse leaves
         }
         
         // Handle click
         if (isHovered && item.enabled && ctx->input().isMousePressed(MouseButton::Left)) {
-            if (item.action) {
-                item.action();
+            if (item.type != MenuItemType::Submenu) {
+                if (item.action) {
+                    item.action();
+                }
+                m_openMenuIndex = -1;  // Close menu
             }
-            m_openMenuIndex = -1;  // Close menu
+        }
+        
+        y += itemHeight;
+    }
+    
+    // Render submenu if active
+    if (m_activeSubmenuIndex >= 0 && m_activeSubmenuIndex < static_cast<int>(menu.items.size())) {
+        const auto& item = menu.items[m_activeSubmenuIndex];
+        if (item.type == MenuItemType::Submenu && !item.children.empty()) {
+            renderSubmenu(item.children, m_activeSubmenuBounds.topLeft());
+        }
+    }
+    
+    // Clear submenu if mouse is far away
+    if (!dropdownRect.expanded(10).contains(ctx->input().mousePos()) && 
+        !m_activeSubmenuBounds.expanded(200).contains(ctx->input().mousePos())) {
+        m_activeSubmenuIndex = -1;
+    }
+}
+
+void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos) {
+    Context* ctx = Context::current();
+    if (!ctx) return;
+    
+    DrawList& dl = ctx->drawList();
+    const Theme& theme = ctx->theme();
+    Font* font = ctx->font();
+    
+    float itemHeight = 28.0f;
+    float minWidth = 160.0f;
+    float padding = 8.0f;
+    
+    float maxWidth = minWidth;
+    float totalHeight = padding + items.size() * itemHeight + padding;
+    
+    for (const auto& item : items) {
+        if (font) {
+            float textWidth = font->measureText(item->label).x;
+            maxWidth = std::max(maxWidth, textWidth + 50);
+        }
+    }
+    
+    Rect subRect(pos.x, pos.y, maxWidth, totalHeight);
+    m_activeSubmenuBounds = subRect; // Update bounds for hover persistence
+    
+    dl.setTexture(0);
+    dl.addShadow(subRect, theme.colors.shadow, 8.0f, 4.0f);
+    dl.addRectFilled(subRect, theme.colors.popupBackground, 4.0f);
+    dl.addRect(subRect, theme.colors.border, 4.0f);
+    
+    float y = pos.y + padding;
+    for (const auto& item : items) {
+        Rect itemRect(pos.x + 2, y, maxWidth - 4, itemHeight);
+        bool isHovered = itemRect.contains(ctx->input().mousePos());
+        
+        if (isHovered && item->enabled) {
+            dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
+        }
+        
+        Color textColor = item->enabled ? 
+            (isHovered ? theme.colors.selectionText : theme.colors.text) :
+            theme.colors.textDisabled;
+        
+        if (font) {
+            dl.addText(font, Vec2(pos.x + 30, y + (itemHeight - font->lineHeight()) / 2), 
+                       item->label, textColor);
+        }
+        
+        if (isHovered && item->enabled && ctx->input().isMousePressed(MouseButton::Left)) {
+            if (item->action) item->action();
+            m_openMenuIndex = -1;
         }
         
         y += itemHeight;
@@ -314,9 +408,19 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     totalHeight += padding;
     
     Rect menuRect(pos.x, pos.y, maxWidth, totalHeight);
+    if (depth == 0) {
+        g_currentContextMenuRect = menuRect;
+    }
     
-    // Clamp to screen (simple)
-    // TODO: Get screen bounds
+    // Dim background
+    if (depth == 0) {
+        dl.setTexture(0);
+        dl.addRectFilled(fst::Rect(0.0f, 0.0f, ctx->input().windowSize().x, ctx->input().windowSize().y), 
+                         fst::Color(0, 0, 0, 40));
+    }
+    
+    // Reset texture to solid
+    dl.setTexture(0);
     
     // Shadow & background
     dl.addShadow(menuRect, theme.colors.shadow, 6.0f, 4.0f);
@@ -382,6 +486,11 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
             dl.addTriangleFilled(p1, p2, p3, textColor);
         }
         
+        // Handle submenu hover
+        if (isHovered && item.type == MenuItemType::Submenu && item.enabled) {
+            m_openSubmenu = static_cast<int>(i);
+        }
+        
         // Handle click
         if (isHovered && item.enabled && ctx->input().isMousePressed(MouseButton::Left)) {
             if (item.type != MenuItemType::Submenu) {
@@ -396,6 +505,14 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
         y += itemHeight;
     }
     
+    // Render submenu
+    if (m_openSubmenu >= 0 && m_openSubmenu < static_cast<int>(items.size())) {
+        const auto& item = items[m_openSubmenu];
+        if (item.type == MenuItemType::Submenu && !item.children.empty()) {
+            renderSubmenu(item.children, Vec2(pos.x + maxWidth - 5, pos.y + padding + m_openSubmenu * itemHeight));
+        }
+    }
+    
     // Close if clicked outside
     if (!anyHovered && !menuRect.contains(ctx->input().mousePos())) {
         if (ctx->input().isMousePressed(MouseButton::Left)) {
@@ -404,6 +521,62 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     }
     
     return totalHeight;
+}
+
+void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos) {
+    Context* ctx = Context::current();
+    if (!ctx) return;
+    
+    DrawList& dl = ctx->drawList();
+    const Theme& theme = ctx->theme();
+    Font* font = ctx->font();
+    
+    float itemHeight = 26.0f;
+    float padding = 4.0f;
+    float minWidth = 160.0f;
+    
+    float maxWidth = minWidth;
+    float totalHeight = padding + items.size() * itemHeight + padding;
+    
+    for (const auto& item : items) {
+        if (font) {
+            float textWidth = font->measureText(item->label).x;
+            maxWidth = std::max(maxWidth, textWidth + 45);
+        }
+    }
+    
+    Rect subRect(pos.x, pos.y, maxWidth, totalHeight);
+    
+    dl.setTexture(0);
+    dl.addShadow(subRect, theme.colors.shadow, 6.0f, 4.0f);
+    dl.addRectFilled(subRect, theme.colors.popupBackground, 4.0f);
+    dl.addRect(subRect, theme.colors.border, 4.0f);
+    
+    float y = pos.y + padding;
+    for (const auto& item : items) {
+        Rect itemRect(pos.x + 2, y, maxWidth - 4, itemHeight);
+        bool isHovered = itemRect.contains(ctx->input().mousePos());
+        
+        if (isHovered && item->enabled) {
+            dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
+        }
+        
+        Color textColor = item->enabled ? 
+            (isHovered ? theme.colors.selectionText : theme.colors.text) :
+            theme.colors.textDisabled;
+        
+        if (font) {
+            dl.addText(font, Vec2(pos.x + 28, y + (itemHeight - font->lineHeight()) / 2), 
+                       item->label, textColor);
+        }
+        
+        if (isHovered && item->enabled && ctx->input().isMousePressed(MouseButton::Left)) {
+            if (item->action) item->action();
+            hide();
+        }
+        
+        y += itemHeight;
+    }
 }
 
 //=============================================================================
@@ -431,6 +604,29 @@ bool IsContextMenuOpen() {
 void CloseContextMenu() {
     g_contextMenu.hide();
     g_contextMenuActive = false;
+    g_currentContextMenuRect = Rect();
+}
+
+bool IsMouseOverAnyMenu() {
+    Context* ctx = Context::current();
+    if (!ctx) return false;
+    
+    Vec2 mousePos = ctx->input().mousePos();
+    
+    if (g_menuBarOpen && g_currentMenuBarDropdownRect.contains(mousePos)) {
+        return true;
+    }
+    
+    if (g_contextMenuActive && g_currentContextMenuRect.contains(mousePos)) {
+        return true;
+    }
+    
+    // Also block if mouse is over the menu bar itself (y < 28)
+    if (mousePos.y < 28.0f) {
+        return true;
+    }
+    
+    return false;
 }
 
 } // namespace fst

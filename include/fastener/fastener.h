@@ -1,0 +1,36 @@
+#pragma once
+
+// Fastener - High-Performance C++ GUI Library
+// Main header - includes all public API
+
+#include "fastener/core/types.h"
+#include "fastener/core/context.h"
+#include "fastener/core/input.h"
+
+#include "fastener/platform/window.h"
+
+#include "fastener/graphics/renderer.h"
+#include "fastener/graphics/draw_list.h"
+#include "fastener/graphics/font.h"
+#include "fastener/graphics/texture.h"
+
+#include "fastener/ui/widget.h"
+#include "fastener/ui/layout.h"
+#include "fastener/ui/theme.h"
+#include "fastener/ui/style.h"
+
+#include "fastener/widgets/button.h"
+#include "fastener/widgets/label.h"
+#include "fastener/widgets/panel.h"
+#include "fastener/widgets/text_input.h"
+#include "fastener/widgets/checkbox.h"
+#include "fastener/widgets/slider.h"
+
+namespace fst {
+    // Version info
+    constexpr int VERSION_MAJOR = 0;
+    constexpr int VERSION_MINOR = 1;
+    constexpr int VERSION_PATCH = 0;
+    
+    constexpr const char* VERSION_STRING = "0.1.0";
+}

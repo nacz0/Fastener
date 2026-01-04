@@ -1,0 +1,61 @@
+cmake_minimum_required(VERSION 3.16)
+project(Fastener VERSION 0.1.0 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Options
+option(FST_BUILD_EXAMPLES "Build example applications" ON)
+option(FST_BUILD_TESTS "Build tests" OFF)
+
+# Find OpenGL
+find_package(OpenGL REQUIRED)
+
+# Collect source files
+file(GLOB_RECURSE FST_SOURCES 
+    "src/*.cpp"
+)
+
+file(GLOB_RECURSE FST_HEADERS
+    "include/*.h"
+)
+
+# Create library
+add_library(fastener STATIC ${FST_SOURCES} ${FST_HEADERS})
+
+target_include_directories(fastener PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+target_include_directories(fastener PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty
+)
+
+target_link_libraries(fastener PUBLIC
+    OpenGL::GL
+)
+
+# Platform-specific libraries
+if(WIN32)
+    target_link_libraries(fastener PUBLIC
+        dwmapi
+        gdi32
+        user32
+    )
+endif()
+
+# Examples
+if(FST_BUILD_EXAMPLES)
+    add_executable(fastener_demo examples/demo/main.cpp)
+    target_link_libraries(fastener_demo PRIVATE fastener)
+endif()
+
+# Install
+install(TARGETS fastener
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/ DESTINATION include)

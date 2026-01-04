@@ -1,0 +1,5 @@
+C:/Users/natma/Documents/GitHub/Fastener/build/CMakeFiles/fastener.dir
+C:/Users/natma/Documents/GitHub/Fastener/build/CMakeFiles/fastener_demo.dir
+C:/Users/natma/Documents/GitHub/Fastener/build/CMakeFiles/INSTALL.dir
+C:/Users/natma/Documents/GitHub/Fastener/build/CMakeFiles/ALL_BUILD.dir
+C:/Users/natma/Documents/GitHub/Fastener/build/CMakeFiles/ZERO_CHECK.dir

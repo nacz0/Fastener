@@ -25,6 +25,7 @@
 #include "fastener/widgets/text_input.h"
 #include "fastener/widgets/checkbox.h"
 #include "fastener/widgets/slider.h"
+#include "fastener/widgets/tree_view.h"
 
 namespace fst {
     // Version info

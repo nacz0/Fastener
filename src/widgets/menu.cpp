@@ -112,11 +112,8 @@ float MenuBar::render(const Rect& bounds) {
     
     // Close on click outside
     if (m_openMenuIndex >= 0 && ctx->input().isMousePressed(MouseButton::Left)) {
-        if (m_hoveredIndex < 0) {
-            Vec2 mousePos = ctx->input().mousePos();
-            if (mousePos.y < barRect.bottom()) {
-                // Already handled above
-            }
+        if (m_hoveredIndex < 0 && !g_currentMenuBarDropdownRect.contains(ctx->input().mousePos())) {
+            m_openMenuIndex = -1;
         }
     }
     

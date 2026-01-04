@@ -74,6 +74,41 @@ int main() {
             } else if (id == "context.cpp") {
                 it->second.setText("// context.cpp\n#include \"fastener/core/context.h\"\n\nnamespace fst {\n    // Implementation here\n}\n");
             }
+
+            // Example of external StyleProvider (syntax highlighting moved to application level)
+            it->second.setStyleProvider([](int lineIndex, const std::string& text) {
+                std::vector<fst::TextSegment> segments;
+                static const std::vector<std::string> keywords = {
+                    "int", "void", "float", "bool", "char", "if", "else", "for", "while", "return",
+                    "namespace", "class", "struct", "public", "private", "protected", "static", "const", "using", "include"
+                };
+
+                std::string word;
+                for (int i = 0; i < (int)text.length(); ++i) {
+                    char ch = text[i];
+                    if (isalnum(ch) || ch == '_') {
+                        word += ch;
+                    } else {
+                        if (!word.empty()) {
+                            if (std::find(keywords.begin(), keywords.end(), word) != keywords.end()) {
+                                segments.push_back({i - (int)word.length(), i, fst::Color(86, 156, 214)});
+                            } else if (isdigit(word[0])) {
+                                segments.push_back({i - (int)word.length(), i, fst::Color(181, 206, 168)});
+                            }
+                            word.clear();
+                        }
+                        if (ch == '#' || ch == '<' || ch == '>' || ch == '(' || ch == ')' || ch == '{' || ch == '}' || ch == '[' || ch == ']') {
+                            segments.push_back({i, i + 1, fst::Color(212, 212, 212)});
+                        }
+                    }
+                }
+                if (!word.empty()) {
+                    if (std::find(keywords.begin(), keywords.end(), word) != keywords.end()) {
+                        segments.push_back({(int)text.length() - (int)word.length(), (int)text.length(), fst::Color(86, 156, 214)});
+                    }
+                }
+                return segments;
+            });
         }
         return it->second;
     };

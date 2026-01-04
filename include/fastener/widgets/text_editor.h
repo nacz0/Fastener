@@ -33,6 +33,14 @@ struct TextSelection {
     TextPosition max() const { return start < end ? end : start; }
 };
 
+struct TextSegment {
+    int startColumn;
+    int endColumn;
+    Color color;
+};
+
+using StyleProvider = std::function<std::vector<TextSegment>(int lineIndex, const std::string& text)>;
+
 struct TextEditorOptions {
     float fontSize = 14.0f;
     bool showLineNumbers = true;
@@ -55,9 +63,12 @@ public:
     // State access
     const TextPosition& cursor() const { return m_cursor; }
     void setCursor(const TextPosition& pos);
+    
+    void setStyleProvider(StyleProvider provider) { m_styleProvider = std::move(provider); }
 
 private:
     std::vector<std::string> m_lines;
+    StyleProvider m_styleProvider;
     TextPosition m_cursor;
     TextSelection m_selection;
     bool m_isSelecting = false;

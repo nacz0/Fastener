@@ -119,8 +119,48 @@ void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
             }
         }
 
-        // Text
-        dl.addText(font, Vec2(textBounds.x() + 5, y + (rowHeight - font->lineHeight()) / 2), m_lines[i], theme.colors.text);
+        // Text rendering (styled or plain)
+        Vec2 textPos(textBounds.x() + 5, y + (rowHeight - font->lineHeight()) / 2);
+        const std::string& lineText = m_lines[i];
+
+        if (m_styleProvider) {
+            std::vector<TextSegment> segments = m_styleProvider(i, lineText);
+            
+            // Sort segments by start column to ensure correct rendering order
+            std::sort(segments.begin(), segments.end(), [](const TextSegment& a, const TextSegment& b) {
+                return a.startColumn < b.startColumn;
+            });
+
+            int currentColumn = 0;
+            float currentX = textPos.x;
+
+            for (const auto& segment : segments) {
+                // Render unstyled text before this segment
+                if (segment.startColumn > currentColumn) {
+                    std::string plain = lineText.substr(currentColumn, segment.startColumn - currentColumn);
+                    dl.addText(font, Vec2(currentX, textPos.y), plain, theme.colors.text);
+                    currentX += font->measureText(plain).x;
+                }
+
+                // Render styled segment
+                if (segment.endColumn > segment.startColumn) {
+                    int len = segment.endColumn - segment.startColumn;
+                    std::string styled = lineText.substr(segment.startColumn, len);
+                    dl.addText(font, Vec2(currentX, textPos.y), styled, segment.color);
+                    currentX += font->measureText(styled).x;
+                }
+
+                currentColumn = std::max(currentColumn, segment.endColumn);
+            }
+
+            // Render remaining unstyled text
+            if (currentColumn < (int)lineText.length()) {
+                std::string plain = lineText.substr(currentColumn);
+                dl.addText(font, Vec2(currentX, textPos.y), plain, theme.colors.text);
+            }
+        } else {
+            dl.addText(font, textPos, lineText, theme.colors.text);
+        }
     }
 
     dl.popClipRect();

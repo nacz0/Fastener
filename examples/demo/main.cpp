@@ -56,13 +56,65 @@ int main() {
         tab->modified = true;
     }
     
+    // Create menu bar
+    fst::MenuBar menuBar;
     std::string statusText = "Ready";
+    
+    // File menu
+    menuBar.addMenu("File", {
+        fst::MenuItem("new", "New File", [&]() { 
+            static int n = 1;
+            std::string name = "untitled" + std::to_string(n++) + ".cpp";
+            tabs.addTab(name, name);
+            statusText = "Created: " + name;
+        }).withShortcut("Ctrl+N"),
+        fst::MenuItem("open", "Open File...").withShortcut("Ctrl+O").disabled(),
+        fst::MenuItem("save", "Save", [&]() { statusText = "Saved!"; }).withShortcut("Ctrl+S"),
+        fst::MenuItem("saveAs", "Save As...").withShortcut("Ctrl+Shift+S"),
+        fst::MenuItem::separator(),
+        fst::MenuItem("exit", "Exit", [&]() { window.close(); }).withShortcut("Alt+F4")
+    });
+    
+    // Edit menu
+    menuBar.addMenu("Edit", {
+        fst::MenuItem("undo", "Undo").withShortcut("Ctrl+Z").disabled(),
+        fst::MenuItem("redo", "Redo").withShortcut("Ctrl+Y").disabled(),
+        fst::MenuItem::separator(),
+        fst::MenuItem("cut", "Cut").withShortcut("Ctrl+X"),
+        fst::MenuItem("copy", "Copy").withShortcut("Ctrl+C"),
+        fst::MenuItem("paste", "Paste").withShortcut("Ctrl+V"),
+        fst::MenuItem::separator(),
+        fst::MenuItem("find", "Find...").withShortcut("Ctrl+F"),
+        fst::MenuItem("replace", "Replace...").withShortcut("Ctrl+H")
+    });
+    
+    // View menu
+    menuBar.addMenu("View", {
+        fst::MenuItem::checkbox("explorer", "Explorer", true),
+        fst::MenuItem::checkbox("terminal", "Terminal", false),
+        fst::MenuItem::separator(),
+        fst::MenuItem("zoomIn", "Zoom In").withShortcut("Ctrl++"),
+        fst::MenuItem("zoomOut", "Zoom Out").withShortcut("Ctrl+-")
+    });
+    
+    // Help menu
+    menuBar.addMenu("Help", {
+        fst::MenuItem("about", "About Fastener", [&]() { 
+            statusText = "Fastener v0.1.0 - High-performance C++ GUI"; 
+        })
+    });
     
     while (window.isOpen()) {
         window.pollEvents();
         
         if (window.input().isKeyPressed(fst::Key::Escape)) {
-            window.close();
+            if (menuBar.isOpen()) {
+                menuBar.closeAll();
+            } else if (fst::IsContextMenuOpen()) {
+                fst::CloseContextMenu();
+            } else {
+                window.close();
+            }
         }
         
         ctx.beginFrame(window);
@@ -77,22 +129,26 @@ int main() {
         );
         
         // Layout constants
+        float menuBarHeight = 28.0f;
         float sidebarWidth = 250.0f;
         float statusBarHeight = 24.0f;
         float windowW = static_cast<float>(window.width());
         float windowH = static_cast<float>(window.height());
         
+        // === MENU BAR ===
+        menuBar.render(fst::Rect(0, 0, windowW, menuBarHeight));
+        
         // === SIDEBAR (File Explorer) ===
-        fst::Rect sidebarRect(0, 0, sidebarWidth, windowH - statusBarHeight);
+        fst::Rect sidebarRect(0, menuBarHeight, sidebarWidth, windowH - menuBarHeight - statusBarHeight);
         dl.addRectFilled(sidebarRect, theme.colors.panelBackground.darker(0.03f));
         
         // Sidebar title
         if (ctx.font()) {
-            dl.addText(ctx.font(), fst::Vec2(10, 8), "EXPLORER", theme.colors.textSecondary);
+            dl.addText(ctx.font(), fst::Vec2(10, menuBarHeight + 8), "EXPLORER", theme.colors.textSecondary);
         }
         
         // TreeView
-        fst::Rect treeRect(0, 30, sidebarWidth, sidebarRect.height() - 30);
+        fst::Rect treeRect(0, menuBarHeight + 30, sidebarWidth, sidebarRect.height() - 30);
         
         fst::TreeViewOptions treeOpts;
         treeOpts.rowHeight = 24.0f;
@@ -112,14 +168,22 @@ int main() {
         treeEvents.onSelect = [&](fst::TreeNode* node) {
             statusText = "Selected: " + node->label;
         };
+        treeEvents.onContextMenu = [&](fst::TreeNode* node) {
+            fst::ShowContextMenu({
+                fst::MenuItem("open", "Open"),
+                fst::MenuItem("rename", "Rename"),
+                fst::MenuItem::separator(),
+                fst::MenuItem("delete", "Delete").withShortcut("Del")
+            }, ctx.input().mousePos());
+        };
         
         fileTree.render("explorer", treeRect, treeOpts, treeEvents);
         
         // Sidebar border
-        dl.addRectFilled(fst::Rect(sidebarWidth - 1, 0, 1, sidebarRect.height()), theme.colors.border);
+        dl.addRectFilled(fst::Rect(sidebarWidth - 1, menuBarHeight, 1, sidebarRect.height()), theme.colors.border);
         
         // === EDITOR AREA ===
-        fst::Rect editorArea(sidebarWidth, 0, windowW - sidebarWidth, windowH - statusBarHeight);
+        fst::Rect editorArea(sidebarWidth, menuBarHeight, windowW - sidebarWidth, windowH - menuBarHeight - statusBarHeight);
         
         // TabControl
         fst::TabControlOptions tabOpts;
@@ -172,6 +236,9 @@ int main() {
             dl.addText(ctx.font(), fst::Vec2(windowW - infoWidth - 10, statusRect.y() + 4),
                        info, theme.colors.primaryText);
         }
+        
+        // Render context menu (on top of everything)
+        fst::RenderContextMenu();
         
         ctx.endFrame();
         window.swapBuffers();

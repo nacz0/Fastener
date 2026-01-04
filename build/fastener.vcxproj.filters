@@ -40,6 +40,9 @@
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\label.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\menu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -103,6 +106,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\label.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\menu.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\panel.h">

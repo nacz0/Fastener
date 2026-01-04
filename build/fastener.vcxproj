@@ -317,6 +317,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\button.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\checkbox.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\label.cpp" />
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\menu.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\panel.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\slider.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tab_control.cpp" />
@@ -338,6 +339,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\button.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\checkbox.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\label.h" />
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\menu.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\panel.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\slider.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\tab_control.h" />

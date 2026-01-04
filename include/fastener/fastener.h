@@ -27,6 +27,7 @@
 #include "fastener/widgets/slider.h"
 #include "fastener/widgets/tree_view.h"
 #include "fastener/widgets/tab_control.h"
+#include "fastener/widgets/menu.h"
 
 namespace fst {
     // Version info

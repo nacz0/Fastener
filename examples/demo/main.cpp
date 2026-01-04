@@ -4,7 +4,7 @@
 int main() {
     // Create window
     fst::WindowConfig config;
-    config.title = "Fastener Demo - TreeView";
+    config.title = "Fastener IDE Demo";
     config.width = 1280;
     config.height = 720;
     config.vsync = true;
@@ -18,114 +18,161 @@ int main() {
     fst::Context ctx;
     ctx.setTheme(fst::Theme::dark());
     
-    // Load font from Windows Fonts directory
+    // Load font
     ctx.loadFont("C:/Windows/Fonts/arial.ttf", 14.0f);
     
-    // Create sample tree structure (file explorer style)
+    // Create file tree
     fst::TreeView fileTree;
     auto root = fileTree.root();
     
-    // Add folders and files
     auto src = root->addChild("src", "src");
     auto srcCore = src->addChild("src/core", "core");
     srcCore->addChild("src/core/types.cpp", "types.cpp", true);
     srcCore->addChild("src/core/context.cpp", "context.cpp", true);
     srcCore->addChild("src/core/input.cpp", "input.cpp", true);
     
-    auto srcGraphics = src->addChild("src/graphics", "graphics");
-    srcGraphics->addChild("src/graphics/renderer.cpp", "renderer.cpp", true);
-    srcGraphics->addChild("src/graphics/draw_list.cpp", "draw_list.cpp", true);
-    srcGraphics->addChild("src/graphics/font.cpp", "font.cpp", true);
-    srcGraphics->addChild("src/graphics/texture.cpp", "texture.cpp", true);
-    
     auto srcWidgets = src->addChild("src/widgets", "widgets");
     srcWidgets->addChild("src/widgets/button.cpp", "button.cpp", true);
-    srcWidgets->addChild("src/widgets/label.cpp", "label.cpp", true);
     srcWidgets->addChild("src/widgets/tree_view.cpp", "tree_view.cpp", true);
+    srcWidgets->addChild("src/widgets/tab_control.cpp", "tab_control.cpp", true);
     
     auto include = root->addChild("include", "include");
-    auto incFastener = include->addChild("include/fastener", "fastener");
-    incFastener->addChild("include/fastener/fastener.h", "fastener.h", true);
-    
-    auto examples = root->addChild("examples", "examples");
-    auto demo = examples->addChild("examples/demo", "demo");
-    demo->addChild("examples/demo/main.cpp", "main.cpp", true);
+    include->addChild("include/fastener.h", "fastener.h", true);
     
     root->addChild("CMakeLists.txt", "CMakeLists.txt", true);
     root->addChild("README.md", "README.md", true);
-    root->addChild("LICENSE", "LICENSE", true);
     
-    // Expand some folders by default
     src->isExpanded = true;
     srcCore->isExpanded = true;
-    include->isExpanded = true;
     
-    // Selected node info
-    std::string selectedPath = "No selection";
+    // Create tab control for open files
+    fst::TabControl tabs;
+    tabs.addTab("main.cpp", "main.cpp", true);
+    tabs.addTab("types.cpp", "types.cpp", true);
+    tabs.addTab("context.cpp", "context.cpp", true);
+    
+    // Mark one as modified
+    if (auto tab = tabs.getTab(1)) {
+        tab->modified = true;
+    }
+    
+    std::string statusText = "Ready";
     
     while (window.isOpen()) {
         window.pollEvents();
         
-        // Handle escape to close
         if (window.input().isKeyPressed(fst::Key::Escape)) {
             window.close();
         }
         
-        // Begin frame
         ctx.beginFrame(window);
         
-        // Draw background
         fst::DrawList& dl = ctx.drawList();
+        const fst::Theme& theme = ctx.theme();
+        
+        // Background
         dl.addRectFilled(
             fst::Rect(0, 0, static_cast<float>(window.width()), static_cast<float>(window.height())),
-            ctx.theme().colors.windowBackground
+            theme.colors.windowBackground
         );
         
-        // Title
+        // Layout constants
+        float sidebarWidth = 250.0f;
+        float statusBarHeight = 24.0f;
+        float windowW = static_cast<float>(window.width());
+        float windowH = static_cast<float>(window.height());
+        
+        // === SIDEBAR (File Explorer) ===
+        fst::Rect sidebarRect(0, 0, sidebarWidth, windowH - statusBarHeight);
+        dl.addRectFilled(sidebarRect, theme.colors.panelBackground.darker(0.03f));
+        
+        // Sidebar title
         if (ctx.font()) {
-            dl.addText(ctx.font(), fst::Vec2(20, 20), "Fastener - TreeView Demo", 
-                       ctx.theme().colors.text);
-            dl.addText(ctx.font(), fst::Vec2(20, 45), "Click folders to expand/collapse, files to select",
-                       ctx.theme().colors.textSecondary);
+            dl.addText(ctx.font(), fst::Vec2(10, 8), "EXPLORER", theme.colors.textSecondary);
         }
         
-        // TreeView panel
-        fst::Rect treeRect(20, 80, 350, 600);
+        // TreeView
+        fst::Rect treeRect(0, 30, sidebarWidth, sidebarRect.height() - 30);
         
-        fst::TreeViewOptions options;
-        options.rowHeight = 26.0f;
-        options.indentWidth = 20.0f;
-        options.showIcons = true;
+        fst::TreeViewOptions treeOpts;
+        treeOpts.rowHeight = 24.0f;
+        treeOpts.indentWidth = 16.0f;
         
-        fst::TreeViewEvents events;
-        events.onSelect = [&](fst::TreeNode* node) {
-            selectedPath = "Selected: " + node->id;
-        };
-        events.onDoubleClick = [&](fst::TreeNode* node) {
+        fst::TreeViewEvents treeEvents;
+        treeEvents.onDoubleClick = [&](fst::TreeNode* node) {
             if (node->isLeaf) {
-                selectedPath = "Opened: " + node->id;
+                // Open file in new tab
+                if (tabs.findTabIndex(node->id) < 0) {
+                    tabs.addTab(node->id, node->label, true);
+                }
+                tabs.selectTabById(node->id);
+                statusText = "Opened: " + node->label;
             }
         };
+        treeEvents.onSelect = [&](fst::TreeNode* node) {
+            statusText = "Selected: " + node->label;
+        };
         
-        fileTree.render("file_tree", treeRect, options, events);
+        fileTree.render("explorer", treeRect, treeOpts, treeEvents);
         
-        // Info panel
-        fst::Rect infoRect(400, 80, 400, 200);
-        dl.addRectFilled(infoRect, ctx.theme().colors.panelBackground, 8.0f);
-        dl.addRect(infoRect, ctx.theme().colors.border, 8.0f);
+        // Sidebar border
+        dl.addRectFilled(fst::Rect(sidebarWidth - 1, 0, 1, sidebarRect.height()), theme.colors.border);
         
-        if (ctx.font()) {
-            dl.addText(ctx.font(), fst::Vec2(420, 100), "File Info", ctx.theme().colors.text);
-            dl.addText(ctx.font(), fst::Vec2(420, 130), selectedPath, ctx.theme().colors.textSecondary);
-            
-            if (fileTree.selectedNode()) {
-                std::string nodeType = fileTree.selectedNode()->isLeaf ? "File" : "Folder";
-                dl.addText(ctx.font(), fst::Vec2(420, 160), "Type: " + nodeType, 
-                           ctx.theme().colors.textSecondary);
-            }
+        // === EDITOR AREA ===
+        fst::Rect editorArea(sidebarWidth, 0, windowW - sidebarWidth, windowH - statusBarHeight);
+        
+        // TabControl
+        fst::TabControlOptions tabOpts;
+        tabOpts.tabHeight = 32.0f;
+        tabOpts.showCloseButtons = true;
+        tabOpts.showAddButton = true;
+        
+        fst::TabControlEvents tabEvents;
+        tabEvents.onSelect = [&](int index, const fst::TabItem& tab) {
+            statusText = "Switched to: " + tab.label;
+        };
+        tabEvents.onClose = [&](int index, const fst::TabItem& tab) {
+            statusText = "Closed: " + tab.label;
+            tabs.removeTab(index);
+        };
+        tabEvents.onAdd = [&]() {
+            static int newFileCount = 1;
+            std::string name = "untitled" + std::to_string(newFileCount++) + ".cpp";
+            tabs.addTab(name, name, true);
+            tabs.selectTab(tabs.tabCount() - 1);
+            statusText = "Created: " + name;
+        };
+        
+        fst::Rect contentRect = tabs.render("editor_tabs", editorArea, tabOpts, tabEvents);
+        
+        // Editor content area
+        dl.addRectFilled(contentRect, theme.colors.panelBackground);
+        
+        // Show file content placeholder
+        if (ctx.font() && tabs.selectedTab()) {
+            dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 20),
+                       "// " + tabs.selectedTab()->label, theme.colors.textSecondary);
+            dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 50),
+                       "// File content would appear here", theme.colors.textSecondary);
+            dl.addText(ctx.font(), fst::Vec2(contentRect.x() + 20, contentRect.y() + 80),
+                       "// Double-click files in Explorer to open them", theme.colors.textSecondary);
         }
         
-        // End frame
+        // === STATUS BAR ===
+        fst::Rect statusRect(0, windowH - statusBarHeight, windowW, statusBarHeight);
+        dl.addRectFilled(statusRect, theme.colors.primary);
+        
+        if (ctx.font()) {
+            dl.addText(ctx.font(), fst::Vec2(10, statusRect.y() + 4), statusText, 
+                       theme.colors.primaryText);
+            
+            // Right side info
+            std::string info = "Ln 1, Col 1 | UTF-8 | C++";
+            float infoWidth = ctx.font()->measureText(info).x;
+            dl.addText(ctx.font(), fst::Vec2(windowW - infoWidth - 10, statusRect.y() + 4),
+                       info, theme.colors.primaryText);
+        }
+        
         ctx.endFrame();
         window.swapBuffers();
     }

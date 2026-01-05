@@ -73,7 +73,10 @@ if(FST_BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
     
     enable_testing()
-    add_executable(fastener_tests tests/test_types.cpp)
+    add_executable(fastener_tests 
+        tests/test_types.cpp
+        tests/test_widget_utils.cpp
+    )
     target_link_libraries(fastener_tests PRIVATE fastener GTest::gtest_main)
     include(GoogleTest)
     gtest_discover_tests(fastener_tests)

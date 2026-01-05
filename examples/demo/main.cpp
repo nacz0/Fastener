@@ -349,7 +349,44 @@ int main() {
                     pbo.indeterminate = true;
                     pbo.style.withPos(startX, currentY).withWidth(400);
                     fst::ProgressBar("Background Sync", 0.0f, pbo);
-                    currentY += 30;
+                    currentY += 50;
+
+                    // Tooltips Demo
+                    dl.addText(ctx.font(), fst::Vec2(startX, currentY), "Tooltips (hover for help):", theme.colors.textSecondary);
+                    currentY += 35;
+                    
+                    // Button with tooltip
+                    fst::ButtonOptions saveOpts;
+                    saveOpts.style.withPos(startX, currentY);
+                    if (fst::Button("Save", saveOpts)) {
+                        statusText = "Save clicked!";
+                    }
+                    fst::Tooltip("Save current document (Ctrl+S)");
+                    
+                    fst::ButtonOptions buildOpts;
+                    buildOpts.style.withPos(startX + 80, currentY);
+                    if (fst::Button("Build", buildOpts)) {
+                        statusText = "Build clicked!";
+                    }
+                    fst::Tooltip("Compile and link the project (F5)");
+                    
+                    fst::ButtonOptions runOpts;
+                    runOpts.style.withPos(startX + 160, currentY);
+                    if (fst::Button("Run", runOpts)) {
+                        statusText = "Run clicked!";
+                    }
+                    fst::Tooltip("Execute the compiled application");
+                    currentY += 50;
+
+                    // HelpMarker example
+                    dl.addText(ctx.font(), fst::Vec2(startX, currentY), "Help Marker:", theme.colors.textSecondary);
+                    
+                    fst::HelpMarkerOptions hmOpts;
+                    hmOpts.style.withPos(startX + 100, currentY - 2);
+                    hmOpts.tooltipOptions.maxWidth = 200.0f;
+                    fst::HelpMarker("This is a help marker. It shows this tooltip when you hover over the small question mark icon.", hmOpts);
+                    
+                    currentY += 50;
                 }
             } else {
                 fst::TextEditor& editor = getOrCreateEditor(tabId);

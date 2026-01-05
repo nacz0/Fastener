@@ -70,6 +70,9 @@
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\text_input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tooltip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tree_view.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -151,6 +154,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\text_input.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\tooltip.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\tree_view.h">

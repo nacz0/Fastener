@@ -10,11 +10,16 @@ C:\Users\natma\Documents\GitHub\Fastener\src\ui\layout.cpp;C:\Users\natma\Docume
 C:\Users\natma\Documents\GitHub\Fastener\src\ui\widget.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\widget.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\button.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\button.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\checkbox.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\checkbox.obj
+C:\Users\natma\Documents\GitHub\Fastener\src\widgets\combo_box.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\combo_box.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\label.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\label.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\menu.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\menu.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\panel.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\panel.obj
+C:\Users\natma\Documents\GitHub\Fastener\src\widgets\progress_bar.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\progress_bar.obj
+C:\Users\natma\Documents\GitHub\Fastener\src\widgets\scroll_area.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\scroll_area.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\slider.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\slider.obj
+C:\Users\natma\Documents\GitHub\Fastener\src\widgets\splitter.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\splitter.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tab_control.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\tab_control.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\text_editor.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\text_editor.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\text_input.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\text_input.obj
+C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tooltip.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\tooltip.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tree_view.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\tree_view.obj

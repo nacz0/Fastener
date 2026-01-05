@@ -31,6 +31,7 @@
 #include "fastener/widgets/scroll_area.h"
 #include "fastener/widgets/combo_box.h"
 #include "fastener/widgets/progress_bar.h"
+#include "fastener/widgets/tooltip.h"
 
 namespace fst {
     // Version info

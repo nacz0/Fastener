@@ -24,9 +24,8 @@ bool Button(const char* label, const ButtonOptions& options) {
                   textSize.x + theme.metrics.paddingMedium * 2 + theme.metrics.paddingLarge * 2;
     float height = options.style.height > 0 ? options.style.height : theme.metrics.buttonHeight;
     
-    // Allocate space (for now, simple positioning)
-    Rect bounds(0, 0, width, height);
-    // TODO: Get position from layout system
+    // Allocate space (use style position if provided)
+    Rect bounds(options.style.x, options.style.y, width, height);
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);

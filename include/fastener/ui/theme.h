@@ -62,6 +62,11 @@ struct ThemeColors {
     
     // Shadow
     Color shadow;
+    
+    // Tooltip
+    Color tooltipBackground;
+    Color tooltipText;
+    Color tooltipBorder;
 };
 
 //=============================================================================
@@ -186,6 +191,11 @@ inline Theme Theme::dark() {
     // Shadow
     c.shadow = Color(0, 0, 0, 80);
     
+    // Tooltip
+    c.tooltipBackground = Color::fromHex(0x1f1f1f);
+    c.tooltipText = Color::fromHex(0xf3f4f6);
+    c.tooltipBorder = Color::fromHex(0x525252);
+    
     return theme;
 }
 
@@ -250,6 +260,11 @@ inline Theme Theme::light() {
     
     // Shadow
     c.shadow = Color(0, 0, 0, 40);
+    
+    // Tooltip
+    c.tooltipBackground = Color::fromHex(0x1f2937);
+    c.tooltipText = Color::fromHex(0xf8fafc);
+    c.tooltipBorder = Color::fromHex(0x4b5563);
     
     return theme;
 }

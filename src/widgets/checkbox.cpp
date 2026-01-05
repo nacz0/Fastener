@@ -3,6 +3,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 
 namespace fst {
@@ -76,22 +77,18 @@ bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) 
         
         // Draw simple checkmark using lines
         Vec2 center = boxBounds.center();
-        float s = boxSize * 0.3f;
+        auto pts = checkbox_utils::calculateCheckmark(center, boxSize);
         
-        // Checkmark: two lines forming a check
-        Vec2 p1(center.x - s * 0.8f, center.y);
-        Vec2 p2(center.x - s * 0.2f, center.y + s * 0.6f);
-        Vec2 p3(center.x + s * 0.9f, center.y - s * 0.5f);
-        
-        dl.addLine(p1, p2, checkColor, 2.0f);
-        dl.addLine(p2, p3, checkColor, 2.0f);
+        dl.addLine(pts.p1, pts.p2, checkColor, 2.0f);
+        dl.addLine(pts.p2, pts.p3, checkColor, 2.0f);
     }
     
     // Draw label
     if (font && label[0] != '\0') {
+        float textY = layout_utils::verticalCenterY(bounds.y(), height, textSize.y);
         Vec2 textPos(
             boxBounds.right() + theme.metrics.paddingSmall,
-            bounds.y() + (height - textSize.y) * 0.5f
+            textY
         );
         
         Color textColor = options.disabled ? 

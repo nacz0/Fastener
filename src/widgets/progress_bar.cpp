@@ -3,6 +3,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/widget_utils.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -35,7 +36,8 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
 
     // Draw label
     if (font && !label.empty()) {
-        Vec2 labelPos(bounds.x(), bounds.y() + (height - font->lineHeight()) * 0.5f);
+        float labelY = layout_utils::verticalCenterY(bounds.y(), height, font->lineHeight());
+        Vec2 labelPos(bounds.x(), labelY);
         dl.addText(font, labelPos, label, theme.colors.text);
     }
 
@@ -52,10 +54,8 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
     if (options.indeterminate) {
         float time = ctx->time();
         float barWidth = trackBounds.width() * 0.3f;
-        float totalRange = trackBounds.width() + barWidth;
-        float cycle = std::fmod(time * 0.7f, 1.0f);
-        
-        float barLeft = trackBounds.x() - barWidth + cycle * totalRange;
+        float barLeft = progress_utils::indeterminateBarPosition(
+            time, 0.7f, trackBounds.x(), trackBounds.width(), barWidth);
         float barRight = barLeft + barWidth;
         float innerLeft = trackBounds.x() + radius;
         float innerRight = trackBounds.right() - radius;
@@ -83,7 +83,8 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
         dl.popClipRect();
     } else if (progress > 0.0f) {
         // Normal progress fill
-        Rect fillRect(trackBounds.x(), trackBounds.y(), trackBounds.width() * progress, trackBounds.height());
+        float fillW = progress_utils::fillWidth(progress, trackBounds.width());
+        Rect fillRect(trackBounds.x(), trackBounds.y(), fillW, trackBounds.height());
         dl.addRectFilled(fillRect, fillColor, radius);
     }
 

@@ -1,43 +1,8 @@
 #include <gtest/gtest.h>
 #include <fastener/core/types.h>
-#include <algorithm>
-#include <cmath>
+#include <fastener/ui/widget_utils.h>
 
 using namespace fst;
-
-//=============================================================================
-// Slider Value Calculations - extracted logic
-//=============================================================================
-
-namespace slider_utils {
-
-// Calculate normalized position (0-1) from value
-inline float valueToNormalized(float value, float minVal, float maxVal) {
-    if (maxVal <= minVal) return 0.0f;
-    return std::clamp((value - minVal) / (maxVal - minVal), 0.0f, 1.0f);
-}
-
-// Calculate value from normalized position (0-1)
-inline float normalizedToValue(float t, float minVal, float maxVal) {
-    t = std::clamp(t, 0.0f, 1.0f);
-    return minVal + t * (maxVal - minVal);
-}
-
-// Calculate thumb X position from value
-inline float thumbPositionFromValue(float value, float minVal, float maxVal, 
-                                     float trackLeft, float trackWidth) {
-    float t = valueToNormalized(value, minVal, maxVal);
-    return trackLeft + trackWidth * t;
-}
-
-// Calculate value from mouse X position
-inline float valueFromMousePosition(float mouseX, float trackLeft, float trackWidth,
-                                     float minVal, float maxVal) {
-    float t = (mouseX - trackLeft) / trackWidth;
-    return normalizedToValue(t, minVal, maxVal);
-}
-
-} // namespace slider_utils
 
 //=============================================================================
 // Slider Utils Tests
@@ -105,28 +70,6 @@ TEST(SliderUtilsTest, ValueFromMouse_OutOfBounds) {
 }
 
 //=============================================================================
-// ProgressBar Calculations - extracted logic
-//=============================================================================
-
-namespace progress_utils {
-
-// Calculate fill width from progress
-inline float fillWidth(float progress, float trackWidth) {
-    progress = std::clamp(progress, 0.0f, 1.0f);
-    return trackWidth * progress;
-}
-
-// Calculate indeterminate bar position (returns left edge)
-inline float indeterminateBarPosition(float time, float speed, float trackLeft, 
-                                       float trackWidth, float barWidth) {
-    float totalRange = trackWidth + barWidth;
-    float cycle = std::fmod(time * speed, 1.0f);
-    return trackLeft - barWidth + cycle * totalRange;
-}
-
-} // namespace progress_utils
-
-//=============================================================================
 // ProgressBar Utils Tests
 //=============================================================================
 
@@ -169,37 +112,6 @@ TEST(ProgressBarUtilsTest, IndeterminatePosition_Middle) {
 }
 
 //=============================================================================
-// Checkbox Calculations - extracted logic
-//=============================================================================
-
-namespace checkbox_utils {
-
-// Calculate checkmark points
-struct CheckmarkPoints {
-    Vec2 p1, p2, p3;
-};
-
-inline CheckmarkPoints calculateCheckmark(Vec2 center, float boxSize) {
-    float s = boxSize * 0.3f;
-    CheckmarkPoints pts;
-    pts.p1 = Vec2(center.x - s * 0.8f, center.y);
-    pts.p2 = Vec2(center.x - s * 0.2f, center.y + s * 0.6f);
-    pts.p3 = Vec2(center.x + s * 0.9f, center.y - s * 0.5f);
-    return pts;
-}
-
-// Calculate label position
-inline Vec2 labelPosition(float boxRight, float spacing, float boundsY, 
-                          float boundsHeight, float textHeight) {
-    return Vec2(
-        boxRight + spacing,
-        boundsY + (boundsHeight - textHeight) * 0.5f
-    );
-}
-
-} // namespace checkbox_utils
-
-//=============================================================================
 // Checkbox Utils Tests
 //=============================================================================
 
@@ -221,38 +133,6 @@ TEST(CheckboxUtilsTest, CheckmarkPoints) {
     EXPECT_GT(pts.p3.x, center.x);
 }
 
-TEST(CheckboxUtilsTest, LabelPosition_Centered) {
-    Vec2 pos = checkbox_utils::labelPosition(30.0f, 5.0f, 10.0f, 20.0f, 14.0f);
-    
-    EXPECT_FLOAT_EQ(pos.x, 35.0f);  // boxRight + spacing
-    EXPECT_FLOAT_EQ(pos.y, 13.0f);  // 10 + (20 - 14) * 0.5 = 10 + 3 = 13
-}
-
-//=============================================================================
-// Layout Calculations - common widget sizing
-//=============================================================================
-
-namespace layout_utils {
-
-// Calculate centered position within bounds
-inline Vec2 centerInBounds(Vec2 itemSize, Rect bounds) {
-    return Vec2(
-        bounds.x() + (bounds.width() - itemSize.x) * 0.5f,
-        bounds.y() + (bounds.height() - itemSize.y) * 0.5f
-    );
-}
-
-// Calculate total widget width with label and optional value display
-inline float totalWidthWithLabel(float contentWidth, float labelWidth, 
-                                  float valueWidth, float padding) {
-    float total = contentWidth;
-    if (labelWidth > 0) total += labelWidth + padding;
-    if (valueWidth > 0) total += valueWidth + padding;
-    return total;
-}
-
-} // namespace layout_utils
-
 //=============================================================================
 // Layout Utils Tests  
 //=============================================================================
@@ -265,6 +145,11 @@ TEST(LayoutUtilsTest, CenterInBounds) {
     
     EXPECT_FLOAT_EQ(centered.x, 175.0f);  // 100 + (200 - 50) / 2
     EXPECT_FLOAT_EQ(centered.y, 140.0f);  // 100 + (100 - 20) / 2
+}
+
+TEST(LayoutUtilsTest, VerticalCenterY) {
+    float y = layout_utils::verticalCenterY(10.0f, 100.0f, 20.0f);
+    EXPECT_FLOAT_EQ(y, 50.0f);  // 10 + (100 - 20) / 2 = 10 + 40 = 50
 }
 
 TEST(LayoutUtilsTest, TotalWidthWithLabel) {

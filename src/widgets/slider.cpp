@@ -3,6 +3,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include <algorithm>
 #include <cmath>
@@ -39,7 +40,7 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
         valueWidth = font->measureText("-999.99").x + theme.metrics.paddingMedium;
     }
     
-    float totalWidth = labelWidth + sliderWidth + valueWidth;
+    float totalWidth = layout_utils::totalWidthWithLabel(sliderWidth, labelWidth, valueWidth, 0);
     
     Rect bounds(0, 0, totalWidth, height);
     // TODO: Get from layout system
@@ -62,19 +63,18 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     // Handle dragging
     if ((interaction.clicked || interaction.dragging) && !options.disabled) {
         float mouseX = ctx->input().mousePos().x;
-        float t = (mouseX - trackBounds.left()) / trackBounds.width();
-        t = std::clamp(t, 0.0f, 1.0f);
+        float newValue = slider_utils::valueFromMousePosition(
+            mouseX, trackBounds.left(), trackBounds.width(), minVal, maxVal);
         
-        float newValue = minVal + t * (maxVal - minVal);
         if (newValue != value) {
             value = newValue;
             changed = true;
         }
     }
     
-    // Clamp value
+    // Clamp value and get normalized position
     value = std::clamp(value, minVal, maxVal);
-    float t = (value - minVal) / (maxVal - minVal);
+    float t = slider_utils::valueToNormalized(value, minVal, maxVal);
     
     // Draw label
     if (font && label[0] != '\0') {

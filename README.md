@@ -162,9 +162,18 @@ fst::Rect contentArea = tabs.render("tabs", bounds, {}, events);
 - [ ] Docking system
 - [ ] Cross-platform (Linux, macOS)
 
-## License
+## 📚 Documentation
 
-MIT License - see [LICENSE](LICENSE) for details.
+Comprehensive documentation is available in the [**docs/**](docs/README.md) folder:
+
+- [**Quick Start Guide**](docs/GETTING_STARTED.md)
+- [**Architecture Overview**](docs/ARCHITECTURE.md)
+- [**API Reference**](docs/API.md)
+- [**Widget Catalog**](docs/WIDGETS.md)
+- [**Theming Guide**](docs/THEMING.md)
+- [**AI Context**](docs/AI_CONTEXT.md) (for use with AI assistants)
+
+## License
 
 ---
 

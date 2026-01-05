@@ -95,7 +95,8 @@ void Context::beginFrame(Window& window) {
         LayoutDirection::Vertical
     );
     
-    // Reset hovered widget
+    // Reset cursor and hovered widget
+    window.setCursor(Cursor::Arrow);
     m_impl->hoveredWidget = INVALID_WIDGET_ID;
 }
 

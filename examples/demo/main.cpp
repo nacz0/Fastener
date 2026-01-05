@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include "fastener/widgets/text_editor.h"
+#include "fastener/widgets/splitter.h"
 
 int main() {
     // Create window
@@ -191,25 +192,31 @@ int main() {
         
         // Layout constants
         float menuBarHeight = 28.0f;
-        float sidebarWidth = 250.0f;
-        float statusBarHeight = 24.0f;
         float windowW = static_cast<float>(window.width());
         float windowH = static_cast<float>(window.height());
+        const float statusBarHeight = 24.0f;
+
+        static float sidebarRatio = 250.0f;
+        static float terminalHeight = 150.0f;
+        static bool showTerminal = true;
         
         // === MENU BAR ===
         menuBar.render(fst::Rect(0, 0, windowW, menuBarHeight));
         
+        // === MAIN AREA (Sidebar + Editor/Terminal) ===
+        fst::Rect mainArea(0, menuBarHeight, windowW, windowH - menuBarHeight - statusBarHeight);
+        
         // === SIDEBAR (File Explorer) ===
-        fst::Rect sidebarRect(0, menuBarHeight, sidebarWidth, windowH - menuBarHeight - statusBarHeight);
+        fst::Rect sidebarRect(mainArea.x(), mainArea.y(), sidebarRatio, mainArea.height());
         dl.addRectFilled(sidebarRect, theme.colors.panelBackground.darker(0.03f));
         
         // Sidebar title
         if (ctx.font()) {
-            dl.addText(ctx.font(), fst::Vec2(10, menuBarHeight + 8), "EXPLORER", theme.colors.textSecondary);
+            dl.addText(ctx.font(), fst::Vec2(sidebarRect.x() + 10, sidebarRect.y() + 8), "EXPLORER", theme.colors.textSecondary);
         }
         
         // TreeView
-        fst::Rect treeRect(0, menuBarHeight + 30, sidebarWidth, sidebarRect.height() - 30);
+        fst::Rect treeRect(sidebarRect.x(), sidebarRect.y() + 30, sidebarRect.width(), sidebarRect.height() - 30);
         
         fst::TreeViewOptions treeOpts;
         treeOpts.rowHeight = 24.0f;
@@ -240,11 +247,16 @@ int main() {
         
         fileTree.render("explorer", treeRect, treeOpts, treeEvents);
         
-        // Sidebar border
-        dl.addRectFilled(fst::Rect(sidebarWidth - 1, menuBarHeight, 1, sidebarRect.height()), theme.colors.border);
+        // Sidebar border is now handled by the splitter visual, but we can add a subtle one if needed
+        // dl.addRectFilled(fst::Rect(sidebarRect.right() - 1, sidebarRect.y(), 1, sidebarRect.height()), theme.colors.border);
         
-        // === EDITOR AREA ===
-        fst::Rect editorArea(sidebarWidth, menuBarHeight, windowW - sidebarWidth, windowH - menuBarHeight - statusBarHeight);
+        // === RIGHT AREA (Editor + Terminal) ===
+        fst::Rect rightArea(sidebarRect.right(), mainArea.y(), mainArea.width() - sidebarRect.width(), mainArea.height());
+        
+        float currentTerminalHeight = showTerminal ? terminalHeight : 0.0f;
+        float editorHeight = rightArea.height() - currentTerminalHeight;
+        
+        fst::Rect editorArea(rightArea.x(), rightArea.y(), rightArea.width(), editorHeight);
         
         // TabControl
         fst::TabControlOptions tabOpts;
@@ -281,7 +293,44 @@ int main() {
                            "No file open", theme.colors.textSecondary);
             }
         }
+
+        // === TERMINAL AREA ===
+        if (showTerminal) {
+            fst::Rect terminalArea(rightArea.x(), rightArea.y() + editorHeight, rightArea.width(), terminalHeight);
+            dl.addRectFilled(terminalArea, theme.colors.windowBackground.darker(0.1f));
+            
+            // Terminal top border
+            dl.addRectFilled(fst::Rect(terminalArea.x(), terminalArea.y(), terminalArea.width(), 1), theme.colors.border);
+            
+            if (ctx.font()) {
+                dl.addText(ctx.font(), fst::Vec2(terminalArea.x() + 10, terminalArea.y() + 10), 
+                           "TERMINAL", theme.colors.textSecondary);
+                dl.addText(ctx.font(), fst::Vec2(terminalArea.x() + 10, terminalArea.y() + 35), 
+                           "PS C:\\Users\\natma\\Documents\\GitHub\\Fastener> _", theme.colors.text);
+            }
+        }
+
+        // === SPLITTERS (Rendered last to stay on top and capture input) ===
         
+        // Sidebar Splitter
+        fst::SplitterOptions sidebarSplitterOpts;
+        sidebarSplitterOpts.direction = fst::Direction::Vertical;
+        sidebarSplitterOpts.minSize1 = 100.0f;
+        sidebarSplitterOpts.minSize2 = 200.0f;
+        fst::Splitter("sidebar_splitter", sidebarRatio, mainArea, sidebarSplitterOpts);
+
+        // Terminal Splitter
+        if (showTerminal) {
+            float splitY = rightArea.height() - terminalHeight;
+            fst::SplitterOptions terminalSplitterOpts;
+            terminalSplitterOpts.direction = fst::Direction::Horizontal;
+            terminalSplitterOpts.minSize1 = 100.0f;
+            terminalSplitterOpts.minSize2 = 50.0f;
+            if (fst::Splitter("terminal_splitter", splitY, rightArea, terminalSplitterOpts)) {
+                terminalHeight = rightArea.height() - splitY;
+            }
+        }
+
         // === STATUS BAR ===
         fst::Rect statusRect(0, windowH - statusBarHeight, windowW, statusBarHeight);
         dl.addRectFilled(statusRect, theme.colors.primary);

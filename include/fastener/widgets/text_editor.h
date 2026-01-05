@@ -41,6 +41,20 @@ struct TextSegment {
 
 using StyleProvider = std::function<std::vector<TextSegment>(int lineIndex, const std::string& text)>;
 
+enum class EditActionType {
+    Insert,
+    Delete
+};
+
+struct EditAction {
+    EditActionType type;
+    std::string text;
+    TextPosition start;
+    TextPosition end;
+    TextPosition cursorBefore;
+    TextPosition cursorAfter;
+};
+
 struct TextEditorOptions {
     float fontSize = 14.0f;
     bool showLineNumbers = true;
@@ -66,6 +80,11 @@ public:
     
     void setStyleProvider(StyleProvider provider) { m_styleProvider = std::move(provider); }
 
+    void undo();
+    void redo();
+    bool canUndo() const { return !m_undoStack.empty(); }
+    bool canRedo() const { return !m_redoStack.empty(); }
+
 private:
     std::vector<std::string> m_lines;
     StyleProvider m_styleProvider;
@@ -80,6 +99,11 @@ private:
     Vec2 m_scrollOffset = {0, 0};
     float m_contentWidth = 0;
     float m_contentHeight = 0;
+
+    std::vector<EditAction> m_undoStack;
+    std::vector<EditAction> m_redoStack;
+    const size_t m_maxHistorySize = 100;
+    bool m_isUndoingRedoing = false;
 
     // Internal helpers
     void handleInput(const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
@@ -96,7 +120,11 @@ private:
     void cutToClipboard();
     
     std::string getSelectedText() const;
+    std::string getTextRange(TextPosition start, TextPosition end) const;
     
+    void recordAction(EditActionType type, const std::string& text, TextPosition start, TextPosition end, TextPosition cursorBefore);
+    void applyAction(const EditAction& action, bool undo);
+
     void ensureCursorVisible(const Rect& bounds, float rowHeight);
     TextPosition screenToTextPos(const Vec2& screenPos, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
 };

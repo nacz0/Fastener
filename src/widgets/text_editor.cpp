@@ -32,6 +32,8 @@ void TextEditor::setText(const std::string& text) {
 
     m_cursor = {0, 0};
     m_selection.clear();
+    m_undoStack.clear();
+    m_redoStack.clear();
 }
 
 std::string TextEditor::getText() const {
@@ -48,6 +50,8 @@ void TextEditor::clear() {
     m_lines.push_back("");
     m_cursor = {0, 0};
     m_selection.clear();
+    m_undoStack.clear();
+    m_redoStack.clear();
 }
 
 void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
@@ -166,6 +170,74 @@ void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
     dl.popClipRect();
 }
 
+void TextEditor::undo() {
+    if (m_undoStack.empty()) return;
+    m_isUndoingRedoing = true;
+    EditAction action = m_undoStack.back();
+    m_undoStack.pop_back();
+    applyAction(action, true);
+    m_redoStack.push_back(action);
+    m_isUndoingRedoing = false;
+}
+
+void TextEditor::redo() {
+    if (m_redoStack.empty()) return;
+    m_isUndoingRedoing = true;
+    EditAction action = m_redoStack.back();
+    m_redoStack.pop_back();
+    applyAction(action, false);
+    m_undoStack.push_back(action);
+    m_isUndoingRedoing = false;
+}
+
+void TextEditor::recordAction(EditActionType type, const std::string& text, TextPosition start, TextPosition end, TextPosition cursorBefore) {
+    if (m_isUndoingRedoing) return;
+    
+    EditAction action;
+    action.type = type;
+    action.text = text;
+    action.start = start;
+    action.end = end;
+    action.cursorBefore = cursorBefore;
+    action.cursorAfter = m_cursor;
+
+    m_undoStack.push_back(action);
+    m_redoStack.clear();
+
+    if (m_undoStack.size() > m_maxHistorySize) {
+        m_undoStack.erase(m_undoStack.begin());
+    }
+}
+
+void TextEditor::applyAction(const EditAction& action, bool undo) {
+    bool isInsert = (action.type == EditActionType::Insert);
+    if (undo) isInsert = !isInsert;
+
+    if (isInsert) {
+        // Apply insertion
+        m_cursor = action.start;
+        // Text is a single string but might contain newlines
+        // insertText handles single lines, so we need a more robust insert for multi-line actions
+        std::stringstream ss(action.text);
+        std::string segment;
+        bool first = true;
+        while (std::getline(ss, segment, '\n')) {
+            if (!segment.empty() && segment.back() == '\r') segment.pop_back();
+            if (!first) enter();
+            insertText(segment);
+            first = false;
+        }
+    } else {
+        // Apply deletion
+        m_selection.start = action.start;
+        m_selection.end = action.end;
+        deleteSelection();
+    }
+
+    m_cursor = undo ? action.cursorBefore : action.cursorAfter;
+    m_selection.clear();
+}
+
 void TextEditor::setCursor(const TextPosition& pos) {
     m_cursor.line = std::clamp(pos.line, 0, static_cast<int>(m_lines.size() - 1));
     m_cursor.column = std::clamp(pos.column, 0, static_cast<int>(m_lines[m_cursor.line].length()));
@@ -254,6 +326,9 @@ void TextEditor::handleKeyboard(const Rect& bounds, float rowHeight, float delta
         m_cursor = m_selection.end;
     }
 
+    if (ctrl && shouldTrigger(Key::Z)) undo();
+    if (ctrl && shouldTrigger(Key::Y)) redo();
+
     if (!input.textInput().empty() && !ctrl) {
         if (!m_selection.isEmpty()) deleteSelection();
         insertText(input.textInput());
@@ -308,33 +383,49 @@ void TextEditor::handleMouse(const Rect& bounds, float rowHeight, float charWidt
 }
 
 void TextEditor::insertText(const std::string& text) {
+    TextPosition start = m_cursor;
     m_lines[m_cursor.line].insert(m_cursor.column, text);
     m_cursor.column += (int)text.length();
+    recordAction(EditActionType::Insert, text, start, m_cursor, start);
 }
 
 void TextEditor::deleteSelection() {
     if (m_selection.isEmpty()) return;
     TextPosition minP = m_selection.min(), maxP = m_selection.max();
+    TextPosition cursorBefore = m_cursor;
+    std::string deletedText = getTextRange(minP, maxP);
+    
     if (minP.line == maxP.line) m_lines[minP.line].erase(minP.column, maxP.column - minP.column);
     else {
         m_lines[minP.line] = m_lines[minP.line].substr(0, minP.column) + m_lines[maxP.line].substr(maxP.column);
         m_lines.erase(m_lines.begin() + minP.line + 1, m_lines.begin() + maxP.line + 1);
     }
     m_cursor = minP;
+    recordAction(EditActionType::Delete, deletedText, minP, maxP, cursorBefore);
     m_selection.clear();
 }
 
 void TextEditor::backspace() {
-    if (m_cursor.column > 0) { m_lines[m_cursor.line].erase(m_cursor.column - 1, 1); m_cursor.column--; }
+    TextPosition cursorBefore = m_cursor;
+    if (m_cursor.column > 0) {
+        TextPosition start = {m_cursor.line, m_cursor.column - 1};
+        std::string deleted = getTextRange(start, m_cursor);
+        m_lines[m_cursor.line].erase(m_cursor.column - 1, 1);
+        m_cursor.column--;
+        recordAction(EditActionType::Delete, deleted, start, cursorBefore, cursorBefore);
+    }
     else if (m_cursor.line > 0) {
+        TextPosition start = {m_cursor.line - 1, (int)m_lines[m_cursor.line - 1].length()};
         int oldLen = (int)m_lines[m_cursor.line - 1].length();
         m_lines[m_cursor.line - 1] += m_lines[m_cursor.line];
         m_lines.erase(m_lines.begin() + m_cursor.line);
         m_cursor.line--; m_cursor.column = oldLen;
+        recordAction(EditActionType::Delete, "\n", start, cursorBefore, cursorBefore);
     }
 }
 
 void TextEditor::enter() {
+    TextPosition cursorBefore = m_cursor;
     std::string line = m_lines[m_cursor.line];
     size_t first = line.find_first_not_of(" \t");
     std::string indent = (m_cursor.column > (int)first) ? line.substr(0, first) : "";
@@ -342,6 +433,7 @@ void TextEditor::enter() {
     m_lines[m_cursor.line].erase(m_cursor.column);
     m_lines.insert(m_lines.begin() + m_cursor.line + 1, indent + rem);
     m_cursor.line++; m_cursor.column = (int)indent.length();
+    recordAction(EditActionType::Insert, "\n" + indent, cursorBefore, m_cursor, cursorBefore);
 }
 
 void TextEditor::copyToClipboard() {
@@ -368,12 +460,18 @@ void TextEditor::pasteFromClipboard() {
 }
 
 std::string TextEditor::getSelectedText() const {
-    if (m_selection.isEmpty()) return "";
-    TextPosition minP = m_selection.min(), maxP = m_selection.max();
-    if (minP.line == maxP.line) return m_lines[minP.line].substr(minP.column, maxP.column - minP.column);
-    std::string result = m_lines[minP.line].substr(minP.column) + "\n";
-    for (int i = minP.line + 1; i < maxP.line; ++i) result += m_lines[i] + "\n";
-    result += m_lines[maxP.line].substr(0, maxP.column);
+    return getTextRange(m_selection.min(), m_selection.max());
+}
+
+std::string TextEditor::getTextRange(TextPosition start, TextPosition end) const {
+    if (start == end) return "";
+    if (end < start) std::swap(start, end);
+
+    if (start.line == end.line) return m_lines[start.line].substr(start.column, end.column - start.column);
+    
+    std::string result = m_lines[start.line].substr(start.column) + "\n";
+    for (int i = start.line + 1; i < end.line; ++i) result += m_lines[i] + "\n";
+    result += m_lines[end.line].substr(0, end.column);
     return result;
 }
 

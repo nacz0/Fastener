@@ -177,19 +177,9 @@ int main() {
         })
     });
     
-    while (window.isOpen()) {
-        window.pollEvents();
-        
-        if (window.input().isKeyPressed(fst::Key::Escape)) {
-            if (menuBar.isOpen()) {
-                menuBar.closeAll();
-            } else if (fst::IsContextMenuOpen()) {
-                fst::CloseContextMenu();
-            } else {
-                window.close();
-            }
-        }
-        
+    
+
+    auto renderFrame = [&]() {
         ctx.beginFrame(window);
         
         fst::DrawList& dl = ctx.drawList();
@@ -257,9 +247,6 @@ int main() {
         };
         
         fileTree.render("explorer", treeRect, treeOpts, treeEvents);
-        
-        // Sidebar border is now handled by the splitter visual, but we can add a subtle one if needed
-        // dl.addRectFilled(fst::Rect(sidebarRect.right() - 1, sidebarRect.y(), 1, sidebarRect.height()), theme.colors.border);
         
         // === RIGHT AREA (Editor + Terminal) ===
         fst::Rect rightArea(sidebarRect.right(), mainArea.y(), mainArea.width() - sidebarRect.width(), mainArea.height());
@@ -392,16 +379,13 @@ int main() {
             }
         }
 
-        // === SPLITTERS (Rendered last to stay on top and capture input) ===
-        
-        // Sidebar Splitter
+        // === SPLITTERS ===
         fst::SplitterOptions sidebarSplitterOpts;
         sidebarSplitterOpts.direction = fst::Direction::Vertical;
         sidebarSplitterOpts.minSize1 = 100.0f;
         sidebarSplitterOpts.minSize2 = 200.0f;
         fst::Splitter("sidebar_splitter", sidebarRatio, mainArea, sidebarSplitterOpts);
 
-        // Terminal Splitter
         if (showTerminal) {
             float splitY = rightArea.height() - terminalHeight;
             fst::SplitterOptions terminalSplitterOpts;
@@ -434,6 +418,24 @@ int main() {
         
         ctx.endFrame();
         window.swapBuffers();
+    };
+
+    window.setRefreshCallback(renderFrame);
+    
+    while (window.isOpen()) {
+        window.pollEvents();
+        
+        if (window.input().isKeyPressed(fst::Key::Escape)) {
+            if (menuBar.isOpen()) {
+                menuBar.closeAll();
+            } else if (fst::IsContextMenuOpen()) {
+                fst::CloseContextMenu();
+            } else {
+                window.close();
+            }
+        }
+        
+        renderFrame();
     }
     
     return 0;

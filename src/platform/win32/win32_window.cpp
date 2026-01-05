@@ -150,6 +150,10 @@ struct Window::Impl {
     Window::ResizeCallback resizeCallback;
     Window::CloseCallback closeCallback;
     Window::FocusCallback focusCallback;
+    Window::RefreshCallback refreshCallback;
+    
+    // Timer status
+    bool isModalLoop = false;
     
     // Cursor
     HCURSOR cursors[10] = {};
@@ -419,6 +423,29 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
                 SetCursor(impl->cursors[static_cast<int>(impl->currentCursor)]);
                 return TRUE;
             }
+            break;
+
+        case WM_ENTERSIZEMOVE:
+            impl->isModalLoop = true;
+            SetTimer(hwnd, 1001, 16, nullptr); // ~60fps
+            break;
+
+        case WM_EXITSIZEMOVE:
+            impl->isModalLoop = false;
+            KillTimer(hwnd, 1001);
+            break;
+
+        case WM_TIMER:
+            if (wParam == 1001 && impl->refreshCallback) {
+                impl->refreshCallback();
+            }
+            break;
+
+        case WM_PAINT:
+            if (impl->isModalLoop && impl->refreshCallback) {
+                impl->refreshCallback();
+            }
+            // Let default processing happen too or validate rect
             break;
     }
     
@@ -748,6 +775,10 @@ void Window::setCloseCallback(CloseCallback callback) {
 
 void Window::setFocusCallback(FocusCallback callback) {
     m_impl->focusCallback = std::move(callback);
+}
+
+void Window::setRefreshCallback(RefreshCallback callback) {
+    m_impl->refreshCallback = std::move(callback);
 }
 
 InputState& Window::input() {

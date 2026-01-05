@@ -113,10 +113,12 @@ public:
     using ResizeCallback = std::function<void(const WindowResizeEvent&)>;
     using CloseCallback = std::function<void(const WindowCloseEvent&)>;
     using FocusCallback = std::function<void(const WindowFocusEvent&)>;
+    using RefreshCallback = std::function<void()>;
     
     void setResizeCallback(ResizeCallback callback);
     void setCloseCallback(CloseCallback callback);
     void setFocusCallback(FocusCallback callback);
+    void setRefreshCallback(RefreshCallback callback);
     
     // Input access
     InputState& input();

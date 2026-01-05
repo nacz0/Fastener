@@ -46,7 +46,13 @@
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\panel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\scroll_area.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\slider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\splitter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\tab_control.cpp">
@@ -117,7 +123,13 @@
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\panel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\scroll_area.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\slider.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\splitter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\tab_control.h">

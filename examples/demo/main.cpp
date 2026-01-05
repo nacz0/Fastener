@@ -51,6 +51,7 @@ int main() {
     // Create tab control for open files
     fst::TabControl tabs;
     tabs.addTab("main.cpp", "main.cpp", true);
+    tabs.addTab("scroll_demo", "Scroll Demo", true);
     tabs.addTab("types.cpp", "types.cpp", true);
     tabs.addTab("context.cpp", "context.cpp", true);
     
@@ -64,6 +65,7 @@ int main() {
     std::string statusText = "Ready";
     
     std::unordered_map<std::string, fst::TextEditor> editors;
+    std::unordered_map<std::string, fst::ScrollArea> scrollAreas;
     auto getOrCreateEditor = [&](const std::string& id) -> fst::TextEditor& {
         auto it = editors.find(id);
         if (it == editors.end()) {
@@ -282,10 +284,38 @@ int main() {
         
         fst::Rect contentRect = tabs.render("editor_tabs", editorArea, tabOpts, tabEvents);
         
-        // Editor content area
+        // Content area
         if (tabs.selectedTab()) {
-            fst::TextEditor& editor = getOrCreateEditor(tabs.selectedTab()->id);
-            editor.render(contentRect);
+            const std::string& tabId = tabs.selectedTab()->id;
+            if (tabId == "scroll_demo") {
+                auto& sa = scrollAreas["demo"];
+                sa.setContentSize(fst::Vec2(2000, 2000));
+                
+                fst::ScrollAreaOptions saOpts;
+                saOpts.autoHide = false;
+                
+                sa.render("scroll_demo_widget", contentRect, [&](const fst::Rect& viewport) {
+                    for (int i = 0; i < 50; ++i) {
+                        for (int j = 0; j < 20; ++j) {
+                            float x = 20 + j * 120 - sa.scrollOffset().x;
+                            float y = 20 + i * 40 - sa.scrollOffset().y;
+                            
+                            if (y + 35 < 0 || y > viewport.height()) continue;
+                            if (x + 110 < 0 || x > viewport.width()) continue;
+
+                            fst::Rect itemRect(viewport.x() + x, viewport.y() + y, 100, 30);
+                            dl.addRectFilled(itemRect, fst::Color(60, 60, 80), 4.0f);
+                            if (ctx.font()) {
+                                dl.addText(ctx.font(), fst::Vec2(itemRect.x() + 5, itemRect.y() + 5), 
+                                           "Item " + std::to_string(i) + ":" + std::to_string(j), fst::Color(200, 200, 200));
+                            }
+                        }
+                    }
+                }, saOpts);
+            } else {
+                fst::TextEditor& editor = getOrCreateEditor(tabId);
+                editor.render(contentRect);
+            }
         } else {
             dl.addRectFilled(contentRect, theme.colors.panelBackground);
             if (ctx.font()) {

@@ -211,15 +211,48 @@ void DrawList::primRectFilled(const Rect& rect, Color color, float rounding) {
 }
 
 void DrawList::primRect(const Rect& rect, Color color, float rounding) {
-    float thickness = 1.0f;
-    Rect inner = rect.shrunk(thickness);
+    rounding = std::min(rounding, std::min(rect.width(), rect.height()) * 0.5f);
     
-    // For now, just draw 4 rectangles
-    // TODO: Proper rounded outline
-    addRectFilled(Rect(rect.x(), rect.y(), rect.width(), thickness), color);
-    addRectFilled(Rect(rect.x(), rect.bottom() - thickness, rect.width(), thickness), color);
-    addRectFilled(Rect(rect.x(), rect.y() + thickness, thickness, rect.height() - thickness * 2), color);
-    addRectFilled(Rect(rect.right() - thickness, rect.y() + thickness, thickness, rect.height() - thickness * 2), color);
+    float thickness = 1.0f;
+    if (rounding < 0.5f) {
+        addRectFilled(Rect(rect.x(), rect.y(), rect.width(), thickness), color);
+        addRectFilled(Rect(rect.x(), rect.bottom() - thickness, rect.width(), thickness), color);
+        addRectFilled(Rect(rect.x(), rect.y() + thickness, thickness, rect.height() - thickness * 2), color);
+        addRectFilled(Rect(rect.right() - thickness, rect.y() + thickness, thickness, rect.height() - thickness * 2), color);
+        return;
+    }
+    
+    // Straight segments
+    // Top
+    addLine({rect.x() + rounding, rect.y() + thickness * 0.5f}, 
+            {rect.right() - rounding, rect.y() + thickness * 0.5f}, color, thickness);
+    // Bottom
+    addLine({rect.x() + rounding, rect.bottom() - thickness * 0.5f}, 
+            {rect.right() - rounding, rect.bottom() - thickness * 0.5f}, color, thickness);
+    // Left
+    addLine({rect.x() + thickness * 0.5f, rect.y() + rounding}, 
+            {rect.x() + thickness * 0.5f, rect.bottom() - rounding}, color, thickness);
+    // Right
+    addLine({rect.right() - thickness * 0.5f, rect.y() + rounding}, 
+            {rect.right() - thickness * 0.5f, rect.bottom() - rounding}, color, thickness);
+            
+    // Arcs for corners
+    auto drawCornerArc = [&](Vec2 center, float startAngle) {
+        const int segments = 8;
+        float r = rounding - thickness * 0.5f;
+        for (int i = 0; i < segments; ++i) {
+            float a1 = startAngle + (3.14159265f / 2.0f) * (float)i / segments;
+            float a2 = startAngle + (3.14159265f / 2.0f) * (float)(i + 1) / segments;
+            addLine(center + Vec2(std::cos(a1), std::sin(a1)) * r, 
+                    center + Vec2(std::cos(a2), std::sin(a2)) * r, color, thickness);
+        }
+    };
+    
+    const float PI = 3.14159265f;
+    drawCornerArc({rect.x() + rounding, rect.y() + rounding}, PI);           // Top-left
+    drawCornerArc({rect.right() - rounding, rect.y() + rounding}, -PI / 2.0f); // Top-right
+    drawCornerArc({rect.right() - rounding, rect.bottom() - rounding}, 0.0f);   // Bottom-right
+    drawCornerArc({rect.x() + rounding, rect.bottom() - rounding}, PI / 2.0f);  // Bottom-left
 }
 
 void DrawList::addLine(const Vec2& p1, const Vec2& p2, Color color, float thickness) {

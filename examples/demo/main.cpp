@@ -52,6 +52,7 @@ int main() {
     fst::TabControl tabs;
     tabs.addTab("main.cpp", "main.cpp", true);
     tabs.addTab("scroll_demo", "Scroll Demo", true);
+    tabs.addTab("settings_demo", "Settings", true);
     tabs.addTab("types.cpp", "types.cpp", true);
     tabs.addTab("context.cpp", "context.cpp", true);
     
@@ -66,6 +67,14 @@ int main() {
     
     std::unordered_map<std::string, fst::TextEditor> editors;
     std::unordered_map<std::string, fst::ScrollArea> scrollAreas;
+    
+    // Settings state
+    bool checkValue1 = true;
+    bool checkValue2 = false;
+    int selectedCombo = 1;
+    std::vector<std::string> comboOptions = {"Disabled", "Fast", "Balanced", "Quality", "Ultra"};
+    float progressVal = 0.45f;
+    float indeterminateProgress = 0.0f;
     auto getOrCreateEditor = [&](const std::string& id) -> fst::TextEditor& {
         auto it = editors.find(id);
         if (it == editors.end()) {
@@ -312,6 +321,49 @@ int main() {
                         }
                     }
                 }, saOpts);
+            } else if (tabId == "settings_demo") {
+                dl.addRectFilled(contentRect, theme.colors.panelBackground);
+                
+                float margin = 20.0f;
+                float currentY = contentRect.y() + margin;
+                float startX = contentRect.x() + margin;
+
+                if (ctx.font()) {
+                    dl.addText(ctx.font(), fst::Vec2(startX, currentY), "WIDGET DEMO", theme.colors.primary);
+                    currentY += 30;
+
+                    // Checkboxes
+                    dl.addText(ctx.font(), fst::Vec2(startX, currentY), "Checkboxes:", theme.colors.textSecondary);
+                    currentY += 25;
+                    
+                    fst::Checkbox("Show Line Numbers", checkValue1, { fst::Style().withPos(startX, currentY) });
+                    currentY += 30;
+
+                    fst::Checkbox("Word Wrap", checkValue2, { fst::Style().withPos(startX, currentY) });
+                    currentY += 40;
+
+                    // ComboBox
+                    dl.addText(ctx.font(), fst::Vec2(startX, currentY), "Select Optimization:", theme.colors.textSecondary);
+                    currentY += 25;
+                    
+                    fst::ComboBox("Performance", selectedCombo, comboOptions, { fst::Style().withPos(startX, currentY).withWidth(300) });
+                    currentY += 60;
+
+                    // Progress Bars
+                    dl.addText(ctx.font(), fst::Vec2(startX, currentY), "Progress Indicators:", theme.colors.textSecondary);
+                    currentY += 25;
+
+                    progressVal = std::fmod(ctx.time() * 0.1f, 1.0f);
+                    
+                    fst::ProgressBar("Task Progress", progressVal, { fst::Style().withPos(startX, currentY).withWidth(400) });
+                    currentY += 40;
+
+                    fst::ProgressBarOptions pbo;
+                    pbo.indeterminate = true;
+                    pbo.style.withPos(startX, currentY).withWidth(400);
+                    fst::ProgressBar("Background Sync", 0.0f, pbo);
+                    currentY += 30;
+                }
             } else {
                 fst::TextEditor& editor = getOrCreateEditor(tabId);
                 editor.render(contentRect);

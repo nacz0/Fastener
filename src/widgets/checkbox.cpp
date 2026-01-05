@@ -24,7 +24,7 @@ bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) 
     float totalWidth = boxSize + theme.metrics.paddingSmall + textSize.x;
     float height = std::max(boxSize, textSize.y);
     
-    Rect bounds(0, 0, totalWidth, height);
+    Rect bounds(options.style.x, options.style.y, totalWidth, height);
     // TODO: Get from layout system
     
     // Handle interaction

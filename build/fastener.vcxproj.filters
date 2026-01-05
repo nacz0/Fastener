@@ -37,6 +37,9 @@
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\checkbox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\combo_box.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\label.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -44,6 +47,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\panel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\progress_bar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\scroll_area.cpp">
@@ -114,6 +120,9 @@
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\checkbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\combo_box.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\label.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -121,6 +130,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\panel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\progress_bar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\scroll_area.h">

@@ -43,6 +43,9 @@ struct Context::Impl {
     // ID stack
     std::vector<WidgetId> idStack;
     
+    // Deferred rendering
+    std::deque<std::function<void()>> postRenderCommands;
+    
     Impl() {
         startTime = std::chrono::steady_clock::now();
         lastFrameTime = startTime;
@@ -107,6 +110,12 @@ void Context::endFrame() {
     // Pop clip rect
     m_impl->drawList.popClipRect();
     
+    // Execute deferred commands (popups, etc.)
+    for (const auto& cmd : m_impl->postRenderCommands) {
+        cmd();
+    }
+    m_impl->postRenderCommands.clear();
+
     // Render
     m_impl->renderer.render(m_impl->drawList);
     m_impl->renderer.endFrame();
@@ -237,6 +246,10 @@ WidgetId Context::makeId(int idx) const {
 
 Context* Context::current() {
     return s_current;
+}
+
+void Context::deferRender(std::function<void()> cmd) {
+    m_impl->postRenderCommands.push_back(std::move(cmd));
 }
 
 } // namespace fst

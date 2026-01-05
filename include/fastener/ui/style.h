@@ -13,6 +13,8 @@ struct Style {
     float height = 0.0f;      // 0 = auto
     float minWidth = 0.0f;
     float minHeight = 0.0f;
+    float x = 0.0f;           // Absolute position (if layout not used)
+    float y = 0.0f;
     float maxWidth = 0.0f;    // 0 = no limit
     float maxHeight = 0.0f;   // 0 = no limit
     
@@ -72,6 +74,7 @@ struct Style {
     Style& withWidth(float w) { width = w; return *this; }
     Style& withHeight(float h) { height = h; return *this; }
     Style& withSize(float w, float h) { width = w; height = h; return *this; }
+    Style& withPos(float _x, float _y) { x = _x; y = _y; return *this; }
     Style& withPadding(float all) { padding = Vec4(all); return *this; }
     Style& withPadding(float v, float h) { padding = Vec4(v, h, v, h); return *this; }
     Style& withMargin(float all) { margin = Vec4(all); return *this; }

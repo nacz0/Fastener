@@ -2,6 +2,9 @@
 
 #include "fastener/core/types.h"
 #include "fastener/core/input.h"
+#include <vector>
+#include <deque>
+#include <functional>
 #include <memory>
 
 namespace fst {
@@ -77,6 +80,9 @@ public:
     
     // Global access (use sparingly)
     static Context* current();
+
+    // Deferred rendering (for popups/tooltips)
+    void deferRender(std::function<void()> cmd);
     
 private:
     struct Impl;

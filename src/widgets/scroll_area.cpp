@@ -57,27 +57,37 @@ void ScrollArea::render(const std::string& id, const Rect& bounds,
     // Scrollbar Tracks and Thumbs
     if (showV) {
         Rect track(bounds.right() - sbSize, bounds.y(), sbSize, viewport.height());
-        dl.addRectFilled(track, Color(0, 0, 0, 15)); // Track background
+        Color trackColor = theme.colors.scrollbarTrack;
+        dl.addRectFilled(track, trackColor); // Track background
 
         float thumbHeight = std::max(options.minThumbSize, (viewport.height() / std::max(1.0f, m_contentSize.y)) * viewport.height());
         float maxScroll = std::max(0.1f, m_contentSize.y - viewport.height());
         float thumbY = track.y() + (m_scrollOffset.y / maxScroll) * (track.height() - thumbHeight);
         
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
-        Color thumbColor = m_draggingV ? theme.colors.primary : (track.contains(ctx->input().mousePos()) ? theme.colors.text : theme.colors.textSecondary);
+        Color thumbColor;
+        if (m_draggingV) thumbColor = theme.colors.scrollbarThumbHover; // or primary
+        else if (track.contains(ctx->input().mousePos())) thumbColor = theme.colors.scrollbarThumbHover;
+        else thumbColor = theme.colors.scrollbarThumb;
+        
         dl.addRectFilled(thumb, thumbColor, (sbSize - 4) / 2);
     }
 
     if (showH) {
         Rect track(bounds.x(), bounds.bottom() - sbSize, viewport.width(), sbSize);
-        dl.addRectFilled(track, Color(0, 0, 0, 15));
+        Color trackColor = theme.colors.scrollbarTrack;
+        dl.addRectFilled(track, trackColor);
 
         float thumbWidth = std::max(options.minThumbSize, (viewport.width() / std::max(1.0f, m_contentSize.x)) * viewport.width());
         float maxScroll = std::max(0.1f, m_contentSize.x - viewport.width());
         float thumbX = track.x() + (m_scrollOffset.x / maxScroll) * (track.width() - thumbWidth);
 
         Rect thumb(thumbX, track.y() + 2, thumbWidth, track.height() - 4);
-        Color thumbColor = m_draggingH ? theme.colors.primary : (track.contains(ctx->input().mousePos()) ? theme.colors.text : theme.colors.textSecondary);
+        Color thumbColor;
+        if (m_draggingH) thumbColor = theme.colors.scrollbarThumbHover;
+        else if (track.contains(ctx->input().mousePos())) thumbColor = theme.colors.scrollbarThumbHover;
+        else thumbColor = theme.colors.scrollbarThumb;
+
         dl.addRectFilled(thumb, thumbColor, (sbSize - 4) / 2);
     }
     

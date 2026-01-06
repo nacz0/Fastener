@@ -242,8 +242,25 @@ int main() {
                 sa.setContentSize(Vec2(2000, 2000));
                 sa.render("scroll_demo_widget", contentRect, [&](const Rect& viewport) {
                     for (int i = 0; i < 20; ++i) {
-                        Rect itemRect(viewport.x() + 20, viewport.y() + 20 + i * 40 - sa.scrollOffset().y, 100, 30);
-                        dl.addRectFilled(itemRect, Color(60, 60, 80), 4.0f);
+                        for (int j = 0; j < 8; ++j) {
+                            Rect itemRect(
+                                viewport.x() + 20 + j * 110 - sa.scrollOffset().x,
+                                viewport.y() + 20 + i * 40 - sa.scrollOffset().y,
+                                100, 30
+                            );
+                            
+                            // Simple culling
+                            if (!itemRect.intersects(viewport)) continue;
+
+                            dl.addRectFilled(itemRect, Color(60, 60, 80), 4.0f);
+                            
+                            if (ctx.font()) {
+                                std::string text = "Item " + std::to_string(i) + ":" + std::to_string(j);
+                                Vec2 textSize = ctx.font()->measureText(text);
+                                Vec2 textPos = itemRect.center() - textSize * 0.5f;
+                                dl.addText(ctx.font(), textPos, text, theme.colors.text);
+                            }
+                        }
                     }
                 });
             } else if (tabId == "settings_demo") {

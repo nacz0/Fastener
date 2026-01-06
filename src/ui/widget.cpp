@@ -1,9 +1,55 @@
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
+#include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 
 namespace fst {
+
+//=============================================================================
+// Widget Context Helpers
+//=============================================================================
+
+WidgetContext getWidgetContext() {
+    WidgetContext wc{};
+    wc.ctx = Context::current();
+    if (wc.ctx) {
+        wc.theme = &wc.ctx->theme();
+        wc.dl = &wc.ctx->drawList();
+        wc.font = wc.ctx->font();
+    }
+    return wc;
+}
+
+Rect allocateWidgetBounds(const Style& style, float width, float height) {
+    Context* ctx = Context::current();
+    if (!ctx) return Rect(0, 0, width, height);
+    
+    if (style.x < 0.0f && style.y < 0.0f) {
+        return ctx->layout().allocate(width, height, style.flexGrow);
+    }
+    return Rect(style.x, style.y, width, height);
+}
+
+Color getStateColor(Color baseColor, Color hoverColor, Color activeColor,
+                    const WidgetState& state, float disabledAlpha) {
+    if (state.disabled) {
+        return baseColor.withAlpha(static_cast<uint8_t>(baseColor.a * disabledAlpha));
+    }
+    if (state.active) {
+        return activeColor;
+    }
+    if (state.hovered) {
+        return hoverColor;
+    }
+    return baseColor;
+}
+
+//=============================================================================
+// Widget State Functions
+//=============================================================================
 
 WidgetState getWidgetState(WidgetId id) {
     Context* ctx = Context::current();

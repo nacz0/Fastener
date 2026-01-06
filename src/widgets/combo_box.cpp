@@ -1,8 +1,14 @@
+/**
+ * @file combo_box.cpp
+ * @brief ComboBox dropdown widget implementation.
+ */
+
 #include "fastener/widgets/combo_box.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
 #include <algorithm>
@@ -10,6 +16,11 @@
 
 namespace fst {
 
+//=============================================================================
+// ComboBox State
+//=============================================================================
+
+/** @brief Per-combobox persistent state for dropdown management. */
 struct ComboBoxState {
     bool isOpen = false;
     int hoveredIndex = -1;
@@ -18,18 +29,32 @@ struct ComboBoxState {
 
 static std::unordered_map<WidgetId, ComboBoxState> s_comboStates;
 
+//=============================================================================
+// ComboBox Implementation
+//=============================================================================
+
+/**
+ * @brief Renders a dropdown combobox for item selection.
+ * 
+ * @param label Label displayed before the combobox
+ * @param selectedIndex Reference to the selected item index
+ * @param items Vector of item strings to display
+ * @param options ComboBox styling and behavior options
+ * @return true if the selection was changed this frame
+ */
 bool ComboBox(const char* label, int& selectedIndex, 
               const std::vector<std::string>& items,
               const ComboBoxOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
+    // Get widget context
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
 
-    const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
-    Font* font = ctx->font();
-    InputState& input = ctx->input();
+    const Theme& theme = *wc.theme;
+    DrawList& dl = *wc.dl;
+    Font* font = wc.font;
+    InputState& input = wc.ctx->input();
 
-    WidgetId id = ctx->makeId(label);
+    WidgetId id = wc.ctx->makeId(label);
     ComboBoxState& state = s_comboStates[id];
 
     float width = options.style.width > 0 ? options.style.width : 150.0f;
@@ -40,12 +65,8 @@ bool ComboBox(const char* label, int& selectedIndex,
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
-    Rect bounds;
-    if (options.style.x < 0.0f && options.style.y < 0.0f) {
-        bounds = ctx->layout().allocate(labelWidth + width, height, options.style.flexGrow);
-    } else {
-        bounds = Rect(options.style.x, options.style.y, labelWidth + width, height);
-    }
+    // Allocate bounds
+    Rect bounds = allocateWidgetBounds(options.style, labelWidth + width, height);
 
     Rect boxBounds(bounds.x() + labelWidth, bounds.y(), width, height);
 
@@ -145,7 +166,7 @@ bool ComboBox(const char* label, int& selectedIndex,
         std::vector<std::string> safeItems = items;
         int selectedIndexCopy = selectedIndex;
         
-        ctx->deferRender([=, &state]() mutable {
+        wc.ctx->deferRender([=, &state]() mutable {
             // Re-acquire context helpers since we are in a callback
             Context* ctx = Context::current();
             if (!ctx) return;

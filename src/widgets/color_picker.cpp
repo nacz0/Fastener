@@ -1,3 +1,8 @@
+/**
+ * @file color_picker.cpp
+ * @brief Color picker widget implementation with HSV color selection.
+ */
+
 #include "fastener/widgets/color_picker.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
@@ -12,6 +17,18 @@
 
 namespace fst {
 
+//=============================================================================
+// ColorPicker Implementation
+//=============================================================================
+
+/**
+ * @brief Renders an HSV color picker widget.
+ * 
+ * @param label Label displayed above the color picker
+ * @param color Reference to the color being edited
+ * @param options ColorPicker styling options
+ * @return true if the color was changed this frame
+ */
 bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& options) {
     Context* ctx = Context::current();
     if (!ctx) return false;

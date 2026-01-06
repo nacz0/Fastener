@@ -1,5 +1,10 @@
+/**
+ * @file tab_control.cpp
+ * @brief Tab control widget implementation for tabbed interfaces.
+ */
+
 #include "fastener/widgets/tab_control.h"
-#include "fastener/widgets/menu.h"  // Added for input blocking
+#include "fastener/widgets/menu.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
@@ -9,6 +14,10 @@
 #include <cmath>
 
 namespace fst {
+
+//=============================================================================
+// TabControl Implementation
+//=============================================================================
 
 TabControl::TabControl() = default;
 TabControl::~TabControl() = default;

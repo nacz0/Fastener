@@ -1,3 +1,8 @@
+/**
+ * @file menu.cpp
+ * @brief Menu bar and context menu widget implementations.
+ */
+
 #include "fastener/widgets/menu.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"

@@ -1,5 +1,10 @@
+/**
+ * @file tree_view.cpp
+ * @brief Tree view widget implementation for hierarchical data display.
+ */
+
 #include "fastener/widgets/tree_view.h"
-#include "fastener/widgets/menu.h"  // Added for input blocking
+#include "fastener/widgets/menu.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
@@ -9,6 +14,10 @@
 #include <algorithm>
 
 namespace fst {
+
+//=============================================================================
+// TreeView Implementation
+//=============================================================================
 
 TreeView::TreeView() {
     m_root = std::make_shared<TreeNode>("root", "Root");

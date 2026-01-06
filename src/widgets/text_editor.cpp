@@ -1,3 +1,11 @@
+/**
+ * @file text_editor.cpp
+ * @brief Multi-line text editor widget implementation.
+ * 
+ * Provides a code editor with line numbers, selection, undo/redo,
+ * clipboard support, and optional syntax highlighting via style hooks.
+ */
+
 #include "fastener/widgets/text_editor.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
@@ -8,6 +16,10 @@
 #include <algorithm>
 
 namespace fst {
+
+//=============================================================================
+// TextEditor - Construction
+//=============================================================================
 
 TextEditor::TextEditor() {
     m_lines.push_back("");

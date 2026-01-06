@@ -1,9 +1,15 @@
+/**
+ * @file tooltip.cpp
+ * @brief Tooltip and help marker widget implementations.
+ */
+
 #include "fastener/widgets/tooltip.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
 #include <algorithm>
 #include <sstream>

@@ -1,3 +1,8 @@
+/**
+ * @file checkbox.cpp
+ * @brief Checkbox widget implementation.
+ */
+
 #include "fastener/widgets/checkbox.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
@@ -9,43 +14,52 @@
 
 namespace fst {
 
+//=============================================================================
+// Checkbox Implementation
+//=============================================================================
+
+/**
+ * @brief Renders an interactive checkbox with optional label.
+ * 
+ * @param label Text displayed next to the checkbox
+ * @param checked Reference to boolean state (toggled on click)
+ * @param options Checkbox styling and behavior options
+ * @return true if the checkbox state was changed this frame
+ */
 bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
+    // Get widget context
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
     
-    const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
-    Font* font = ctx->font();
+    const Theme& theme = *wc.theme;
+    DrawList& dl = *wc.dl;
+    Font* font = wc.font;
     
-    // Generate ID
-    WidgetId id = ctx->makeId(label);
+    // Generate unique ID
+    WidgetId id = wc.ctx->makeId(label);
     
-    // Calculate size
+    // Calculate dimensions
     float boxSize = theme.metrics.checkboxSize;
     Vec2 textSize = font ? font->measureText(label) : Vec2(0, boxSize);
     float totalWidth = boxSize + theme.metrics.paddingSmall + textSize.x;
     float height = std::max(boxSize, textSize.y);
     
-    // Determine bounds
-    Rect bounds;
-    if (options.style.x < 0.0f && options.style.y < 0.0f) {
-        bounds = ctx->layout().allocate(totalWidth, height, options.style.flexGrow);
-    } else {
-        bounds = Rect(options.style.x, options.style.y, totalWidth, height);
-    }
+    // Allocate bounds
+    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
     WidgetState state = getWidgetState(id);
     state.disabled = options.disabled;
     
+    // Toggle on click
     bool changed = false;
     if (interaction.clicked && !options.disabled) {
         checked = !checked;
         changed = true;
     }
     
-    // Checkbox box bounds
+    // Calculate checkbox box bounds
     Rect boxBounds(
         bounds.x(),
         bounds.y() + (height - boxSize) * 0.5f,
@@ -53,35 +67,36 @@ bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) 
         boxSize
     );
     
-    // Draw checkbox background
+    // Determine background color
     Color bgColor;
     if (options.disabled) {
         bgColor = theme.colors.inputBackground.withAlpha(0.5f);
     } else if (checked) {
         bgColor = state.hovered ? theme.colors.primaryHover : theme.colors.primary;
     } else {
-        bgColor = state.hovered ? 
-            theme.colors.inputBackground.lighter(0.1f) : theme.colors.inputBackground;
+        bgColor = state.hovered 
+            ? theme.colors.inputBackground.lighter(0.1f) 
+            : theme.colors.inputBackground;
     }
     
+    // Draw checkbox box
     float radius = theme.metrics.borderRadiusSmall;
     dl.addRectFilled(boxBounds, bgColor, radius);
     
-    // Draw border
+    // Draw border for unchecked state
     if (!checked) {
-        Color borderColor = state.focused ? 
-            theme.colors.borderFocused : theme.colors.inputBorder;
+        Color borderColor = state.focused 
+            ? theme.colors.borderFocused 
+            : theme.colors.inputBorder;
         dl.addRect(boxBounds, borderColor, radius);
     }
     
-    // Draw checkmark
+    // Draw checkmark when checked
     if (checked) {
-        Color checkColor = theme.colors.primaryText;
-        if (options.disabled) {
-            checkColor = checkColor.withAlpha(0.5f);
-        }
+        Color checkColor = options.disabled 
+            ? theme.colors.primaryText.withAlpha(0.5f) 
+            : theme.colors.primaryText;
         
-        // Draw simple checkmark using lines
         Vec2 center = boxBounds.center();
         auto pts = checkbox_utils::calculateCheckmark(center, boxSize);
         
@@ -89,22 +104,23 @@ bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) 
         dl.addLine(pts.p2, pts.p3, checkColor, 2.0f);
     }
     
-    // Draw label
+    // Draw label text
     if (font && label[0] != '\0') {
         float textY = layout_utils::verticalCenterY(bounds.y(), height, textSize.y);
-        Vec2 textPos(
-            boxBounds.right() + theme.metrics.paddingSmall,
-            textY
-        );
+        Vec2 textPos(boxBounds.right() + theme.metrics.paddingSmall, textY);
         
-        Color textColor = options.disabled ? 
-            theme.colors.textDisabled : theme.colors.text;
+        Color textColor = options.disabled 
+            ? theme.colors.textDisabled 
+            : theme.colors.text;
         dl.addText(font, textPos, label, nullptr, textColor);
     }
     
     return changed;
 }
 
+/**
+ * @brief String overload for Checkbox.
+ */
 bool Checkbox(const std::string& label, bool& checked, const CheckboxOptions& options) {
     return Checkbox(label.c_str(), checked, options);
 }

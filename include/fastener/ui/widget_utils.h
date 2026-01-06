@@ -1,10 +1,74 @@
 #pragma once
 
 #include "fastener/core/types.h"
+#include "fastener/ui/style.h"
 #include <algorithm>
 #include <cmath>
 
 namespace fst {
+
+// Forward declarations
+class Context;
+class DrawList;
+class Font;
+struct Theme;
+class LayoutContext;
+
+//=============================================================================
+// Widget Context Helper
+//=============================================================================
+
+/**
+ * @brief Aggregates common widget dependencies for cleaner initialization.
+ * 
+ * Use getWidgetContext() to obtain this struct at the start of each widget.
+ * Returns an invalid context (ctx == nullptr) if Context::current() is not set.
+ */
+struct WidgetContext {
+    Context* ctx;
+    const Theme* theme;
+    DrawList* dl;
+    Font* font;
+    
+    /** @brief Check if context is valid. */
+    bool valid() const { return ctx != nullptr; }
+};
+
+/**
+ * @brief Get the current widget context with all common dependencies.
+ * @return WidgetContext struct; check valid() before using.
+ */
+WidgetContext getWidgetContext();
+
+/**
+ * @brief Allocate bounds for a widget using layout or explicit style.
+ * 
+ * If style.x and style.y are both < 0, allocates from the layout system.
+ * Otherwise uses the explicit position from style.
+ * 
+ * @param style Widget style with position/size options
+ * @param width Calculated/default width
+ * @param height Calculated/default height
+ * @return Allocated bounds rectangle
+ */
+Rect allocateWidgetBounds(const Style& style, float width, float height);
+
+//=============================================================================
+// State Color Helpers
+//=============================================================================
+
+/**
+ * @brief Determine background color based on widget state.
+ * 
+ * @param baseColor Base/normal color
+ * @param hoverColor Color when hovered
+ * @param activeColor Color when active/pressed
+ * @param state Current widget state
+ * @param disabledAlpha Alpha multiplier for disabled state (0.0-1.0)
+ * @return Appropriate color for current state
+ */
+Color getStateColor(Color baseColor, Color hoverColor, Color activeColor,
+                    const struct WidgetState& state, float disabledAlpha = 0.5f);
 
 //=============================================================================
 // Slider Utilities

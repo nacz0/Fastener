@@ -1,35 +1,51 @@
+/**
+ * @file text_input.cpp
+ * @brief Single-line text input widget implementation.
+ */
+
 #include "fastener/widgets/text_input.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
 #include <algorithm>
+#include <cmath>
 
 namespace fst {
 
+//=============================================================================
+// TextInput Implementation
+//=============================================================================
+
+/**
+ * @brief Renders a single-line text input field.
+ * 
+ * @param id Unique identifier string for the widget
+ * @param value Reference to the text string (modified on input)
+ * @param options TextInput styling and behavior options
+ * @return true if the text value was changed this frame
+ */
 bool TextInput(const char* id, std::string& value, const TextInputOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
+    // Get widget context
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
     
-    const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
-    Font* font = ctx->font();
+    const Theme& theme = *wc.theme;
+    DrawList& dl = *wc.dl;
+    Font* font = wc.font;
     
-    // Generate ID
-    WidgetId widgetId = ctx->makeId(id);
+    // Generate unique ID
+    WidgetId widgetId = wc.ctx->makeId(id);
     
-    // Calculate size
+    // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 200.0f;
     float height = options.style.height > 0 ? options.style.height : theme.metrics.inputHeight;
     
-    Rect bounds;
-    if (options.style.x < 0.0f && options.style.y < 0.0f) {
-        bounds = ctx->layout().allocate(width, height, options.style.flexGrow);
-    } else {
-        bounds = Rect(options.style.x, options.style.y, width, height);
-    }
+    // Allocate bounds
+    Rect bounds = allocateWidgetBounds(options.style, width, height);
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(widgetId, bounds, true);
@@ -39,18 +55,19 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
     
     // Handle text input when focused
     if (state.focused && !options.readonly) {
-        const std::string& textInput = ctx->input().textInput();
+        const std::string& textInput = wc.ctx->input().textInput();
         if (!textInput.empty()) {
-            if (options.maxLength == 0 || value.length() + textInput.length() <= static_cast<size_t>(options.maxLength)) {
+            if (options.maxLength == 0 || 
+                value.length() + textInput.length() <= static_cast<size_t>(options.maxLength)) {
                 value += textInput;
                 changed = true;
             }
         }
         
-        // Handle backspace
-        if (ctx->input().isKeyPressed(Key::Backspace) && !value.empty()) {
-            // Remove last UTF-8 character
+        // Handle backspace (UTF-8 aware)
+        if (wc.ctx->input().isKeyPressed(Key::Backspace) && !value.empty()) {
             size_t len = value.length();
+            // Skip continuation bytes (10xxxxxx pattern)
             while (len > 0 && (value[len - 1] & 0xC0) == 0x80) {
                 len--;
             }
@@ -63,15 +80,17 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
     }
     
     // Draw background
-    Color bgColor = options.readonly ? 
-        theme.colors.inputBackground.darker(0.1f) : theme.colors.inputBackground;
+    Color bgColor = options.readonly 
+        ? theme.colors.inputBackground.darker(0.1f) 
+        : theme.colors.inputBackground;
     
-    float radius = options.style.borderRadius > 0 ? 
-                   options.style.borderRadius : theme.metrics.borderRadiusSmall;
+    float radius = options.style.borderRadius > 0 
+        ? options.style.borderRadius 
+        : theme.metrics.borderRadiusSmall;
     
     dl.addRectFilled(bounds, bgColor, radius);
     
-    // Draw border
+    // Draw border with state-dependent color
     Color borderColor;
     if (state.focused) {
         borderColor = theme.colors.inputFocused;
@@ -90,15 +109,15 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
         std::string displayText;
         Color textColor;
         
+        // Show placeholder when empty and unfocused
         if (value.empty() && !options.placeholder.empty() && !state.focused) {
             displayText = options.placeholder;
             textColor = theme.colors.textDisabled;
         } else {
-            if (options.password) {
-                displayText = std::string(value.length(), '*');
-            } else {
-                displayText = value;
-            }
+            // Mask password characters
+            displayText = options.password 
+                ? std::string(value.length(), '*') 
+                : value;
             textColor = theme.colors.text;
         }
         
@@ -109,10 +128,9 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
         
         dl.addText(font, textPos, displayText, textColor);
         
-        // Draw cursor when focused
+        // Draw blinking cursor when focused and editable
         if (state.focused && !options.readonly) {
-            // Blinking cursor
-            float cursorAlpha = (std::fmod(ctx->time() * 2.0f, 2.0f) < 1.0f) ? 1.0f : 0.0f;
+            float cursorAlpha = (std::fmod(wc.ctx->time() * 2.0f, 2.0f) < 1.0f) ? 1.0f : 0.0f;
             if (cursorAlpha > 0.5f) {
                 Vec2 textSize = font->measureText(displayText);
                 float cursorX = textRect.x() + textSize.x;
@@ -127,13 +145,23 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
     return changed;
 }
 
+//=============================================================================
+// TextInput Overloads
+//=============================================================================
+
+/**
+ * @brief String overload for TextInput.
+ */
 bool TextInput(const std::string& id, std::string& value, const TextInputOptions& options) {
     return TextInput(id.c_str(), value, options);
 }
 
+/**
+ * @brief TextInput with integrated label.
+ * @note TODO: Implement proper label + input row layout
+ */
 bool TextInputWithLabel(const std::string& label, std::string& value, 
                         const TextInputOptions& options) {
-    // TODO: Draw label + input in a row
     return TextInput(label, value, options);
 }
 

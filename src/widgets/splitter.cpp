@@ -1,28 +1,50 @@
+/**
+ * @file splitter.cpp
+ * @brief Splitter widget implementation for resizable split views.
+ */
+
 #include "fastener/widgets/splitter.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/platform/window.h"
 #include <algorithm>
 
 namespace fst {
 
+//=============================================================================
+// Splitter Implementation
+//=============================================================================
+
+/**
+ * @brief Renders a draggable splitter bar for resizing adjacent panels.
+ * 
+ * @param id_str Unique identifier string for the widget
+ * @param splitPosition Reference to the split position (modified on drag)
+ *                      For vertical splitter: X offset from left
+ *                      For horizontal splitter: Y offset from top
+ * @param bounds Container bounds within which the splitter operates
+ * @param options Splitter styling and behavior options
+ * @return true if the split position was changed this frame
+ */
 bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
+    // Get widget context
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
 
-    const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
+    const Theme& theme = *wc.theme;
+    DrawList& dl = *wc.dl;
 
-    // Generate ID
-    WidgetId id = ctx->makeId(id_str);
+    // Generate unique ID
+    WidgetId id = wc.ctx->makeId(id_str);
 
-    // Calculate splitter visual bounds
+    // Calculate splitter visual bounds based on direction
     Rect splitterBounds;
     if (options.direction == Direction::Vertical) {
-        // Divider is vertical, separates left/right
+        // Vertical divider separates left/right panels
         splitterBounds = Rect(
             bounds.x() + splitPosition - options.splitterWidth * 0.5f,
             bounds.y(),
@@ -30,7 +52,7 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
             bounds.height()
         );
     } else {
-        // Divider is horizontal, separates top/bottom
+        // Horizontal divider separates top/bottom panels
         splitterBounds = Rect(
             bounds.x(),
             bounds.y() + splitPosition - options.splitterWidth * 0.5f,
@@ -39,32 +61,33 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
         );
     }
 
-    // Handle interaction
-    // We use a slightly larger hit area for better UX
+    // Expand hit area for better usability
     Rect hitBounds = splitterBounds.expanded(4.0f);
     WidgetInteraction interaction = handleWidgetInteraction(id, hitBounds, false);
     WidgetState state = getWidgetState(id);
     state.disabled = options.disabled;
 
-    // Set cursor
+    // Set appropriate resize cursor on hover/active
     if (state.hovered || state.active) {
-        ctx->window().setCursor(options.direction == Direction::Vertical ? Cursor::ResizeH : Cursor::ResizeV);
+        Cursor cursor = (options.direction == Direction::Vertical) 
+            ? Cursor::ResizeH 
+            : Cursor::ResizeV;
+        wc.ctx->window().setCursor(cursor);
     }
 
     bool changed = false;
 
-    // Handle dragging
+    // Handle drag to update split position
     if (state.active && !options.disabled) {
-        Vec2 mousePos = ctx->input().mousePos();
+        Vec2 mousePos = wc.ctx->input().mousePos();
         float newPos = splitPosition;
 
         if (options.direction == Direction::Vertical) {
             newPos = mousePos.x - bounds.x();
-            // Apply constraints
+            // Apply minimum size constraints
             newPos = std::clamp(newPos, options.minSize1, bounds.width() - options.minSize2);
         } else {
             newPos = mousePos.y - bounds.y();
-            // Apply constraints
             newPos = std::clamp(newPos, options.minSize1, bounds.height() - options.minSize2);
         }
 
@@ -74,29 +97,37 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
         }
     }
 
-    // Rysowanie
-    Color color;
-    if (options.disabled) {
-        color = theme.colors.border.withAlpha(0.5f);
-    } else if (state.active) {
-        color = theme.colors.primary;
-    } else if (state.hovered) {
-        color = theme.colors.primaryHover;
-    } else {
-        color = theme.colors.border;
-    }
+    // Determine splitter color based on state
+    Color color = getStateColor(
+        theme.colors.border,
+        theme.colors.primaryHover,
+        theme.colors.primary,
+        state
+    );
 
+    // Draw visual splitter bar (thinner line for wide splitter areas)
     Rect visualBar = splitterBounds;
     if (options.splitterWidth > 2.0f) {
         if (options.direction == Direction::Vertical) {
-            visualBar = Rect(splitterBounds.center().x - 0.5f, splitterBounds.y(), 1.0f, splitterBounds.height());
+            visualBar = Rect(
+                splitterBounds.center().x - 0.5f, 
+                splitterBounds.y(), 
+                1.0f, 
+                splitterBounds.height()
+            );
         } else {
-            visualBar = Rect(splitterBounds.x(), splitterBounds.center().y - 0.5f, splitterBounds.width(), 1.0f);
+            visualBar = Rect(
+                splitterBounds.x(), 
+                splitterBounds.center().y - 0.5f, 
+                splitterBounds.width(), 
+                1.0f
+            );
         }
     }
 
     dl.addRectFilled(visualBar, color);
     
+    // Draw highlight overlay when interacting
     if (state.hovered || state.active) {
         dl.addRectFilled(splitterBounds, color.withAlpha(0.2f));
     }
@@ -104,6 +135,9 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
     return changed;
 }
 
+/**
+ * @brief String overload for Splitter.
+ */
 bool Splitter(const std::string& id, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options) {
     return Splitter(id.c_str(), splitPosition, bounds, options);

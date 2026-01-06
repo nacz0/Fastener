@@ -1,10 +1,15 @@
+/**
+ * @file progress_bar.cpp
+ * @brief ProgressBar widget implementation.
+ */
+
 #include "fastener/widgets/progress_bar.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
-#include "fastener/ui/widget_utils.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -12,18 +17,38 @@
 
 namespace fst {
 
+//=============================================================================
+// ProgressBar Implementation
+//=============================================================================
+
+/**
+ * @brief Renders a progress bar without label.
+ * @param progress Progress value from 0.0 to 1.0
+ * @param options ProgressBar styling options
+ */
 void ProgressBar(float progress, const ProgressBarOptions& options) {
     ProgressBar("", progress, options);
 }
 
+/**
+ * @brief Renders a progress bar with optional label.
+ * 
+ * Supports both determinate (fixed progress) and indeterminate (animated) modes.
+ * 
+ * @param label Text displayed before the progress bar
+ * @param progress Progress value from 0.0 to 1.0 (ignored in indeterminate mode)
+ * @param options ProgressBar styling and behavior options
+ */
 void ProgressBar(const std::string& label, float progress, const ProgressBarOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
+    // Get widget context
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
 
-    const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
-    Font* font = ctx->font();
+    const Theme& theme = *wc.theme;
+    DrawList& dl = *wc.dl;
+    Font* font = wc.font;
 
+    // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 200.0f;
     float height = options.style.height > 0 ? options.style.height : 20.0f;
     float labelWidth = 0;
@@ -32,12 +57,8 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
-    Rect bounds;
-    if (options.style.x < 0.0f && options.style.y < 0.0f) {
-        bounds = ctx->layout().allocate(labelWidth + width, height, options.style.flexGrow);
-    } else {
-        bounds = Rect(options.style.x, options.style.y, labelWidth + width, height);
-    }
+    // Allocate bounds
+    Rect bounds = allocateWidgetBounds(options.style, labelWidth + width, height);
 
     // Draw label
     if (font && !label.empty()) {
@@ -46,18 +67,20 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
         dl.addText(font, labelPos, label, theme.colors.text);
     }
 
-    // Track bounds
+    // Calculate track bounds
     Rect trackBounds(bounds.x() + labelWidth, bounds.y(), width, height);
     float radius = height * 0.5f;
 
     // Draw track background
     dl.addRectFilled(trackBounds, theme.colors.secondary, radius);
 
+    // Clamp progress value
     progress = std::clamp(progress, 0.0f, 1.0f);
     Color fillColor = options.fillColor.a > 0 ? options.fillColor : theme.colors.primary;
 
     if (options.indeterminate) {
-        float time = ctx->time();
+        // Animated indeterminate mode
+        float time = wc.ctx->time();
         float barWidth = trackBounds.width() * 0.3f;
         float barLeft = progress_utils::indeterminateBarPosition(
             time, 0.7f, trackBounds.x(), trackBounds.width(), barWidth);
@@ -65,19 +88,15 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
         float innerLeft = trackBounds.x() + radius;
         float innerRight = trackBounds.right() - radius;
 
-        // Constraint to the track area
+        // Clip to track area
         dl.pushClipRect(trackBounds);
 
-        // 1. Draw the "Track Segment": we draw the track shape in fill color,
-        // but clip it to the moving bar window. This handles the curves at 
-        // the very ends of the track perfectly.
+        // Draw track segment clipped to moving bar window
         dl.pushClipRect(Rect(barLeft, trackBounds.y(), barWidth, trackBounds.height()));
         dl.addRectFilled(trackBounds, fillColor, radius);
         dl.popClipRect();
 
-        // 2. Draw rounded ends to form a moving capsule when in the middle area.
-        // We only draw them when they are in the straight part of the track;
-        // near the ends, they naturally "merge" into the track's own curve.
+        // Draw rounded ends for capsule effect in middle area
         if (barLeft > innerLeft && barLeft < innerRight) {
             dl.addCircleFilled(Vec2(barLeft, trackBounds.y() + radius), radius, fillColor);
         }
@@ -87,13 +106,13 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
 
         dl.popClipRect();
     } else if (progress > 0.0f) {
-        // Normal progress fill
+        // Normal determinate progress fill
         float fillW = progress_utils::fillWidth(progress, trackBounds.width());
         Rect fillRect(trackBounds.x(), trackBounds.y(), fillW, trackBounds.height());
         dl.addRectFilled(fillRect, fillColor, radius);
     }
 
-    // Draw percentage text
+    // Draw percentage text centered on track
     if (options.showPercentage && font && !options.indeterminate) {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(0) << (progress * 100.0f) << "%";

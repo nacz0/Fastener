@@ -1,3 +1,8 @@
+/**
+ * @file scroll_area.cpp
+ * @brief Scrollable container widget implementation.
+ */
+
 #include "fastener/widgets/scroll_area.h"
 #include "fastener/widgets/menu.h"
 #include "fastener/core/context.h"
@@ -7,9 +12,17 @@
 
 namespace fst {
 
+//=============================================================================
+// ScrollArea Implementation
+//=============================================================================
+
 ScrollArea::ScrollArea() = default;
 ScrollArea::~ScrollArea() = default;
 
+/**
+ * @brief Set the scroll offset directly.
+ * @param offset New scroll offset (x, y)
+ */
 void ScrollArea::setScrollOffset(const Vec2& offset) {
     m_scrollOffset = offset;
 }

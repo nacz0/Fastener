@@ -1,3 +1,8 @@
+/**
+ * @file slider.cpp
+ * @brief Slider widget implementation for numeric value input.
+ */
+
 #include "fastener/widgets/slider.h"
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
@@ -13,23 +18,38 @@
 
 namespace fst {
 
+//=============================================================================
+// Slider Implementation
+//=============================================================================
+
+/**
+ * @brief Renders a horizontal slider for float value input.
+ * 
+ * @param label Label displayed before the slider
+ * @param value Reference to the float value (modified on drag)
+ * @param minVal Minimum allowed value
+ * @param maxVal Maximum allowed value
+ * @param options Slider styling and behavior options
+ * @return true if the value was changed this frame
+ */
 bool Slider(const char* label, float& value, float minVal, float maxVal, 
             const SliderOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
+    // Get widget context
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
     
-    const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
-    Font* font = ctx->font();
+    const Theme& theme = *wc.theme;
+    DrawList& dl = *wc.dl;
+    Font* font = wc.font;
     
-    // Generate ID
-    WidgetId id = ctx->makeId(label);
+    // Generate unique ID
+    WidgetId id = wc.ctx->makeId(label);
     
-    // Calculate size
+    // Calculate dimensions
     float sliderWidth = options.style.width > 0 ? options.style.width : 200.0f;
     float height = options.style.height > 0 ? options.style.height : theme.metrics.sliderHeight;
     
-    // Reserve space for label and value display
+    // Calculate space for label and value display
     float labelWidth = 0;
     float valueWidth = 0;
     
@@ -43,14 +63,10 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     
     float totalWidth = layout_utils::totalWidthWithLabel(sliderWidth, labelWidth, valueWidth, 0);
     
-    Rect bounds;
-    if (options.style.x < 0.0f && options.style.y < 0.0f) {
-        bounds = ctx->layout().allocate(totalWidth, height, options.style.flexGrow);
-    } else {
-        bounds = Rect(options.style.x, options.style.y, totalWidth, height);
-    }
+    // Allocate bounds
+    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
     
-    // Slider track bounds
+    // Calculate track bounds
     Rect trackBounds(
         bounds.x() + labelWidth,
         bounds.y() + (height - theme.metrics.sliderHeight * 0.3f) * 0.5f,
@@ -65,9 +81,9 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     
     bool changed = false;
     
-    // Handle dragging
+    // Handle dragging to update value
     if ((interaction.clicked || interaction.dragging) && !options.disabled) {
-        float mouseX = ctx->input().mousePos().x;
+        float mouseX = wc.ctx->input().mousePos().x;
         float newValue = slider_utils::valueFromMousePosition(
             mouseX, trackBounds.left(), trackBounds.width(), minVal, maxVal);
         
@@ -77,18 +93,19 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
         }
     }
     
-    // Clamp value and get normalized position
+    // Clamp and normalize value
     value = std::clamp(value, minVal, maxVal);
     float t = slider_utils::valueToNormalized(value, minVal, maxVal);
     
-    // Draw label
+    // Draw label text
     if (font && label[0] != '\0') {
         Vec2 labelPos(
             bounds.x(),
             bounds.y() + (height - font->lineHeight()) * 0.5f
         );
-        Color labelColor = options.disabled ? 
-            theme.colors.textDisabled : theme.colors.text;
+        Color labelColor = options.disabled 
+            ? theme.colors.textDisabled 
+            : theme.colors.text;
         dl.addText(font, labelPos, label, nullptr, labelColor);
     }
     
@@ -96,7 +113,7 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     float trackRadius = trackBounds.height() * 0.5f;
     dl.addRectFilled(trackBounds, theme.colors.secondary, trackRadius);
     
-    // Draw filled portion
+    // Draw filled portion of track
     if (t > 0.0f) {
         Rect filledRect(
             trackBounds.x(),
@@ -104,33 +121,30 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
             trackBounds.width() * t,
             trackBounds.height()
         );
-        Color fillColor = options.disabled ? 
-            theme.colors.primary.withAlpha(0.5f) : theme.colors.primary;
+        Color fillColor = options.disabled 
+            ? theme.colors.primary.withAlpha(0.5f) 
+            : theme.colors.primary;
         dl.addRectFilled(filledRect, fillColor, trackRadius);
     }
     
-    // Draw thumb
+    // Draw thumb circle
     float thumbRadius = theme.metrics.sliderHeight * 0.4f;
     Vec2 thumbCenter(
         trackBounds.x() + trackBounds.width() * t,
         bounds.center().y
     );
     
-    Color thumbColor;
-    if (options.disabled) {
-        thumbColor = theme.colors.buttonBackground.withAlpha(0.5f);
-    } else if (state.active) {
-        thumbColor = theme.colors.primaryHover;
-    } else if (state.hovered) {
-        thumbColor = theme.colors.buttonHover;
-    } else {
-        thumbColor = theme.colors.buttonBackground;
-    }
+    Color thumbColor = getStateColor(
+        theme.colors.buttonBackground,
+        theme.colors.buttonHover,
+        theme.colors.primaryHover,
+        state
+    );
     
     dl.addCircleFilled(thumbCenter, thumbRadius, thumbColor);
     dl.addCircle(thumbCenter, thumbRadius, theme.colors.border);
     
-    // Draw value
+    // Draw value display
     if (options.showValue && font) {
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(options.decimals) << value;
@@ -140,19 +154,37 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
             trackBounds.right() + theme.metrics.paddingMedium,
             bounds.y() + (height - font->lineHeight()) * 0.5f
         );
-        Color valueColor = options.disabled ? 
-            theme.colors.textDisabled : theme.colors.textSecondary;
+        Color valueColor = options.disabled 
+            ? theme.colors.textDisabled 
+            : theme.colors.textSecondary;
         dl.addText(font, valuePos, valueStr, valueColor);
     }
     
     return changed;
 }
 
+//=============================================================================
+// Slider Overloads
+//=============================================================================
+
+/**
+ * @brief String overload for Slider.
+ */
 bool Slider(const std::string& label, float& value, float min, float max,
             const SliderOptions& options) {
     return Slider(label.c_str(), value, min, max, options);
 }
 
+/**
+ * @brief Integer slider variant.
+ * 
+ * @param label Label displayed before the slider
+ * @param value Reference to the int value
+ * @param min Minimum allowed value
+ * @param max Maximum allowed value
+ * @param options Slider styling options (decimals is forced to 0)
+ * @return true if the value was changed this frame
+ */
 bool SliderInt(const std::string& label, int& value, int min, int max,
                const SliderOptions& options) {
     float floatValue = static_cast<float>(value);

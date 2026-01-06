@@ -3,6 +3,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 #include "fastener/ui/widget_utils.h"
 #include <algorithm>
 #include <cmath>
@@ -31,8 +32,12 @@ void ProgressBar(const std::string& label, float progress, const ProgressBarOpti
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
-    Rect bounds(options.style.x, options.style.y, labelWidth + width, height);
-    // TODO: Get from layout system
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(labelWidth + width, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, labelWidth + width, height);
+    }
 
     // Draw label
     if (font && !label.empty()) {

@@ -224,6 +224,10 @@ struct Color {
     // From HSL
     static Color fromHSL(float h, float s, float l, float a = 1.0f);
     
+    // HSV conversion
+    static Color fromHSV(float h, float s, float v, float a = 1.0f);
+    void toHSV(float& h, float& s, float& v) const;
+    
     // To float (0-1 range)
     float rf() const { return r / 255.0f; }
     float gf() const { return g / 255.0f; }

@@ -38,9 +38,8 @@ private:
     bool m_needsEnd;
 };
 
-// Usage: if (auto p = Panel("myPanel")) { ... }
-// or: Panel p("myPanel"); if (p) { ... }
-#define Panel(id, ...) PanelScope _panel_##__LINE__(id, ##__VA_ARGS__)
+// Usage: Panel("myPanel") { ... }
+#define Panel(id, ...) if (fst::PanelScope _panel_##__LINE__{id, ##__VA_ARGS__})
 
 // Begin/End style (alternative)
 bool BeginPanel(const std::string& id, const PanelOptions& options = {});

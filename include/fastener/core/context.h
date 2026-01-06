@@ -15,6 +15,7 @@ class Renderer;
 class DrawList;
 class Theme;
 class Font;
+class LayoutContext;
 
 //=============================================================================
 // Context - Main application context
@@ -49,6 +50,7 @@ public:
     // Drawing
     DrawList& drawList();
     Renderer& renderer();
+    LayoutContext& layout();
     Window& window();
     
     // Time

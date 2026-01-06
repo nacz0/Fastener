@@ -316,6 +316,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\ui\widget.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\button.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\checkbox.cpp" />
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\color_picker.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\combo_box.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\label.cpp" />
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\menu.cpp" />
@@ -342,8 +343,10 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\ui\style.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\ui\theme.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\ui\widget.h" />
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\ui\widget_utils.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\button.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\checkbox.h" />
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\color_picker.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\combo_box.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\label.h" />
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\menu.h" />

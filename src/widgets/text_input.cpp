@@ -4,6 +4,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 #include <algorithm>
 
 namespace fst {
@@ -23,8 +24,12 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
     float width = options.style.width > 0 ? options.style.width : 200.0f;
     float height = options.style.height > 0 ? options.style.height : theme.metrics.inputHeight;
     
-    Rect bounds(0, 0, width, height);
-    // TODO: Get from layout system
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(width, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, width, height);
+    }
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(widgetId, bounds, true);

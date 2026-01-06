@@ -90,9 +90,11 @@ private:
         
         Vec2 scrollOffset;
         
-        // For flex layout
+        // For flex layout and nesting
         float totalFlex = 0.0f;
         float remainingSize = 0.0f;
+        float maxInnerWidth = 0.0f;
+        float maxInnerHeight = 0.0f;
     };
     
     std::vector<ContainerState> m_stack;
@@ -100,5 +102,21 @@ private:
     ContainerState& current();
     const ContainerState& current() const;
 };
+
+//=============================================================================
+// Global Layout Helpers
+//=============================================================================
+void BeginHorizontal(float spacing = -1.0f);
+void EndHorizontal();
+
+void BeginVertical(float spacing = -1.0f);
+void EndVertical();
+
+void Spacing(float size);
+void Padding(float top, float right, float bottom, float left);
+void Padding(float uniform);
+
+Rect Allocate(float width, float height, float flexGrow = 0.0f);
+Rect AllocateRemaining();
 
 } // namespace fst

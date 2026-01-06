@@ -10,6 +10,7 @@ C:\Users\natma\Documents\GitHub\Fastener\src\ui\layout.cpp;C:\Users\natma\Docume
 C:\Users\natma\Documents\GitHub\Fastener\src\ui\widget.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\widget.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\button.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\button.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\checkbox.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\checkbox.obj
+C:\Users\natma\Documents\GitHub\Fastener\src\widgets\color_picker.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\color_picker.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\combo_box.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\combo_box.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\label.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\label.obj
 C:\Users\natma\Documents\GitHub\Fastener\src\widgets\menu.cpp;C:\Users\natma\Documents\GitHub\Fastener\build\fastener.dir\Release\menu.obj

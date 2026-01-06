@@ -1,4 +1,6 @@
 #include "fastener/ui/layout.h"
+#include "fastener/core/context.h"
+#include "fastener/ui/theme.h"
 #include <cmath>
 
 namespace fst {
@@ -17,8 +19,32 @@ void LayoutContext::beginContainer(const Rect& bounds, LayoutDirection direction
 }
 
 void LayoutContext::endContainer() {
-    if (!m_stack.empty()) {
-        m_stack.pop_back();
+    if (m_stack.size() < 2) {
+        if (!m_stack.empty()) m_stack.pop_back();
+        return;
+    }
+    
+    // Get size of container that just finished
+    ContainerState finished = m_stack.back();
+    m_stack.pop_back();
+    
+    // Report size to parent and advance its cursor
+    ContainerState& parent = m_stack.back();
+    
+    float usedW = finished.maxInnerWidth + finished.padding.left() + finished.padding.right();
+    float usedH = finished.maxInnerHeight + finished.padding.top() + finished.padding.bottom();
+    
+    // Position reporting logic (similar to allocate)
+    if (parent.direction == LayoutDirection::Horizontal) {
+        parent.cursor.x += usedW + parent.spacing;
+        parent.remainingSize -= usedW + parent.spacing;
+        parent.maxInnerWidth = std::max(parent.maxInnerWidth, parent.cursor.x - (parent.bounds.x() + parent.padding.left()));
+        parent.maxInnerHeight = std::max(parent.maxInnerHeight, usedH);
+    } else {
+        parent.cursor.y += usedH + parent.spacing;
+        parent.remainingSize -= usedH + parent.spacing;
+        parent.maxInnerWidth = std::max(parent.maxInnerWidth, usedW);
+        parent.maxInnerHeight = std::max(parent.maxInnerHeight, parent.cursor.y - (parent.bounds.y() + parent.padding.top()));
     }
 }
 
@@ -43,10 +69,16 @@ Rect LayoutContext::allocate(float width, float height, float flexGrow) {
         result = Rect(pos.x, pos.y, width, height);
         state.cursor.x += width + state.spacing;
         state.remainingSize -= width + state.spacing;
+        
+        state.maxInnerWidth = std::max(state.maxInnerWidth, state.cursor.x - (state.bounds.x() + state.padding.left()));
+        state.maxInnerHeight = std::max(state.maxInnerHeight, height);
     } else {
         result = Rect(pos.x, pos.y, width, height);
         state.cursor.y += height + state.spacing;
         state.remainingSize -= height + state.spacing;
+        
+        state.maxInnerWidth = std::max(state.maxInnerWidth, width);
+        state.maxInnerHeight = std::max(state.maxInnerHeight, state.cursor.y - (state.bounds.y() + state.padding.top()));
     }
     
     state.totalFlex += flexGrow;
@@ -144,6 +176,79 @@ LayoutContext::ContainerState& LayoutContext::current() {
 
 const LayoutContext::ContainerState& LayoutContext::current() const {
     return m_stack.back();
+}
+
+//=============================================================================
+// Global Layout Helpers
+//=============================================================================
+
+void BeginHorizontal(float spacing) {
+    Context* ctx = Context::current();
+    if (!ctx) return;
+    
+    LayoutContext& lc = ctx->layout();
+    lc.beginContainer(lc.allocateRemaining(), LayoutDirection::Horizontal);
+    
+    if (spacing >= 0) {
+        lc.setSpacing(spacing);
+    } else {
+        lc.setSpacing(ctx->theme().metrics.paddingSmall);
+    }
+}
+
+void EndHorizontal() {
+    Context* ctx = Context::current();
+    if (ctx) ctx->layout().endContainer();
+}
+
+void BeginVertical(float spacing) {
+    Context* ctx = Context::current();
+    if (!ctx) return;
+    
+    LayoutContext& lc = ctx->layout();
+    lc.beginContainer(lc.allocateRemaining(), LayoutDirection::Vertical);
+    
+    if (spacing >= 0) {
+        lc.setSpacing(spacing);
+    } else {
+        lc.setSpacing(ctx->theme().metrics.paddingSmall);
+    }
+}
+
+void EndVertical() {
+    Context* ctx = Context::current();
+    if (ctx) ctx->layout().endContainer();
+}
+
+void Spacing(float size) {
+    Context* ctx = Context::current();
+    if (!ctx) return;
+    
+    LayoutContext& lc = ctx->layout();
+    if (lc.currentDirection() == LayoutDirection::Horizontal) {
+        lc.allocate(size, 0);
+    } else {
+        lc.allocate(0, size);
+    }
+}
+
+void Padding(float top, float right, float bottom, float left) {
+    Context* ctx = Context::current();
+    if (ctx) ctx->layout().setPadding(top, right, bottom, left);
+}
+
+void Padding(float uniform) {
+    Padding(uniform, uniform, uniform, uniform);
+}
+
+Rect Allocate(float width, float height, float flexGrow) {
+    Context* ctx = Context::current();
+    return ctx ? ctx->layout().allocate(width, height, flexGrow) : Rect();
+}
+
+Rect AllocateRemaining() {
+    Context* ctx = Context::current();
+    return ctx ? ctx->layout().allocateRemaining() : Rect();
 }
 
 } // namespace fst

@@ -5,6 +5,7 @@
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 
 namespace fst {
 
@@ -25,8 +26,13 @@ bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) 
     float totalWidth = boxSize + theme.metrics.paddingSmall + textSize.x;
     float height = std::max(boxSize, textSize.y);
     
-    Rect bounds(options.style.x, options.style.y, totalWidth, height);
-    // TODO: Get from layout system
+    // Determine bounds
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(totalWidth, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, totalWidth, height);
+    }
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);

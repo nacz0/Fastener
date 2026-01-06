@@ -22,9 +22,11 @@
 #include "fastener/widgets/button.h"
 #include "fastener/widgets/label.h"
 #include "fastener/widgets/panel.h"
+#include "fastener/widgets/splitter.h"
 #include "fastener/widgets/text_input.h"
 #include "fastener/widgets/checkbox.h"
 #include "fastener/widgets/slider.h"
+#include "fastener/widgets/color_picker.h"
 #include "fastener/widgets/tree_view.h"
 #include "fastener/widgets/tab_control.h"
 #include "fastener/widgets/menu.h"
@@ -32,6 +34,7 @@
 #include "fastener/widgets/combo_box.h"
 #include "fastener/widgets/progress_bar.h"
 #include "fastener/widgets/tooltip.h"
+#include "fastener/widgets/text_editor.h"
 
 namespace fst {
     // Version info

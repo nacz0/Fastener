@@ -4,6 +4,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 
 namespace fst {
 
@@ -33,12 +34,16 @@ bool BeginPanel(const std::string& id, const PanelOptions& options) {
     ctx->pushId(id.c_str());
     WidgetId widgetId = ctx->currentId();
     
-    // Get bounds (for now, use simple allocation)
+    // Get bounds
     float width = options.style.width > 0 ? options.style.width : 300.0f;
     float height = options.style.height > 0 ? options.style.height : 200.0f;
     
-    Rect bounds(0, 0, width, height);
-    // TODO: Get from layout system
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(width, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, width, height);
+    }
     
     // Draw panel background
     Color bgColor = options.style.backgroundColor.a > 0 ? 
@@ -95,8 +100,13 @@ bool BeginPanel(const std::string& id, const PanelOptions& options) {
     );
     dl.pushClipRect(contentRect);
     
-    // Begin layout container
-    // TODO: Use layout system
+    // Begin layout container for interior
+    ctx->layout().beginContainer(contentRect, options.direction);
+    if (options.spacing > 0) {
+        ctx->layout().setSpacing(options.spacing);
+    } else {
+        ctx->layout().setSpacing(theme.metrics.paddingSmall);
+    }
     
     s_panelDepth++;
     
@@ -112,8 +122,8 @@ void EndPanel() {
     // Pop clip rect
     ctx->drawList().popClipRect();
     
-    // End layout container
-    // TODO: Use layout system
+    // End layout container for interior
+    ctx->layout().endContainer();
     
     ctx->popId();
 }

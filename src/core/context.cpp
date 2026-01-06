@@ -169,6 +169,10 @@ Renderer& Context::renderer() {
     return m_impl->renderer;
 }
 
+LayoutContext& Context::layout() {
+    return m_impl->layout;
+}
+
 Window& Context::window() {
     return *m_impl->currentWindow;
 }

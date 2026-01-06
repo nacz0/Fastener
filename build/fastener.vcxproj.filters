@@ -37,6 +37,9 @@
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\checkbox.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\color_picker.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="C:\Users\natma\Documents\GitHub\Fastener\src\widgets\combo_box.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -117,10 +120,16 @@
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\ui\widget.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\ui\widget_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\button.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\checkbox.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\color_picker.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="C:\Users\natma\Documents\GitHub\Fastener\include\fastener\widgets\combo_box.h">

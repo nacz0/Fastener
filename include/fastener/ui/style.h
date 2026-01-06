@@ -13,8 +13,8 @@ struct Style {
     float height = 0.0f;      // 0 = auto
     float minWidth = 0.0f;
     float minHeight = 0.0f;
-    float x = 0.0f;           // Absolute position (if layout not used)
-    float y = 0.0f;
+    float x = -1.0f;          // Absolute position (if layout not used, -1 = auto)
+    float y = -1.0f;
     float maxWidth = 0.0f;    // 0 = no limit
     float maxHeight = 0.0f;   // 0 = no limit
     

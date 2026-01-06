@@ -5,6 +5,7 @@
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 #include <algorithm>
 #include <cmath>
 #include <sstream>
@@ -42,8 +43,12 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     
     float totalWidth = layout_utils::totalWidthWithLabel(sliderWidth, labelWidth, valueWidth, 0);
     
-    Rect bounds(0, 0, totalWidth, height);
-    // TODO: Get from layout system
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(totalWidth, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, totalWidth, height);
+    }
     
     // Slider track bounds
     Rect trackBounds(

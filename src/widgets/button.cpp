@@ -4,6 +4,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 
 namespace fst {
 
@@ -24,8 +25,13 @@ bool Button(const char* label, const ButtonOptions& options) {
                   textSize.x + theme.metrics.paddingMedium * 2 + theme.metrics.paddingLarge * 2;
     float height = options.style.height > 0 ? options.style.height : theme.metrics.buttonHeight;
     
-    // Allocate space (use style position if provided)
-    Rect bounds(options.style.x, options.style.y, width, height);
+    // Allocate space
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(width, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, width, height);
+    }
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);

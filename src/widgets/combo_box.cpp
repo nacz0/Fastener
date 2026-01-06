@@ -4,6 +4,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/layout.h"
 #include <algorithm>
 #include <unordered_map>
 
@@ -39,8 +40,12 @@ bool ComboBox(const char* label, int& selectedIndex,
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
-    Rect bounds(options.style.x, options.style.y, labelWidth + width, height);
-    // TODO: Get from layout system
+    Rect bounds;
+    if (options.style.x < 0.0f && options.style.y < 0.0f) {
+        bounds = ctx->layout().allocate(labelWidth + width, height, options.style.flexGrow);
+    } else {
+        bounds = Rect(options.style.x, options.style.y, labelWidth + width, height);
+    }
 
     Rect boxBounds(bounds.x() + labelWidth, bounds.y(), width, height);
 

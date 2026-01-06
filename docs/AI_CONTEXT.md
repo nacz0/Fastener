@@ -50,6 +50,7 @@ while(window.isOpen()) {
 | **Tooltip** | `void Tooltip(text, options={})` | Call AFTER the widget to attach |
 | **TextEditor** | `editor.render(bounds, options)` | Multi-line code editor |
 | **Menu** | `menuBar.render(bounds)` | Popups: `menuBar.renderPopups()` at frame end |
+| **Layout** | `BeginHorizontal()`, `BeginVertical()`, `Spacing(v)`, `Padding(v)` | Automatic positioning |
 
 ## 💡 Code Patterns & Idioms
 
@@ -75,6 +76,18 @@ for (int i=0; i<10; ++i) {
     if (fst::Button("Item")) { ... } // Each has unique ID
     ctx.popId();
 }
+```
+
+### Automatic Layout
+```cpp
+fst::BeginVertical();
+    fst::Label("Settings");
+    fst::BeginHorizontal();
+        fst::Button("Save");
+        fst::Spacing(10);
+        fst::Button("Cancel");
+    fst::EndHorizontal();
+fst::EndVertical();
 ```
 
 ## ⚠️ Common Mistakes to Avoid

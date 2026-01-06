@@ -35,6 +35,10 @@
 #include "fastener/widgets/progress_bar.h"
 #include "fastener/widgets/tooltip.h"
 #include "fastener/widgets/text_editor.h"
+#include "fastener/widgets/listbox.h"
+#include "fastener/widgets/spinner.h"
+#include "fastener/widgets/selectable.h"
+#include "fastener/widgets/text_area.h"
 
 namespace fst {
     // Version info

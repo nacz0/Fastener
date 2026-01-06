@@ -55,6 +55,7 @@ int main() {
     tabs.addTab("main.cpp", "main.cpp", true);
     tabs.addTab("scroll_demo", "Scroll Demo", true);
     tabs.addTab("settings_demo", "Settings", true);
+    tabs.addTab("new_widgets_demo", "New Widgets", true);
     tabs.addTab("types.cpp", "types.cpp", true);
     tabs.addTab("context.cpp", "context.cpp", true);
     
@@ -78,6 +79,13 @@ int main() {
     float progressVal = 0.45f;
     float indeterminateProgress = 0.0f;
     Color pickerColor = Color::fromHex(0x3498DB);
+
+    // New Priority 2 Widgets state
+    int listboxSelection = 0;
+    std::vector<int> listboxMultiSelection;
+    std::vector<std::string> listboxItems = {"Option Alpha", "Option Beta", "Option Gamma", "Option Delta", "Option Epsilon", "Option Zeta", "Option Eta", "Option Theta"};
+    bool selectable1 = false, selectable2 = true, selectable3 = false;
+    std::string textAreaContent = "Welcome to TextArea!\n\nThis is a multi-line text input widget.\nYou can type here, navigate with arrows,\nand scroll through long content.\n\n- Supports keyboard navigation\n- Auto-scrolling\n- Line numbers (optional)";
 
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
@@ -337,6 +345,115 @@ int main() {
                     BeginHorizontal(10);
                         Label("Help Marker:", sectionOpts);
                         HelpMarker("This is a help marker. It uses automatic layout!");
+                    EndHorizontal();
+                }
+                
+                ctx.layout().endContainer();
+            } else if (tabId == "new_widgets_demo") {
+                // Demo of Priority 2 Widgets
+                ctx.layout().beginContainer(contentRect);
+                
+                PanelOptions p2PanelOpts;
+                p2PanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+                
+                Panel("NewWidgetsPanel", p2PanelOpts) {
+                    LabelOptions titleOpts;
+                    titleOpts.color = theme.colors.primary;
+                    Label("NEW WIDGETS (Priority 2)", titleOpts);
+                    Spacing(10);
+                    
+                    LabelOptions sectionOpts;
+                    sectionOpts.color = theme.colors.textSecondary;
+
+                    // Two-column layout
+                    BeginHorizontal(30);
+                    
+                    // Left column
+                    BeginVertical(10);
+                        // Listbox Demo
+                        Label("Listbox (Single Select):", sectionOpts);
+                        ListboxOptions lbOpts;
+                        lbOpts.height = 120;
+                        lbOpts.style = Style().withWidth(200);
+                        if (Listbox("demo_listbox", listboxSelection, listboxItems, lbOpts)) {
+                            statusText = "Selected: " + listboxItems[listboxSelection];
+                        }
+                        Spacing(10);
+                        
+                        Label("Listbox (Multi-Select):", sectionOpts);
+                        ListboxOptions lbMultiOpts;
+                        lbMultiOpts.height = 100;
+                        lbMultiOpts.style = Style().withWidth(200);
+                        lbMultiOpts.multiSelect = true;
+                        if (ListboxMulti("demo_listbox_multi", listboxMultiSelection, listboxItems, lbMultiOpts)) {
+                            statusText = "Multi-selected: " + std::to_string(listboxMultiSelection.size()) + " items";
+                        }
+                    EndVertical();
+                    
+                    // Middle column
+                    BeginVertical(10);
+                        // Spinner Demo
+                        Label("Spinner Variants:", sectionOpts);
+                        Spacing(5);
+                        
+                        BeginHorizontal(20);
+                            SpinnerOptions spinOpts;
+                            spinOpts.size = 24.0f;
+                            Spinner("demo_spinner1", spinOpts);
+                            
+                            SpinnerOptions spinOpts2;
+                            spinOpts2.size = 32.0f;
+                            spinOpts2.color = theme.colors.success;
+                            Spinner("demo_spinner2", spinOpts2);
+                        EndHorizontal();
+                        
+                        Spacing(10);
+                        SpinnerWithLabel("demo_spinner_label", "Loading data...");
+                        
+                        Spacing(10);
+                        Label("Loading Dots:", sectionOpts);
+                        SpinnerOptions dotsOpts;
+                        dotsOpts.size = 32.0f;
+                        LoadingDots("demo_dots", dotsOpts);
+                        
+                        Spacing(20);
+                        
+                        // Selectable Demo
+                        Label("Selectable Items:", sectionOpts);
+                        SelectableOptions selOpts;
+                        selOpts.style = Style().withWidth(200);
+                        Selectable("File Browser", selectable1, selOpts);
+                        Selectable("Terminal", selectable2, selOpts);
+                        Selectable("Search Results", selectable3, selOpts);
+                        
+                        Spacing(10);
+                        Label("With Icons:", sectionOpts);
+                        SelectableWithIcon("📁", "Documents", selectable1, selOpts);
+                        SelectableWithIcon("🖼️", "Images", selectable2, selOpts);
+                        SelectableWithIcon("🎵", "Music", selectable3, selOpts);
+                    EndVertical();
+                    
+                    // Right column - TextArea
+                    BeginVertical(10);
+                        Label("TextArea (Multi-line Input):", sectionOpts);
+                        TextAreaOptions taOpts;
+                        taOpts.height = 200;
+                        taOpts.showLineNumbers = true;
+                        taOpts.style = Style().withWidth(350);
+                        if (TextArea("demo_textarea", textAreaContent, taOpts)) {
+                            statusText = "Text modified";
+                        }
+                        
+                        Spacing(10);
+                        Label("Without Line Numbers:", sectionOpts);
+                        TextAreaOptions taOpts2;
+                        taOpts2.height = 80;
+                        taOpts2.style = Style().withWidth(350);
+                        taOpts2.placeholder = "Enter a description...";
+                        static std::string shortText = "";
+                        TextArea("demo_textarea2", shortText, taOpts2);
+                    EndVertical();
+                    
                     EndHorizontal();
                 }
                 

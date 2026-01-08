@@ -39,6 +39,11 @@
 #include "fastener/widgets/spinner.h"
 #include "fastener/widgets/selectable.h"
 #include "fastener/widgets/text_area.h"
+#include "fastener/widgets/radio_button.h"
+#include "fastener/widgets/input_number.h"
+#include "fastener/widgets/collapsing_header.h"
+#include "fastener/widgets/image.h"
+#include "fastener/widgets/separator.h"
 
 namespace fst {
     // Version info

@@ -98,6 +98,13 @@ int main() {
     bool selectable1 = false, selectable2 = true, selectable3 = false;
     std::string textAreaContent = "Welcome to TextArea!\n\nThis is a multi-line text input widget.\nYou can type here, navigate with arrows,\nand scroll through long content.\n\n- Supports keyboard navigation\n- Auto-scrolling\n- Line numbers (optional)";
 
+    // New Priority 3 Widgets state
+    int radioSelection = 0;
+    int inputNumberValue = 5;
+    float inputNumberFloat = 2.5f;
+    bool collapsingOpen1 = true;
+    bool collapsingOpen2 = false;
+
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
         if (it == editors.end()) {
@@ -506,25 +513,66 @@ int main() {
                         SelectableWithIcon("🎵", "Music", selectable3, selOpts);
                     EndVertical();
                     
-                    // Right column - TextArea
+                    // Right column - New Priority 3 Widgets
                     BeginVertical(10);
                         Label("TextArea (Multi-line Input):", sectionOpts);
                         TextAreaOptions taOpts;
-                        taOpts.height = 200;
+                        taOpts.height = 120;
                         taOpts.showLineNumbers = true;
                         taOpts.style = Style().withWidth(350);
                         if (TextArea("demo_textarea", textAreaContent, taOpts)) {
                             statusText = "Text modified";
                         }
                         
+                        Spacing(15);
+                        Separator();
                         Spacing(10);
-                        Label("Without Line Numbers:", sectionOpts);
-                        TextAreaOptions taOpts2;
-                        taOpts2.height = 80;
-                        taOpts2.style = Style().withWidth(350);
-                        taOpts2.placeholder = "Enter a description...";
-                        static std::string shortText = "";
-                        TextArea("demo_textarea2", shortText, taOpts2);
+                        
+                        // RadioButton Demo
+                        Label("RadioButton Group:", sectionOpts);
+                        RadioButton("Option A", radioSelection, 0);
+                        RadioButton("Option B", radioSelection, 1);
+                        RadioButton("Option C", radioSelection, 2);
+                        
+                        Spacing(15);
+                        SeparatorWithLabel("InputNumber");
+                        Spacing(10);
+                        
+                        // InputNumber Demo
+                        InputNumberOptions inOpts;
+                        inOpts.style = Style().withWidth(180);
+                        if (InputNumberInt("Quantity", inputNumberValue, 0, 100, inOpts)) {
+                            statusText = "Quantity: " + std::to_string(inputNumberValue);
+                        }
+                        
+                        InputNumberOptions inFloatOpts;
+                        inFloatOpts.style = Style().withWidth(180);
+                        inFloatOpts.step = 0.5f;
+                        inFloatOpts.decimals = 1;
+                        InputNumber("Amount", inputNumberFloat, 0.0f, 10.0f, inFloatOpts);
+                        
+                        Spacing(15);
+                        SeparatorWithLabel("Collapsing");
+                        Spacing(10);
+                        
+                        // CollapsingHeader Demo
+                        if (CollapsingHeader("Section A", collapsingOpen1)) {
+                            Label("  Content inside Section A");
+                            Label("  More nested content");
+                        }
+                        if (CollapsingHeader("Section B", collapsingOpen2)) {
+                            Label("  This is Section B");
+                        }
+                        
+                        Spacing(15);
+                        SeparatorWithLabel("Image");
+                        Spacing(10);
+                        
+                        // Image Demo (Placeholder)
+                        ImageOptions imgOpts;
+                        imgOpts.style = Style().withSize(150, 100);
+                        imgOpts.borderRadius = 8.0f;
+                        Image(nullptr, imgOpts);
                     EndVertical();
                     
                     EndHorizontal();

@@ -55,6 +55,7 @@ int main() {
     tabs.addTab("main.cpp", "main.cpp", true);
     tabs.addTab("scroll_demo", "Scroll Demo", true);
     tabs.addTab("settings_demo", "Settings", true);
+    tabs.addTab("input_demo", "Input Demo", true);
     tabs.addTab("new_widgets_demo", "New Widgets", true);
     tabs.addTab("types.cpp", "types.cpp", true);
     tabs.addTab("context.cpp", "context.cpp", true);
@@ -79,6 +80,16 @@ int main() {
     float progressVal = 0.45f;
     float indeterminateProgress = 0.0f;
     Color pickerColor = Color::fromHex(0x3498DB);
+    
+    // Slider state
+    float sliderValue1 = 50.0f;
+    float sliderValue2 = 0.75f;
+    int sliderValueInt = 5;
+    
+    // TextInput state
+    std::string textInputValue = "Hello, Fastener!";
+    std::string passwordValue = "secret123";
+    std::string searchValue = "";
 
     // New Priority 2 Widgets state
     int listboxSelection = 0;
@@ -345,6 +356,68 @@ int main() {
                     BeginHorizontal(10);
                         Label("Help Marker:", sectionOpts);
                         HelpMarker("This is a help marker. It uses automatic layout!");
+                    EndHorizontal();
+                }
+                
+                ctx.layout().endContainer();
+            } else if (tabId == "input_demo") {
+                // Slider and TextInput demo
+                ctx.layout().beginContainer(contentRect);
+                
+                PanelOptions inputPanelOpts;
+                inputPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+                
+                Panel("InputDemoPanel", inputPanelOpts) {
+                    LabelOptions titleOpts;
+                    titleOpts.color = theme.colors.primary;
+                    Label("INPUT WIDGETS DEMO", titleOpts);
+                    Spacing(10);
+                    
+                    LabelOptions sectionOpts;
+                    sectionOpts.color = theme.colors.textSecondary;
+                    
+                    BeginHorizontal(40);
+                    
+                    // Left column - Sliders
+                    BeginVertical(10);
+                        Label("Sliders:", sectionOpts);
+                        Spacing(5);
+                        
+                        SliderOptions sliderOpts;
+                        sliderOpts.style = Style().withWidth(250);
+                        if (Slider("Volume", sliderValue1, 0.0f, 100.0f, sliderOpts)) {
+                            statusText = "Volume: " + std::to_string(static_cast<int>(sliderValue1)) + "%";
+                        }
+                        
+                        SliderOptions sliderOpts2;
+                        sliderOpts2.style = Style().withWidth(250);
+                        sliderOpts2.showValue = true;
+                        Slider("Brightness", sliderValue2, 0.0f, 1.0f, sliderOpts2);
+                    EndVertical();
+                    
+                    // Right column - TextInputs
+                    BeginVertical(10);
+                        Label("Text Inputs:", sectionOpts);
+                        Spacing(5);
+                        
+                        TextInputOptions tiOpts;
+                        tiOpts.style = Style().withWidth(250);
+                        if (TextInput("username", textInputValue, tiOpts)) {
+                            statusText = "Input: " + textInputValue;
+                        }
+                        
+                        TextInputOptions passOpts;
+                        passOpts.style = Style().withWidth(250);
+                        passOpts.password = true;
+                        passOpts.placeholder = "Enter password...";
+                        TextInput("password", passwordValue, passOpts);
+                        
+                        TextInputOptions searchOpts;
+                        searchOpts.style = Style().withWidth(250);
+                        searchOpts.placeholder = "Search...";
+                        TextInput("search", searchValue, searchOpts);
+                    EndVertical();
+                    
                     EndHorizontal();
                 }
                 

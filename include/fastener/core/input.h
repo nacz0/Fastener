@@ -164,7 +164,7 @@ private:
     std::array<bool, static_cast<int>(MouseButton::MaxButton)> m_mousePressed{};
     std::array<bool, static_cast<int>(MouseButton::MaxButton)> m_mouseReleased{};
     std::array<bool, static_cast<int>(MouseButton::MaxButton)> m_mouseDoubleClicked{};
-    std::array<float, static_cast<int>(MouseButton::MaxButton)> m_lastClickTime{};
+    std::array<float, static_cast<int>(MouseButton::MaxButton)> m_lastClickTime{-1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f, -1.0f};
     
     Vec2 m_mousePos;
     Vec2 m_lastMousePos;

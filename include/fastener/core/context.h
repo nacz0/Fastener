@@ -16,6 +16,7 @@ class DrawList;
 class Theme;
 class Font;
 class LayoutContext;
+class DockContext;
 
 //=============================================================================
 // Context - Main application context
@@ -52,6 +53,7 @@ public:
     Renderer& renderer();
     LayoutContext& layout();
     Window& window();
+    DockContext& docking();
     
     // Time
     float deltaTime() const;

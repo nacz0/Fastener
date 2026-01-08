@@ -45,6 +45,14 @@
 #include "fastener/widgets/image.h"
 #include "fastener/widgets/separator.h"
 
+// Docking
+#include "fastener/ui/dock_node.h"
+#include "fastener/ui/dock_context.h"
+#include "fastener/ui/dock_builder.h"
+#include "fastener/widgets/dock_space.h"
+#include "fastener/widgets/dockable_window.h"
+#include "fastener/widgets/dock_preview.h"
+
 namespace fst {
     // Version info
     constexpr int VERSION_MAJOR = 0;

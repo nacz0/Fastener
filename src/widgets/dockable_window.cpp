@@ -191,6 +191,7 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
                 state.isDragging = true;
                 state.dragOffset = input.mousePos() - contentBounds.pos;
                 ctx->setActiveWidget(widgetId);
+                ctx->input().consumeMouse();
             }
         }
 
@@ -200,6 +201,9 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
         // Update content bounds for body
         contentBounds = Rect(contentBounds.x(), contentBounds.y() + titleBarHeight,
                             contentBounds.width(), contentBounds.height() - titleBarHeight);
+
+        // Register occlusion
+        ctx->addFloatingWindowRect(state.floatingBounds);
     }
     
     // Begin layout for window content

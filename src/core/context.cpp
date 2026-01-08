@@ -56,6 +56,10 @@ struct Context::Impl {
         lastFrameTime = startTime;
         idStack.push_back(0);
     }
+    
+    // Floating window occlusion
+    std::vector<Rect> currentFloatingRects;
+    std::vector<Rect> prevFloatingRects;
 };
 
 Context::Context() : m_impl(std::make_unique<Impl>()) {
@@ -107,6 +111,10 @@ void Context::beginFrame(Window& window) {
     // Reset cursor and hovered widget
     window.setCursor(Cursor::Arrow);
     m_impl->hoveredWidget = INVALID_WIDGET_ID;
+    
+    // Swap floating rects for occlusion testing
+    m_impl->prevFloatingRects = m_impl->currentFloatingRects;
+    m_impl->currentFloatingRects.clear();
     
     // Begin docking frame
     m_impl->dockContext.beginFrame();
@@ -232,6 +240,38 @@ void Context::setActiveWidget(WidgetId id) {
 
 void Context::clearActiveWidget() {
     m_impl->activeWidget = INVALID_WIDGET_ID;
+}
+
+bool Context::isCapturedBy(WidgetId id) const {
+    return m_impl->activeWidget == id;
+}
+
+bool Context::isInputCaptured() const {
+    return m_impl->activeWidget != INVALID_WIDGET_ID || m_impl->dockContext.dragState().active;
+}
+
+bool Context::isPointClipped(const Vec2& pos) const {
+    return !m_impl->drawList.currentClipRect().contains(pos);
+}
+
+void Context::addFloatingWindowRect(const Rect& rect) {
+    m_impl->currentFloatingRects.push_back(rect);
+}
+
+bool Context::isOccluded(const Vec2& pos) const {
+    // Only block if we are in the default layer (background)
+    // Floating windows themselves shouldn't be blocked by other floating windows via this mechanism
+    // (that requires proper z-ordering which is more complex)
+    if (m_impl->drawList.currentLayer() != DrawList::Layer::Default) {
+        return false;
+    }
+    
+    for (const auto& r : m_impl->prevFloatingRects) {
+        if (r.contains(pos)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 void Context::pushId(WidgetId id) {

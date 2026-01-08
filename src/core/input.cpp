@@ -58,6 +58,7 @@ void InputState::beginFrame() {
     // Calculate mouse delta
     m_mouseDelta = m_mousePos - m_lastMousePos;
     m_lastMousePos = m_mousePos;
+    m_mouseConsumed = false;
 }
 
 void InputState::endFrame() {

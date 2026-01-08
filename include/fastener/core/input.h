@@ -136,6 +136,10 @@ public:
     
     // Text input (for this frame)
     const std::string& textInput() const { return m_textInput; }
+
+    // Event consumption (immediate)
+    void consumeMouse() { m_mouseConsumed = true; }
+    bool isMouseConsumed() const { return m_mouseConsumed; }
     
     // Frame management (called by Context)
     void beginFrame();
@@ -175,6 +179,7 @@ private:
     Modifiers m_modifiers;
     std::string m_textInput;
     float m_frameTime = 0.0f;
+    bool m_mouseConsumed = false;
     
     static constexpr float DOUBLE_CLICK_TIME = 0.3f;  // seconds
 };

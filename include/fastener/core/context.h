@@ -73,6 +73,19 @@ public:
     void setActiveWidget(WidgetId id);
     void clearActiveWidget();
     
+    /** @brief Check if a specific widget has captured the mouse. */
+    bool isCapturedBy(WidgetId id) const;
+
+    /** @brief Check if any widget has captured the mouse (is active). */
+    bool isInputCaptured() const;
+
+    /** @brief Check if a point is outside the current clip rectangle. */
+    bool isPointClipped(const Vec2& pos) const;
+
+    // Occlusion handling
+    void addFloatingWindowRect(const Rect& rect);
+    bool isOccluded(const Vec2& pos) const;
+    
     // ID stack (for hierarchical widgets)
     void pushId(WidgetId id);
     void pushId(const char* str);

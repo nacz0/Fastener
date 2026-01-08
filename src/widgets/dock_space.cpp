@@ -4,6 +4,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/widget.h"
 #include "fastener/platform/window.h"
 
 namespace fst {
@@ -117,49 +118,35 @@ bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertica
     const auto& theme = ctx->theme();
     auto& window = ctx->window();
     
-    bool hovered = splitterRect.contains(input.mousePos());
-    bool active = false;
-    
     // Create unique ID for this splitter
     WidgetId splitterId = combineIds(hashString("##DockSplitter"), node->id);
+    WidgetInteraction interact = handleWidgetInteraction(splitterId, splitterRect);
     
-    // Check for interaction
-    if (hovered && input.isMousePressed(MouseButton::Left)) {
-        ctx->setActiveWidget(splitterId);
-    }
-    
-    if (ctx->getActiveWidget() == splitterId) {
-        active = true;
-        
-        if (input.isMouseReleased(MouseButton::Left)) {
-            ctx->clearActiveWidget();
-            active = false;
+    if (interact.dragging) {
+        // Update split ratio based on mouse position
+        if (isVertical) {
+            float newRatio = (input.mousePos().x - node->bounds.x()) / node->bounds.width();
+            node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
         } else {
-            // Update split ratio based on mouse position
-            if (isVertical) {
-                float newRatio = (input.mousePos().x - node->bounds.x()) / node->bounds.width();
-                node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
-            } else {
-                float newRatio = (input.mousePos().y - node->bounds.y()) / node->bounds.height();
-                node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
-            }
-            
-            // Re-layout after resize
-            node->updateLayout(node->bounds);
+            float newRatio = (input.mousePos().y - node->bounds.y()) / node->bounds.height();
+            node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
         }
+        
+        // Re-layout after resize
+        node->updateLayout(node->bounds);
     }
     
     // Set cursor
-    if (hovered || active) {
+    if (interact.hovered || interact.dragging) {
         window.setCursor(isVertical ? Cursor::ResizeH : Cursor::ResizeV);
     }
     
     // Draw splitter
-    Color splitterColor = active ? theme.colors.primary : 
-                          (hovered ? theme.colors.borderHover : theme.colors.border);
+    Color splitterColor = interact.dragging ? theme.colors.primary : 
+                          (interact.hovered ? theme.colors.borderHover : theme.colors.border);
     dl.addRectFilled(splitterRect, splitterColor);
     
-    return active;
+    return interact.dragging;
 }
 
 //=============================================================================
@@ -206,18 +193,15 @@ void RenderDockTabBar(DockNode* node) {
         bool isHovered = tabRect.contains(input.mousePos());
         
         // Tab click and drag handling
-        if (isHovered) {
-            if (input.isMousePressed(MouseButton::Left)) {
-                node->selectedTabIndex = i;
-                ctx->setActiveWidget(combineIds(hashString("##DockTab"), node->id ^ i));
-            }
+        WidgetId tabId = combineIds(hashString("##DockTab"), node->id ^ i);
+        WidgetInteraction interact = handleWidgetInteraction(tabId, tabRect);
+        
+        if (interact.clicked) {
+            node->selectedTabIndex = i;
         }
         
-        WidgetId tabId = combineIds(hashString("##DockTab"), node->id ^ i);
-        if (ctx->getActiveWidget() == tabId && input.isMouseDown(MouseButton::Left)) {
+        if (interact.dragging) {
             // Use a threshold to distinguish between click and drag
-            // We use lengthSquared of mouse movement since the button was pressed
-            // For now, simplicity: if it moved more than 5 units in any direction
             static Vec2 s_dragStartPos;
             if (input.isMousePressed(MouseButton::Left)) s_dragStartPos = input.mousePos();
 

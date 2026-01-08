@@ -74,13 +74,19 @@ WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool 
     Vec2 mousePos = input.mousePos();
     bool isHovered = bounds.contains(mousePos);
     
-    if (isHovered) {
+    // Check for clipping and existing capture (exclude ourselves if we are already active)
+    bool clipped = ctx->isPointClipped(mousePos);
+    bool captured = ctx->isInputCaptured() && !ctx->isCapturedBy(id);
+    bool occluded = ctx->isOccluded(mousePos);
+    bool consumed = ctx->input().isMouseConsumed();
+    
+    if (isHovered && !clipped && !captured && !occluded && !consumed) {
         ctx->setHoveredWidget(id);
         result.hovered = true;
     }
     
     // Handle mouse clicks
-    if (isHovered && input.isMousePressed(MouseButton::Left)) {
+    if (isHovered && !clipped && !captured && !occluded && !consumed && input.isMousePressed(MouseButton::Left)) {
         ctx->setActiveWidget(id);
         if (focusable) {
             ctx->setFocusedWidget(id);
@@ -102,12 +108,12 @@ WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool 
     }
     
     // Double click
-    if (isHovered && input.isMouseDoubleClicked(MouseButton::Left)) {
+    if (isHovered && !occluded && !consumed && input.isMouseDoubleClicked(MouseButton::Left)) {
         result.doubleClicked = true;
     }
     
     // Right click
-    if (isHovered && input.isMousePressed(MouseButton::Right)) {
+    if (isHovered && !occluded && !consumed && input.isMousePressed(MouseButton::Right)) {
         result.rightClicked = true;
     }
     

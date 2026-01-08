@@ -175,6 +175,7 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     
     // Update global dropdown rect for occlusion testing
     getMenuState().menuBarDropdownRect = dropdownRect;
+    ctx->addFloatingWindowRect(dropdownRect);
     
     // Reset texture to white texture for solid color background
     dl.setTexture(0);
@@ -297,6 +298,7 @@ void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items,
     
     Rect subRect(pos.x, pos.y, maxWidth, totalHeight);
     m_activeSubmenuBounds = subRect; // Update bounds for hover persistence
+    ctx->addFloatingWindowRect(subRect);
     
     dl.setTexture(0);
     dl.addShadow(subRect, theme.colors.shadow, 8.0f, 4.0f);
@@ -415,6 +417,7 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     if (depth == 0) {
         getMenuState().contextMenuRect = menuRect;
     }
+    ctx->addFloatingWindowRect(menuRect);
     
     // Dim background
     if (depth == 0) {
@@ -550,6 +553,7 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
     }
     
     Rect subRect(pos.x, pos.y, maxWidth, totalHeight);
+    ctx->addFloatingWindowRect(subRect);
     
     dl.setTexture(0);
     dl.addShadow(subRect, theme.colors.shadow, 6.0f, 4.0f);

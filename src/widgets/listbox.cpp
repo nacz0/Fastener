@@ -84,7 +84,7 @@ bool Listbox(const char* label, int& selectedIndex,
     Rect contentArea(boxBounds.x(), boxBounds.y(), boxBounds.width() - scrollbarWidth, boxBounds.height());
 
     // Handle mouse wheel scroll
-    if (boxBounds.contains(input.mousePos()) && !options.disabled) {
+    if (boxBounds.contains(input.mousePos()) && !options.disabled && !wc.ctx->isOccluded(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * itemHeight;
         float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
         state.scrollOffset = std::clamp(state.scrollOffset, 0.0f, maxScroll);
@@ -106,7 +106,8 @@ bool Listbox(const char* label, int& selectedIndex,
         // Handle hover
         bool isHovered = itemRect.contains(input.mousePos()) && 
                          contentArea.contains(input.mousePos()) && 
-                         !options.disabled;
+                         !options.disabled && 
+                         !wc.ctx->isOccluded(input.mousePos());
         if (isHovered) {
             state.hoveredIndex = i;
         }
@@ -235,7 +236,7 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
     float scrollbarWidth = needsScrollbar ? 10.0f : 0.0f;
     Rect contentArea(boxBounds.x(), boxBounds.y(), boxBounds.width() - scrollbarWidth, boxBounds.height());
 
-    if (boxBounds.contains(input.mousePos()) && !options.disabled) {
+    if (boxBounds.contains(input.mousePos()) && !options.disabled && !wc.ctx->isOccluded(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * itemHeight;
         float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
         state.scrollOffset = std::clamp(state.scrollOffset, 0.0f, maxScroll);
@@ -257,7 +258,8 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
         
         bool isHovered = itemRect.contains(input.mousePos()) && 
                          contentArea.contains(input.mousePos()) && 
-                         !options.disabled;
+                         !options.disabled && 
+                         !wc.ctx->isOccluded(input.mousePos());
         bool selected = isSelected(i);
 
         if (isHovered && input.isMousePressed(MouseButton::Left)) {

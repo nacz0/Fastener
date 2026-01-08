@@ -186,7 +186,7 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
         
         // Handle dragging via title bar
         if (!state.isDragging && !beingDragged) {
-            bool titleHovered = titleBarRect.contains(input.mousePos());
+            bool titleHovered = titleBarRect.contains(input.mousePos()) && !ctx->isOccluded(input.mousePos());
             if (titleHovered && input.isMousePressed(MouseButton::Left)) {
                 state.isDragging = true;
                 state.dragOffset = input.mousePos() - contentBounds.pos;

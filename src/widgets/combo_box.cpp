@@ -95,6 +95,18 @@ bool ComboBox(const char* label, int& selectedIndex,
         }
     }
 
+    // Consume mouse if hovering open dropdown
+    if (state.isOpen) {
+        float itemHeight = font ? font->lineHeight() + theme.metrics.paddingSmall * 2 : 24.0f;
+        float dropdownHeight = std::min(options.dropdownMaxHeight, itemHeight * (float)items.size());
+        // Use a slightly expanded rect to cover the gap as well
+        Rect dropdownBounds(boxBounds.x(), boxBounds.bottom(), boxBounds.width(), dropdownHeight + 2);
+        
+        if (dropdownBounds.contains(input.mousePos())) {
+            input.consumeMouse();
+        }
+    }
+
     // Draw label
     if (font && label[0] != '\0') {
         Vec2 labelPos(bounds.x(), bounds.y() + (height - font->lineHeight()) * 0.5f);
@@ -178,6 +190,8 @@ bool ComboBox(const char* label, int& selectedIndex,
             float itemHeight = font ? font->lineHeight() + theme.metrics.paddingSmall * 2 : 24.0f;
             float dropdownHeight = std::min(options.dropdownMaxHeight, itemHeight * (float)safeItems.size());
             Rect dropdownBounds(boxBounds.x(), boxBounds.bottom() + 2, boxBounds.width(), dropdownHeight);
+            // Register occlusion for the dropdown AND the small gap between button and dropdown
+            ctx->addFloatingWindowRect(Rect(boxBounds.x(), boxBounds.bottom(), boxBounds.width(), dropdownHeight + 2));
 
             // Dropdown background with shadow
             dl.addShadow(dropdownBounds, theme.colors.shadow, 8.0f, radius);

@@ -121,7 +121,7 @@ void ScrollArea::handleInteraction(const std::string& id, const Rect& bounds, co
     bool showH = options.showHorizontal && (!options.autoHide || m_contentSize.x > bounds.width() - (showV ? sbSize : 0));
 
     // Wheel Scrolling
-    if (bounds.contains(mp) && !fst::IsMouseOverAnyMenu()) {
+    if (bounds.contains(mp) && !ctx->isOccluded(mp)) {
         Vec2 delta = input.scrollDelta();
         if (input.modifiers().shift || !showV) {
             m_scrollOffset.x -= delta.y * 30.0f; 
@@ -137,7 +137,7 @@ void ScrollArea::handleInteraction(const std::string& id, const Rect& bounds, co
         float thumbHeight = std::max(options.minThumbSize, (viewport.height() / std::max(1.0f, m_contentSize.y)) * viewport.height());
         float maxScroll = std::max(0.1f, m_contentSize.y - viewport.height());
         
-        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !fst::IsMouseOverAnyMenu()) {
+        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !ctx->isOccluded(mp)) {
             m_draggingV = true;
             m_dragStartPos = mp.y;
             m_dragStartOffset = m_scrollOffset.y;
@@ -160,7 +160,7 @@ void ScrollArea::handleInteraction(const std::string& id, const Rect& bounds, co
         float thumbWidth = std::max(options.minThumbSize, (viewport.width() / std::max(1.0f, m_contentSize.x)) * viewport.width());
         float maxScroll = std::max(0.1f, m_contentSize.x - viewport.width());
 
-        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !fst::IsMouseOverAnyMenu()) {
+        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !ctx->isOccluded(mp)) {
             m_draggingH = true;
             m_dragStartPos = mp.x;
             m_dragStartOffset = m_scrollOffset.x;

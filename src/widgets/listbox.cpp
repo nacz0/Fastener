@@ -83,10 +83,31 @@ bool Listbox(const char* label, int& selectedIndex,
     float scrollbarWidth = needsScrollbar ? 10.0f : 0.0f;
     Rect contentArea(boxBounds.x(), boxBounds.y(), boxBounds.width() - scrollbarWidth, boxBounds.height());
 
+    float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
+
+    // Handle scrollbar interaction
+    if (needsScrollbar && !options.disabled) {
+        Rect track(boxBounds.right() - scrollbarWidth, boxBounds.y(), scrollbarWidth, boxBounds.height());
+        WidgetId scrollbarId = wc.ctx->makeId((std::string(label) + "_scroller").c_str());
+        
+        // Handle scrollbar dragging
+        WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
+        
+        if (scrollInteraction.dragging || (scrollInteraction.clicked && track.contains(input.mousePos()))) {
+             float thumbHeight = std::max(20.0f, (boxBounds.height() / totalContentHeight) * boxBounds.height());
+             float effectiveTrackHeight = track.height() - thumbHeight;
+             
+             if (effectiveTrackHeight > 0) {
+                 float mouseRelY = input.mousePos().y - track.y() - thumbHeight * 0.5f;
+                 float t = std::clamp(mouseRelY / effectiveTrackHeight, 0.0f, 1.0f);
+                 state.scrollOffset = t * maxScroll;
+             }
+        }
+    }
+
     // Handle mouse wheel scroll
     if (boxBounds.contains(input.mousePos()) && !options.disabled && !wc.ctx->isOccluded(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * itemHeight;
-        float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
         state.scrollOffset = std::clamp(state.scrollOffset, 0.0f, maxScroll);
     }
 
@@ -148,11 +169,20 @@ bool Listbox(const char* label, int& selectedIndex,
         dl.addRectFilled(track, theme.colors.scrollbarTrack);
 
         float thumbHeight = std::max(20.0f, (boxBounds.height() / totalContentHeight) * boxBounds.height());
-        float maxScroll = std::max(0.1f, totalContentHeight - boxBounds.height());
-        float thumbY = track.y() + (state.scrollOffset / maxScroll) * (track.height() - thumbHeight);
+        float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
+        
+        float thumbY = track.y();
+        if (maxScroll > 0.001f) {
+            float t = std::clamp(state.scrollOffset / maxScroll, 0.0f, 1.0f);
+            thumbY += t * (track.height() - thumbHeight);
+        }
 
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
-        Color thumbColor = track.contains(input.mousePos()) 
+        
+        WidgetId scrollbarId = wc.ctx->makeId((std::string(label) + "_scroller").c_str());
+        WidgetState scrollState = getWidgetState(scrollbarId);
+        
+        Color thumbColor = (scrollState.hovered || scrollState.active)
             ? theme.colors.scrollbarThumbHover 
             : theme.colors.scrollbarThumb;
         dl.addRectFilled(thumb, thumbColor, (scrollbarWidth - 4) / 2);
@@ -236,9 +266,29 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
     float scrollbarWidth = needsScrollbar ? 10.0f : 0.0f;
     Rect contentArea(boxBounds.x(), boxBounds.y(), boxBounds.width() - scrollbarWidth, boxBounds.height());
 
+    float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
+
+    // Handle scrollbar interaction
+    if (needsScrollbar && !options.disabled) {
+        Rect track(boxBounds.right() - scrollbarWidth, boxBounds.y(), scrollbarWidth, boxBounds.height());
+        WidgetId scrollbarId = wc.ctx->makeId((label + "_scroller").c_str()); // Label is std::string here
+        
+        WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
+        
+        if (scrollInteraction.dragging || (scrollInteraction.clicked && track.contains(input.mousePos()))) {
+             float thumbHeight = std::max(20.0f, (boxBounds.height() / totalContentHeight) * boxBounds.height());
+             float effectiveTrackHeight = track.height() - thumbHeight;
+             
+             if (effectiveTrackHeight > 0) {
+                 float mouseRelY = input.mousePos().y - track.y() - thumbHeight * 0.5f;
+                 float t = std::clamp(mouseRelY / effectiveTrackHeight, 0.0f, 1.0f);
+                 state.scrollOffset = t * maxScroll;
+             }
+        }
+    }
+
     if (boxBounds.contains(input.mousePos()) && !options.disabled && !wc.ctx->isOccluded(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * itemHeight;
-        float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
         state.scrollOffset = std::clamp(state.scrollOffset, 0.0f, maxScroll);
     }
 
@@ -306,11 +356,20 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
         dl.addRectFilled(track, theme.colors.scrollbarTrack);
 
         float thumbHeight = std::max(20.0f, (boxBounds.height() / totalContentHeight) * boxBounds.height());
-        float maxScroll = std::max(0.1f, totalContentHeight - boxBounds.height());
-        float thumbY = track.y() + (state.scrollOffset / maxScroll) * (track.height() - thumbHeight);
+        float maxScroll = std::max(0.0f, totalContentHeight - boxBounds.height());
+        
+        float thumbY = track.y();
+        if (maxScroll > 0.001f) {
+            float t = std::clamp(state.scrollOffset / maxScroll, 0.0f, 1.0f);
+            thumbY += t * (track.height() - thumbHeight);
+        }
 
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
-        Color thumbColor = track.contains(input.mousePos()) 
+        
+        WidgetId scrollbarId = wc.ctx->makeId((label + "_scroller").c_str());
+        WidgetState scrollState = getWidgetState(scrollbarId);
+
+        Color thumbColor = (scrollState.hovered || scrollState.active)
             ? theme.colors.scrollbarThumbHover 
             : theme.colors.scrollbarThumb;
         dl.addRectFilled(thumb, thumbColor, (scrollbarWidth - 4) / 2);

@@ -85,7 +85,7 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     WidgetId svId = ctx->makeId("sv_square");
     WidgetInteraction svInteract = handleWidgetInteraction(svId, svRect);
     
-    if (svInteract.dragging || (svInteract.hovered && ctx->input().isMousePressed(MouseButton::Left))) {
+    if (svInteract.dragging) {
         Vec2 mousePos = ctx->input().mousePos();
         s = std::clamp((mousePos.x - svRect.x()) / svRect.width(), 0.0f, 1.0f);
         v = 1.0f - std::clamp((mousePos.y - svRect.y()) / svRect.height(), 0.0f, 1.0f);
@@ -116,7 +116,7 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     WidgetId hueId = ctx->makeId("hue_bar");
     WidgetInteraction hueInteract = handleWidgetInteraction(hueId, hueRect);
 
-    if (hueInteract.dragging || (hueInteract.hovered && ctx->input().isMousePressed(MouseButton::Left))) {
+    if (hueInteract.dragging) {
         Vec2 mousePos = ctx->input().mousePos();
         h = std::clamp((mousePos.y - hueRect.y()) / hueRect.height(), 0.0f, 1.0f);
         changed = true;

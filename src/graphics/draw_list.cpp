@@ -8,64 +8,115 @@
 namespace fst {
 
 DrawList::DrawList() {
-    m_vertices.reserve(constants::DEFAULT_VERTEX_RESERVE);
-    m_indices.reserve(constants::DEFAULT_INDEX_RESERVE);
-    m_commands.reserve(constants::DEFAULT_COMMAND_RESERVE);
+    for (int i = 0; i < static_cast<int>(Layer::Count); ++i) {
+        m_layers[i].vertices.reserve(constants::DEFAULT_VERTEX_RESERVE / static_cast<int>(Layer::Count));
+        m_layers[i].indices.reserve(constants::DEFAULT_INDEX_RESERVE / static_cast<int>(Layer::Count));
+        m_layers[i].commands.reserve(constants::DEFAULT_COMMAND_RESERVE / static_cast<int>(Layer::Count));
+    }
 }
 
 DrawList::~DrawList() = default;
 
 void DrawList::clear() {
-    m_vertices.clear();
-    m_indices.clear();
-    m_commands.clear();
-    m_clipRectStack.clear();
-    m_currentTexture = 0;
+    for (int i = 0; i < static_cast<int>(Layer::Count); ++i) {
+        m_layers[i].vertices.clear();
+        m_layers[i].indices.clear();
+        m_layers[i].commands.clear();
+        m_layers[i].clipRectStack.clear();
+        m_layers[i].currentTexture = 0;
+    }
+    m_currentLayer = Layer::Default;
+    m_mergedVertices.clear();
+    m_mergedIndices.clear();
+    m_mergedCommands.clear();
+}
+
+void DrawList::setLayer(Layer layer) {
+    m_currentLayer = layer;
+}
+
+DrawList::Layer DrawList::currentLayer() const {
+    return m_currentLayer;
+}
+
+void DrawList::mergeLayers() {
+    m_mergedVertices.clear();
+    m_mergedIndices.clear();
+    m_mergedCommands.clear();
+
+    uint32_t vertexOffset = 0;
+    uint32_t indexOffset = 0;
+
+    for (int i = 0; i < static_cast<int>(Layer::Count); ++i) {
+        auto& layer = m_layers[i];
+        if (layer.commands.empty()) continue;
+
+        // Copy vertices
+        m_mergedVertices.insert(m_mergedVertices.end(), layer.vertices.begin(), layer.vertices.end());
+
+        // Copy indices with offset
+        for (auto idx : layer.indices) {
+            m_mergedIndices.push_back(idx + vertexOffset);
+        }
+
+        // Copy commands with offset
+        for (auto cmd : layer.commands) {
+            cmd.indexOffset += indexOffset;
+            m_mergedCommands.push_back(cmd);
+        }
+
+        vertexOffset += static_cast<uint32_t>(layer.vertices.size());
+        indexOffset += static_cast<uint32_t>(layer.indices.size());
+    }
 }
 
 void DrawList::pushClipRect(const Rect& rect) {
-    if (m_clipRectStack.empty()) {
-        m_clipRectStack.push_back(rect);
+    auto& data = currentData();
+    if (data.clipRectStack.empty()) {
+        data.clipRectStack.push_back(rect);
     } else {
-        // Intersect with current clip rect
-        m_clipRectStack.push_back(rect.clipped(m_clipRectStack.back()));
+        data.clipRectStack.push_back(rect.clipped(data.clipRectStack.back()));
     }
 }
 
 void DrawList::pushClipRectFullScreen(const Vec2& screenSize) {
-    m_clipRectStack.push_back(Rect(0, 0, screenSize.x, screenSize.y));
+    currentData().clipRectStack.push_back(Rect(0, 0, screenSize.x, screenSize.y));
 }
 
 void DrawList::popClipRect() {
-    if (!m_clipRectStack.empty()) {
-        m_clipRectStack.pop_back();
+    auto& data = currentData();
+    if (!data.clipRectStack.empty()) {
+        data.clipRectStack.pop_back();
     }
 }
 
 Rect DrawList::currentClipRect() const {
-    if (m_clipRectStack.empty()) {
+    auto& data = currentData();
+    if (data.clipRectStack.empty()) {
         return Rect(0, 0, 10000, 10000);
     }
-    return m_clipRectStack.back();
+    return data.clipRectStack.back();
 }
 
 void DrawList::setTexture(uint32_t textureId) {
-    if (m_currentTexture != textureId) {
-        m_currentTexture = textureId;
+    auto& data = currentData();
+    if (data.currentTexture != textureId) {
+        data.currentTexture = textureId;
     }
 }
 
 void DrawList::updateCommand() {
-    if (m_commands.empty() || 
-        m_commands.back().textureId != m_currentTexture ||
-        m_commands.back().clipRect != currentClipRect()) {
+    auto& data = currentData();
+    if (data.commands.empty() || 
+        data.commands.back().textureId != data.currentTexture ||
+        data.commands.back().clipRect != currentClipRect()) {
         
         DrawCommand cmd;
-        cmd.textureId = m_currentTexture;
-        cmd.indexOffset = static_cast<uint32_t>(m_indices.size());
+        cmd.textureId = data.currentTexture;
+        cmd.indexOffset = static_cast<uint32_t>(data.indices.size());
         cmd.indexCount = 0;
         cmd.clipRect = currentClipRect();
-        m_commands.push_back(cmd);
+        data.commands.push_back(cmd);
     }
 }
 
@@ -73,18 +124,15 @@ void DrawList::addVertex(const Vec2& pos, const Vec2& uv, Color color) {
     DrawVertex v;
     v.pos = pos;
     v.uv = uv;
-    // Pack as RGBA for OpenGL (R in lowest byte on little endian)
-    v.color = (static_cast<uint32_t>(color.a) << 24) |
-              (static_cast<uint32_t>(color.b) << 16) |
-              (static_cast<uint32_t>(color.g) << 8) |
-              static_cast<uint32_t>(color.r);
-    m_vertices.push_back(v);
+    v.color = color.toABGR(); // Use common ABGR helper (implied to be what we want)
+    currentData().vertices.push_back(v);
 }
 
 void DrawList::addIndex(uint32_t idx) {
-    m_indices.push_back(idx);
-    if (!m_commands.empty()) {
-        m_commands.back().indexCount++;
+    auto& data = currentData();
+    data.indices.push_back(idx);
+    if (!data.commands.empty()) {
+        data.commands.back().indexCount++;
     }
 }
 
@@ -93,7 +141,7 @@ void DrawList::addQuad(const Vec2& p0, const Vec2& p1, const Vec2& p2, const Vec
                        Color color) {
     updateCommand();
     
-    uint32_t idx = static_cast<uint32_t>(m_vertices.size());
+    uint32_t idx = static_cast<uint32_t>(currentData().vertices.size());
     
     addVertex(p0, uv0, color);
     addVertex(p1, uv1, color);
@@ -144,7 +192,7 @@ void DrawList::addRectFilledMultiColor(const Rect& rect, Color topLeft, Color to
     setTexture(0);
     updateCommand();
     
-    uint32_t idx = static_cast<uint32_t>(m_vertices.size());
+    uint32_t idx = static_cast<uint32_t>(currentData().vertices.size());
     
     addVertex(rect.topLeft(), {0, 0}, topLeft);
     addVertex(rect.topRight(), {1, 0}, topRight);
@@ -185,7 +233,7 @@ void DrawList::primRectFilled(const Rect& rect, Color color, float rounding) {
     // Draw corners as triangle fans
     auto drawCorner = [&](Vec2 center, float startAngle) {
         updateCommand();
-        uint32_t centerIdx = static_cast<uint32_t>(m_vertices.size());
+        uint32_t centerIdx = static_cast<uint32_t>(currentData().vertices.size());
         addVertex(center, {0.5f, 0.5f}, color);
         
         for (int i = 0; i <= segments; ++i) {
@@ -295,7 +343,7 @@ void DrawList::addCircleFilled(const Vec2& center, float radius, Color color, in
     
     updateCommand();
     
-    uint32_t centerIdx = static_cast<uint32_t>(m_vertices.size());
+    uint32_t centerIdx = static_cast<uint32_t>(currentData().vertices.size());
     addVertex(center, {0.5f, 0.5f}, color);
     
     for (int i = 0; i <= segments; ++i) {
@@ -321,7 +369,7 @@ void DrawList::addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3,
     setTexture(0);
     updateCommand();
     
-    uint32_t idx = static_cast<uint32_t>(m_vertices.size());
+    uint32_t idx = static_cast<uint32_t>(currentData().vertices.size());
     
     addVertex(p1, {0, 0}, color);
     addVertex(p2, {0.5f, 1}, color);

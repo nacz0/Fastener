@@ -5,6 +5,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "fastener/ui/dock_context.h"
 #include <vector>
 #include <chrono>
 
@@ -17,6 +18,7 @@ struct Context::Impl {
     Renderer renderer;
     DrawList drawList;
     LayoutContext layout;
+    DockContext dockContext;
     
     // Theme
     Theme theme = Theme::dark();
@@ -105,9 +107,15 @@ void Context::beginFrame(Window& window) {
     // Reset cursor and hovered widget
     window.setCursor(Cursor::Arrow);
     m_impl->hoveredWidget = INVALID_WIDGET_ID;
+    
+    // Begin docking frame
+    m_impl->dockContext.beginFrame();
 }
 
 void Context::endFrame() {
+    // End docking frame
+    m_impl->dockContext.endFrame();
+    
     // End layout
     m_impl->layout.endContainer();
     
@@ -121,6 +129,7 @@ void Context::endFrame() {
     m_impl->postRenderCommands.clear();
 
     // Render
+    m_impl->drawList.mergeLayers();
     m_impl->renderer.render(m_impl->drawList);
     m_impl->renderer.endFrame();
     
@@ -179,6 +188,10 @@ LayoutContext& Context::layout() {
 
 Window& Context::window() {
     return *m_impl->currentWindow;
+}
+
+DockContext& Context::docking() {
+    return m_impl->dockContext;
 }
 
 float Context::deltaTime() const {

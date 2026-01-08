@@ -45,6 +45,17 @@ public:
     void popClipRect();
     Rect currentClipRect() const;
     
+    // Layers
+    enum class Layer {
+        Default,    // Docked windows, background
+        Floating,   // Floating windows
+        Overlay,    // Tooltips, drag previews, menus
+        Count
+    };
+    
+    void setLayer(Layer layer);
+    Layer currentLayer() const;
+    
     // Primitives
     void addRect(const Rect& rect, Color color, float rounding = 0.0f);
     void addRectFilled(const Rect& rect, Color color, float rounding = 0.0f);
@@ -72,23 +83,35 @@ public:
     // Shadow (soft rectangle)
     void addShadow(const Rect& rect, Color color, float size, float rounding = 0.0f);
     
-    // Access to raw data for rendering
-    const std::vector<DrawVertex>& vertices() const { return m_vertices; }
-    const std::vector<uint32_t>& indices() const { return m_indices; }
-    const std::vector<DrawCommand>& commands() const { return m_commands; }
+    // Final merged data for rendering (merged by mergeLayers())
+    const std::vector<DrawVertex>& vertices() const { return m_mergedVertices; }
+    const std::vector<uint32_t>& indices() const { return m_mergedIndices; }
+    const std::vector<DrawCommand>& commands() const { return m_mergedCommands; }
+    
+    // Consolidate all layers into the merged buffers
+    void mergeLayers();
     
     // Current texture (for batching)
     void setTexture(uint32_t textureId);
     
 private:
-    std::vector<DrawVertex> m_vertices;
-    std::vector<uint32_t> m_indices;
-    std::vector<DrawCommand> m_commands;
-    std::vector<Rect> m_clipRectStack;
+    struct LayerData {
+        std::vector<DrawVertex> vertices;
+        std::vector<uint32_t> indices;
+        std::vector<DrawCommand> commands;
+        std::vector<Rect> clipRectStack;
+        uint32_t currentTexture = 0;
+    };
+
+    LayerData m_layers[static_cast<int>(Layer::Count)];
+    Layer m_currentLayer = Layer::Default;
+
+    // Merged results for the renderer
+    std::vector<DrawVertex> m_mergedVertices;
+    std::vector<uint32_t> m_mergedIndices;
+    std::vector<DrawCommand> m_mergedCommands;
     
-    uint32_t m_currentTexture = 0;
-    
-    // Helpers
+    // Helpers (these now work on the current layer)
     void addVertex(const Vec2& pos, const Vec2& uv, Color color);
     void addIndex(uint32_t idx);
     void addQuad(const Vec2& p0, const Vec2& p1, const Vec2& p2, const Vec2& p3,
@@ -99,6 +122,8 @@ private:
     void primRectFilled(const Rect& rect, Color color, float rounding);
     
     void updateCommand();
+    LayerData& currentData() { return m_layers[static_cast<int>(m_currentLayer)]; }
+    const LayerData& currentData() const { return m_layers[static_cast<int>(m_currentLayer)]; }
 };
 
 } // namespace fst

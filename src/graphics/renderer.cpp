@@ -1,5 +1,6 @@
 #include "fastener/graphics/renderer.h"
 #include "fastener/graphics/draw_list.h"
+#include "fastener/core/log.h"
 
 #ifdef _WIN32
 #include <windows.h>
@@ -187,6 +188,7 @@ bool Renderer::Impl::createShader() {
     GLint success;
     glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
     if (!success) {
+        FST_LOG_ERROR("Vertex shader compilation failed");
         glDeleteShader(vertexShader);
         return false;
     }
@@ -198,6 +200,7 @@ bool Renderer::Impl::createShader() {
     
     glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
     if (!success) {
+        FST_LOG_ERROR("Fragment shader compilation failed");
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
         return false;
@@ -217,6 +220,7 @@ bool Renderer::Impl::createShader() {
     glDeleteShader(fragmentShader);
     
     if (!success) {
+        FST_LOG_ERROR("Shader program linking failed");
         glDeleteProgram(shaderProgram);
         shaderProgram = 0;
         return false;

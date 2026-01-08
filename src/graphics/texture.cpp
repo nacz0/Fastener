@@ -5,6 +5,7 @@
 
 #include "stb_image.h"
 #include "fastener/graphics/texture.h"
+#include "fastener/core/log.h"
 #include <vector>
 #include <cstdio>
 
@@ -96,7 +97,10 @@ bool Texture::create(int width, int height, const void* data, int channels) {
 bool Texture::loadFromFile(const std::string& path) {
     // Read file
     FILE* f = fopen(path.c_str(), "rb");
-    if (!f) return false;
+    if (!f) {
+        FST_LOG_ERROR("Failed to open texture file");
+        return false;
+    }
     
     fseek(f, 0, SEEK_END);
     size_t size = ftell(f);
@@ -117,7 +121,10 @@ bool Texture::loadFromMemory(const void* data, size_t size) {
         &width, &height, &channels, 4
     );
     
-    if (!pixels) return false;
+    if (!pixels) {
+        FST_LOG_ERROR("Failed to decode image data");
+        return false;
+    }
     
     bool result = create(width, height, pixels, 4);
     stbi_image_free(pixels);

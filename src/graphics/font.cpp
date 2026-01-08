@@ -2,6 +2,7 @@
 
 #include "stb_truetype.h"
 #include "fastener/graphics/font.h"
+#include "fastener/core/log.h"
 #include <fstream>
 #include <cstring>
 #include <cmath>
@@ -64,7 +65,10 @@ Font& Font::operator=(Font&& other) noexcept {
 
 bool Font::loadFromFile(const std::string& path, float size) {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) return false;
+    if (!file.is_open()) {
+        FST_LOG_ERROR("Failed to open font file");
+        return false;
+    }
     
     size_t fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
@@ -87,6 +91,7 @@ bool Font::loadFromMemory(const void* data, size_t dataSize, float size) {
     stbtt_fontinfo* info = static_cast<stbtt_fontinfo*>(m_fontInfo);
     
     if (!stbtt_InitFont(info, m_fontData.data(), 0)) {
+        FST_LOG_ERROR("Failed to initialize font - invalid font data");
         delete info;
         m_fontInfo = nullptr;
         m_fontData.clear();

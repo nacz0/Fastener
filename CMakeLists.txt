@@ -77,6 +77,7 @@ if(FST_BUILD_TESTS)
         tests/test_types.cpp
         tests/test_widget_utils.cpp
         tests/test_layout.cpp
+        tests/test_input.cpp
     )
     target_link_libraries(fastener_tests PRIVATE fastener GTest::gtest_main)
     include(GoogleTest)

@@ -380,6 +380,92 @@ TEST(ColorTest, StaticColors) {
     EXPECT_EQ(Color::blue(), Color(0, 0, 255, 255));
 }
 
+TEST(ColorTest, FromHSL) {
+    // Red at 0 degrees
+    Color red = Color::fromHSL(0.0f, 1.0f, 0.5f);
+    EXPECT_NEAR(red.r, 255, 2);
+    EXPECT_NEAR(red.g, 0, 2);
+    EXPECT_NEAR(red.b, 0, 2);
+    
+    // Green at 120 degrees (1/3)
+    Color green = Color::fromHSL(1.0f/3.0f, 1.0f, 0.5f);
+    EXPECT_NEAR(green.r, 0, 2);
+    EXPECT_NEAR(green.g, 255, 2);
+    EXPECT_NEAR(green.b, 0, 2);
+    
+    // Gray (saturation 0)
+    Color gray = Color::fromHSL(0.0f, 0.0f, 0.5f);
+    EXPECT_NEAR(gray.r, 127, 2);
+    EXPECT_NEAR(gray.g, 127, 2);
+    EXPECT_NEAR(gray.b, 127, 2);
+}
+
+TEST(ColorTest, FromHSV) {
+    // Red at 0 degrees, full saturation, full value
+    Color red = Color::fromHSV(0.0f, 1.0f, 1.0f);
+    EXPECT_NEAR(red.r, 255, 2);
+    EXPECT_NEAR(red.g, 0, 2);
+    EXPECT_NEAR(red.b, 0, 2);
+    
+    // Blue at 240 degrees (2/3)
+    Color blue = Color::fromHSV(2.0f/3.0f, 1.0f, 1.0f);
+    EXPECT_NEAR(blue.r, 0, 2);
+    EXPECT_NEAR(blue.g, 0, 2);
+    EXPECT_NEAR(blue.b, 255, 2);
+}
+
+TEST(ColorTest, ToHSV) {
+    Color red(255, 0, 0);
+    float h, s, v;
+    red.toHSV(h, s, v);
+    
+    EXPECT_NEAR(h, 0.0f, 0.01f);  // Red is at 0 degrees
+    EXPECT_NEAR(s, 1.0f, 0.01f);  // Full saturation
+    EXPECT_NEAR(v, 1.0f, 0.01f);  // Full value
+}
+
+TEST(ColorTest, HsvRoundTrip) {
+    // Test that fromHSV -> toHSV gives back original values
+    float origH = 0.3f, origS = 0.7f, origV = 0.9f;
+    Color c = Color::fromHSV(origH, origS, origV);
+    
+    float h, s, v;
+    c.toHSV(h, s, v);
+    
+    EXPECT_NEAR(h, origH, 0.02f);
+    EXPECT_NEAR(s, origS, 0.02f);
+    EXPECT_NEAR(v, origV, 0.02f);
+}
+
+TEST(ColorTest, Lighter) {
+    Color c(100, 100, 100);
+    Color lighter = c.lighter(0.5f);
+    
+    EXPECT_GT(lighter.r, c.r);
+    EXPECT_GT(lighter.g, c.g);
+    EXPECT_GT(lighter.b, c.b);
+    EXPECT_EQ(lighter.a, c.a);  // Alpha unchanged
+}
+
+TEST(ColorTest, LighterClamp) {
+    Color c(200, 200, 200);
+    Color lighter = c.lighter(0.5f);  // Would exceed 255
+    
+    EXPECT_EQ(lighter.r, 255);  // Clamped
+    EXPECT_EQ(lighter.g, 255);
+    EXPECT_EQ(lighter.b, 255);
+}
+
+TEST(ColorTest, Darker) {
+    Color c(100, 100, 100);
+    Color darker = c.darker(0.5f);
+    
+    EXPECT_LT(darker.r, c.r);
+    EXPECT_LT(darker.g, c.g);
+    EXPECT_LT(darker.b, c.b);
+    EXPECT_EQ(darker.a, c.a);  // Alpha unchanged
+}
+
 //=============================================================================
 // WidgetId Tests
 //=============================================================================

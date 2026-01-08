@@ -67,6 +67,14 @@ struct ThemeColors {
     Color tooltipBackground;
     Color tooltipText;
     Color tooltipBorder;
+    
+    // Docking
+    Color dockPreviewOverlay;       // Preview during dragging
+    Color dockTabActive;            // Active tab
+    Color dockTabInactive;          // Inactive tab
+    Color dockTabHover;             // Tab hover
+    Color dockSplitter;             // Splitter between panels
+    Color dockSplitterHover;        // Splitter hover
 };
 
 //=============================================================================
@@ -196,6 +204,14 @@ inline Theme Theme::dark() {
     c.tooltipText = Color::fromHex(0xf3f4f6);
     c.tooltipBorder = Color::fromHex(0x525252);
     
+    // Docking
+    c.dockPreviewOverlay = Color(59, 130, 246, 80);  // Blue with alpha
+    c.dockTabActive = Color::fromHex(0x3b82f6);
+    c.dockTabInactive = Color::fromHex(0x2d2d2d);
+    c.dockTabHover = Color::fromHex(0x404040);
+    c.dockSplitter = Color::fromHex(0x3f3f3f);
+    c.dockSplitterHover = Color::fromHex(0x525252);
+    
     return theme;
 }
 
@@ -265,6 +281,14 @@ inline Theme Theme::light() {
     c.tooltipBackground = Color::fromHex(0x1f2937);
     c.tooltipText = Color::fromHex(0xf8fafc);
     c.tooltipBorder = Color::fromHex(0x4b5563);
+    
+    // Docking
+    c.dockPreviewOverlay = Color(59, 130, 246, 80);  // Blue with alpha
+    c.dockTabActive = Color::fromHex(0x3b82f6);
+    c.dockTabInactive = Color::fromHex(0xe5e7eb);
+    c.dockTabHover = Color::fromHex(0xd1d5db);
+    c.dockSplitter = Color::fromHex(0xe5e7eb);
+    c.dockSplitterHover = Color::fromHex(0xd1d5db);
     
     return theme;
 }

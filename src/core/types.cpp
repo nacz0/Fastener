@@ -1,4 +1,5 @@
 #include "fastener/core/types.h"
+#include "fastener/core/constants.h"
 #include <cmath>
 #include <algorithm>
 
@@ -68,8 +69,8 @@ void Color::toHSV(float& h, float& s, float& v) const {
         K = -2.0f / 6.0f - K;
     }
     float chroma = r - std::min(g, b);
-    h = std::abs(K + (g - b) / (6.0f * chroma + 1e-20f));
-    s = chroma / (r + 1e-20f);
+    h = std::abs(K + (g - b) / (6.0f * chroma + constants::EPSILON));
+    s = chroma / (r + constants::EPSILON);
     v = r;
 }
 

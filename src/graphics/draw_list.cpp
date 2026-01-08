@@ -1,15 +1,16 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/texture.h"
 #include "fastener/graphics/font.h"
+#include "fastener/core/constants.h"
 #include <cmath>
 #include <cstring>
 
 namespace fst {
 
 DrawList::DrawList() {
-    m_vertices.reserve(1024);
-    m_indices.reserve(2048);
-    m_commands.reserve(64);
+    m_vertices.reserve(constants::DEFAULT_VERTEX_RESERVE);
+    m_indices.reserve(constants::DEFAULT_INDEX_RESERVE);
+    m_commands.reserve(constants::DEFAULT_COMMAND_RESERVE);
 }
 
 DrawList::~DrawList() = default;

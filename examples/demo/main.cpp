@@ -406,6 +406,13 @@ int main() {
                         lbOpts.height = 120;
                         lbOpts.style = Style().withWidth(200);
                         Listbox("demo_listbox", listboxSelection, listboxItems, lbOpts);
+                        
+                        Spacing(20);
+                        
+                        Label("RadioButtons:", sectionOpts);
+                        RadioButton("Option A", radioSelection, 0);
+                        RadioButton("Option B", radioSelection, 1);
+                        RadioButton("Option C", radioSelection, 2);
                     EndVertical();
                     
                     BeginVertical(10);
@@ -417,6 +424,36 @@ int main() {
                         Label("Selectables:", sectionOpts);
                         Selectable("Option 1", selectable1);
                         Selectable("Option 2", selectable2);
+                        
+                        Spacing(20);
+                        
+                        Label("InputNumber:", sectionOpts);
+                        InputNumberOptions inOpts;
+                        inOpts.style = Style().withWidth(150);
+                        InputNumberInt("Amount", inputNumberValue, 0, 100, inOpts);
+                    EndVertical();
+                    
+                    BeginVertical(10);
+                        Label("CollapsingHeader:", sectionOpts);
+                        if (CollapsingHeader("Section 1", collapsingOpen1)) {
+                            Label("Content inside Section 1");
+                            Label("More content here...");
+                        }
+                        if (CollapsingHeader("Section 2", collapsingOpen2)) {
+                            Label("Content inside Section 2");
+                            Checkbox("Nested checkbox", checkValue2);
+                        }
+                        
+                        Spacing(20);
+                        
+                        Label("Separator:", sectionOpts);
+                        BeginVertical(5);
+                            Label("Above separator");
+                            Separator();
+                            Label("Below separator");
+                            SeparatorWithLabel("With Text");
+                            Label("After text separator");
+                        EndVertical();
                     EndVertical();
                 EndHorizontal();
             }

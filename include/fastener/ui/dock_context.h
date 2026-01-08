@@ -94,7 +94,7 @@ public:
         bool active = false;
         WidgetId windowId = INVALID_WIDGET_ID;
         Vec2 mousePos;
-        DockNode* hoveredNode = nullptr;
+        DockNode::Id hoveredNodeId = DockNode::INVALID_ID;
         DockDirection hoveredDirection = DockDirection::None;
     };
     

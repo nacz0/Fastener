@@ -125,7 +125,9 @@ void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId,
         m_impl->windowToNode[windowId] = targetNode->id;
     } else {
         // Split docking - create new split
-        DockNode* newNode = targetNode->splitNode(direction);
+        DockNode::Id childId0 = generateNodeId();
+        DockNode::Id childId1 = generateNodeId();
+        DockNode* newNode = targetNode->splitNode(direction, childId0, childId1);
         if (newNode) {
             newNode->addWindow(windowId);
             m_impl->windowToNode[windowId] = newNode->id;
@@ -142,18 +144,27 @@ void DockContext::undockWindow(WidgetId windowId) {
         return;
     }
     
-    DockNode* node = getDockNode(it->second);
+    DockNode::Id nodeId = it->second;
+    m_impl->windowToNode.erase(it); // Erase first to avoid using invalid iterator
+
+    DockNode* node = getDockNode(nodeId);
     if (node) {
         node->removeWindow(windowId);
         
         // Merge parent if this node is now empty
-        if (node->isEmpty() && node->parent) {
-            node->parent->mergeNodes();
-            refreshMappings(node->parent->id);
+        DockNode::Id currentId = nodeId;
+        while (currentId != DockNode::INVALID_ID) {
+            DockNode* current = getDockNode(currentId);
+            if (!current || !current->isEmpty() || !current->parent) break;
+            
+            DockNode* parent = current->parent;
+            DockNode::Id parentId = parent->id;
+            
+            parent->mergeNodes();
+            refreshMappings(parentId);
+            currentId = parentId;
         }
     }
-    
-    m_impl->windowToNode.erase(it);
 }
 
 void DockContext::refreshMappings(DockNode::Id nodeId) {
@@ -224,7 +235,7 @@ void DockContext::beginDrag(WidgetId windowId, const Vec2& mousePos) {
     m_impl->dragState.active = true;
     m_impl->dragState.windowId = windowId;
     m_impl->dragState.mousePos = mousePos;
-    m_impl->dragState.hoveredNode = nullptr;
+    m_impl->dragState.hoveredNodeId = DockNode::INVALID_ID;
     m_impl->dragState.hoveredDirection = DockDirection::None;
 }
 
@@ -235,13 +246,13 @@ void DockContext::updateDrag(const Vec2& mousePos, DockNode* /*hoveredNode*/,
     m_impl->dragState.mousePos = mousePos;
     
     // Automatic hover detection
-    m_impl->dragState.hoveredNode = nullptr;
+    m_impl->dragState.hoveredNodeId = DockNode::INVALID_ID;
     m_impl->dragState.hoveredDirection = DockDirection::None;
     
     for (auto& [name, root] : m_impl->dockSpaces) {
         root->forEachLeaf([&](DockNode* leaf) {
             if (leaf->bounds.contains(mousePos)) {
-                m_impl->dragState.hoveredNode = leaf;
+                m_impl->dragState.hoveredNodeId = leaf->id;
                 
                 const Rect& b = leaf->bounds;
                 float relX = (mousePos.x - b.x()) / b.width();
@@ -255,17 +266,17 @@ void DockContext::updateDrag(const Vec2& mousePos, DockNode* /*hoveredNode*/,
                 else m_impl->dragState.hoveredDirection = DockDirection::Center;
             }
         });
-        if (m_impl->dragState.hoveredNode) break;
+        if (m_impl->dragState.hoveredNodeId != DockNode::INVALID_ID) break;
     }
 }
 
 void DockContext::endDrag(bool commit) {
     if (commit) {
-        if (m_impl->dragState.hoveredNode && 
+        if (m_impl->dragState.hoveredNodeId != DockNode::INVALID_ID && 
             m_impl->dragState.hoveredDirection != DockDirection::None) {
             // Re-dock
             dockWindow(m_impl->dragState.windowId, 
-                       m_impl->dragState.hoveredNode->id,
+                       m_impl->dragState.hoveredNodeId,
                        m_impl->dragState.hoveredDirection);
         } else {
             // Undock (become floating)

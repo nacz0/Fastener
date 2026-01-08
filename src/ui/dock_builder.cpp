@@ -63,7 +63,10 @@ DockNode::Id DockBuilder::SplitNode(DockNode::Id nodeId,
         return DockNode::INVALID_ID;
     }
     
-    DockNode* newNode = node->splitNode(direction, sizeRatio);
+    DockNode::Id childId0 = docking.generateNodeId();
+    DockNode::Id childId1 = docking.generateNodeId();
+    
+    DockNode* newNode = node->splitNode(direction, childId0, childId1, sizeRatio);
     if (newNode) {
         docking.refreshMappings(nodeId);
         return newNode->id;

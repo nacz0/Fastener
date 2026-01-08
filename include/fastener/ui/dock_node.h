@@ -87,7 +87,7 @@ public:
     bool hasWindow(WidgetId windowId) const;
     
     // Split operations
-    DockNode* splitNode(DockDirection direction, float ratio = 0.5f);
+    DockNode* splitNode(DockDirection direction, Id childId0, Id childId1, float ratio = 0.5f);
     void mergeNodes();
     
     // Layout calculation

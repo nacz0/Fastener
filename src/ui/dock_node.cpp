@@ -96,17 +96,16 @@ bool DockNode::hasWindow(WidgetId windowId) const {
 // Split operations
 //=============================================================================
 
-// Global ID counter for new nodes
-static DockNode::Id s_nextNodeId = 1;
 
-DockNode* DockNode::splitNode(DockDirection direction, float ratio) {
+
+DockNode* DockNode::splitNode(DockDirection direction, Id childId0, Id childId1, float ratio) {
     if (direction == DockDirection::None || direction == DockDirection::Center) {
         return nullptr;
     }
     
     // Create two new child nodes
-    auto newChild0 = std::make_unique<DockNode>(s_nextNodeId++);
-    auto newChild1 = std::make_unique<DockNode>(s_nextNodeId++);
+    auto newChild0 = std::make_unique<DockNode>(childId0);
+    auto newChild1 = std::make_unique<DockNode>(childId1);
     
     newChild0->parent = this;
     newChild1->parent = this;
@@ -169,20 +168,28 @@ void DockNode::mergeNodes() {
     
     // If one child is empty, absorb the non-empty child's contents
     if (emptyCount == 1 && nonEmptyChild) {
-        dockedWindows = std::move(nonEmptyChild->dockedWindows);
-        selectedTabIndex = nonEmptyChild->selectedTabIndex;
-        type = nonEmptyChild->type;
+        // Move data into local variables first to avoid use-after-free
+        // when children pointers are reset
+        auto childWindows = std::move(nonEmptyChild->dockedWindows);
+        int childSelected = nonEmptyChild->selectedTabIndex;
+        DockNodeType childType = nonEmptyChild->type;
+        auto grandchild0 = std::move(nonEmptyChild->children[0]);
+        auto grandchild1 = std::move(nonEmptyChild->children[1]);
         
-        // Move grandchildren if any
-        children[0] = std::move(nonEmptyChild->children[0]);
-        children[1] = std::move(nonEmptyChild->children[1]);
+        // Reset children - this destroys nonEmptyChild
+        children[0].reset();
+        children[1].reset();
         
-        // Update parent pointers
-        for (int i = 0; i < 2; ++i) {
-            if (children[i]) {
-                children[i]->parent = this;
-            }
-        }
+        // Apply to self
+        dockedWindows = std::move(childWindows);
+        selectedTabIndex = childSelected;
+        type = childType;
+        children[0] = std::move(grandchild0);
+        children[1] = std::move(grandchild1);
+        
+        // Update parent pointers for grandchildren
+        if (children[0]) children[0]->parent = this;
+        if (children[1]) children[1]->parent = this;
     }
     
     // If both children are empty, become an empty leaf

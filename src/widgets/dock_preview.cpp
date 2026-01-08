@@ -17,10 +17,13 @@ void RenderDockPreview() {
     auto& docking = ctx->docking();
     auto& dragState = docking.dragState();
     
-    if (!dragState.active || !dragState.hoveredNode || 
+    if (!dragState.active || dragState.hoveredNodeId == DockNode::INVALID_ID || 
         dragState.hoveredDirection == DockDirection::None) {
         return;
     }
+    
+    DockNode* hoveredNode = docking.getDockNode(dragState.hoveredNodeId);
+    if (!hoveredNode) return;
     
     auto& dl = ctx->drawList();
     const auto& theme = ctx->theme();
@@ -28,7 +31,7 @@ void RenderDockPreview() {
     dl.setLayer(DrawList::Layer::Overlay);
     
     // Calculate preview rect
-    DockPreviewState preview = CalculateDockPreview(dragState.hoveredNode, 
+    DockPreviewState preview = CalculateDockPreview(hoveredNode, 
                                                      dragState.mousePos);
     
     if (preview.visible) {
@@ -41,7 +44,7 @@ void RenderDockPreview() {
     }
 
     // Draw target indicators (the 5-way cross)
-    RenderDockTargetIndicators(dragState.hoveredNode, dragState.mousePos);
+    RenderDockTargetIndicators(hoveredNode, dragState.mousePos);
     
     dl.setLayer(DrawList::Layer::Default);
 }

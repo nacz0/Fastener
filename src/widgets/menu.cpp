@@ -13,14 +13,15 @@
 
 namespace fst {
 
-// Global context menu state
+// Local context menu instance (data storage, not shared state)
 static ContextMenu g_contextMenu;
-static bool g_contextMenuActive = false;
 
-// Tracking for input blocking
-static Rect g_currentMenuBarDropdownRect;
-static bool g_menuBarOpen = false;
-static Rect g_currentContextMenuRect;
+// Helper to access menu state from current Context
+static Context::MenuState& getMenuState() {
+    Context* ctx = Context::current();
+    static Context::MenuState fallback;  // Fallback if no context
+    return ctx ? ctx->menuState() : fallback;
+}
 
 //=============================================================================
 // MenuBar
@@ -110,14 +111,14 @@ float MenuBar::render(const Rect& bounds) {
     m_dropdownY = barRect.bottom();
     
     // Update global state for input blocking
-    g_menuBarOpen = m_openMenuIndex >= 0;
-    if (!g_menuBarOpen) {
-        g_currentMenuBarDropdownRect = Rect();
+    getMenuState().menuBarOpen = m_openMenuIndex >= 0;
+    if (!getMenuState().menuBarOpen) {
+        getMenuState().menuBarDropdownRect = Rect();
     }
     
     // Close on click outside
     if (m_openMenuIndex >= 0 && ctx->input().isMousePressed(MouseButton::Left)) {
-        if (m_hoveredIndex < 0 && !g_currentMenuBarDropdownRect.contains(ctx->input().mousePos())) {
+        if (m_hoveredIndex < 0 && !getMenuState().menuBarDropdownRect.contains(ctx->input().mousePos())) {
             m_openMenuIndex = -1;
         }
     }
@@ -173,7 +174,7 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     Rect dropdownRect(pos.x, pos.y, maxWidth, totalHeight);
     
     // Update global dropdown rect for occlusion testing
-    g_currentMenuBarDropdownRect = dropdownRect;
+    getMenuState().menuBarDropdownRect = dropdownRect;
     
     // Reset texture to white texture for solid color background
     dl.setTexture(0);
@@ -240,7 +241,8 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
             m_activeSubmenuIndex = static_cast<int>(i);
             m_activeSubmenuBounds = Rect(pos.x + maxWidth - 2, y, 0, 0); // Temporary
         } else if (isHovered && item.type != MenuItemType::Submenu) {
-            // Keep current submenu if mouse is still in it, otherwise clear it later if mouse leaves
+            // Clear submenu when hovering over non-submenu item
+            m_activeSubmenuIndex = -1;
         }
         
         // Handle click
@@ -411,7 +413,7 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     
     Rect menuRect(pos.x, pos.y, maxWidth, totalHeight);
     if (depth == 0) {
-        g_currentContextMenuRect = menuRect;
+        getMenuState().contextMenuRect = menuRect;
     }
     
     // Dim background
@@ -587,26 +589,26 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
 void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position) {
     g_contextMenu.setItems(items);
     g_contextMenu.show(position);
-    g_contextMenuActive = true;
+    getMenuState().contextMenuActive = true;
 }
 
 void RenderContextMenu() {
-    if (g_contextMenuActive) {
+    if (getMenuState().contextMenuActive) {
         g_contextMenu.render();
         if (!g_contextMenu.isVisible()) {
-            g_contextMenuActive = false;
+            getMenuState().contextMenuActive = false;
         }
     }
 }
 
 bool IsContextMenuOpen() {
-    return g_contextMenuActive && g_contextMenu.isVisible();
+    return getMenuState().contextMenuActive && g_contextMenu.isVisible();
 }
 
 void CloseContextMenu() {
     g_contextMenu.hide();
-    g_contextMenuActive = false;
-    g_currentContextMenuRect = Rect();
+    getMenuState().contextMenuActive = false;
+    getMenuState().contextMenuRect = Rect();
 }
 
 bool IsMouseOverAnyMenu() {
@@ -615,11 +617,11 @@ bool IsMouseOverAnyMenu() {
     
     Vec2 mousePos = ctx->input().mousePos();
     
-    if (g_menuBarOpen && g_currentMenuBarDropdownRect.contains(mousePos)) {
+    if (getMenuState().menuBarOpen && getMenuState().menuBarDropdownRect.contains(mousePos)) {
         return true;
     }
     
-    if (g_contextMenuActive && g_currentContextMenuRect.contains(mousePos)) {
+    if (getMenuState().contextMenuActive && getMenuState().contextMenuRect.contains(mousePos)) {
         return true;
     }
     

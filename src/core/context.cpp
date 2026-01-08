@@ -46,6 +46,9 @@ struct Context::Impl {
     // Deferred rendering
     std::deque<std::function<void()>> postRenderCommands;
     
+    // Menu state (moved from global variables in menu.cpp)
+    Context::MenuState menuState;
+    
     Impl() {
         startTime = std::chrono::steady_clock::now();
         lastFrameTime = startTime;
@@ -79,6 +82,7 @@ void Context::beginFrame(Window& window) {
     m_impl->totalTime = total.count() / 1000000.0f;
     
     // Clear draw list
+    m_impl->inputState->setFrameTime(m_impl->totalTime);
     m_impl->drawList.clear();
     
     // Begin rendering
@@ -254,6 +258,10 @@ Context* Context::current() {
 
 void Context::deferRender(std::function<void()> cmd) {
     m_impl->postRenderCommands.push_back(std::move(cmd));
+}
+
+Context::MenuState& Context::menuState() {
+    return m_impl->menuState;
 }
 
 } // namespace fst

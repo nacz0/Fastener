@@ -90,8 +90,7 @@ void InputState::onMouseDown(MouseButton button) {
         m_mousePressed[idx] = true;
         
         // Check for double click
-        // TODO: Get actual time
-        float currentTime = 0.0f;  // Placeholder
+        float currentTime = m_frameTime;
         if (currentTime - m_lastClickTime[idx] < DOUBLE_CLICK_TIME) {
             m_mouseDoubleClicked[idx] = true;
         }
@@ -144,6 +143,10 @@ void InputState::onModifiersChanged(bool shift, bool ctrl, bool alt, bool super)
 
 void InputState::onResize(float width, float height) {
     m_windowSize = {width, height};
+}
+
+void InputState::setFrameTime(float time) {
+    m_frameTime = time;
 }
 
 } // namespace fst

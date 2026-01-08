@@ -86,6 +86,15 @@ public:
     // Deferred rendering (for popups/tooltips)
     void deferRender(std::function<void()> cmd);
     
+    // Menu state management (for internal use)
+    struct MenuState {
+        Rect contextMenuRect;
+        Rect menuBarDropdownRect;
+        bool menuBarOpen = false;
+        bool contextMenuActive = false;
+    };
+    MenuState& menuState();
+    
 private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;

@@ -151,6 +151,7 @@ public:
     void onTextInput(char32_t codepoint);
     void onModifiersChanged(bool shift, bool ctrl, bool alt, bool super);
     void onResize(float width, float height);
+    void setFrameTime(float time);
     
 private:
     // Keyboard state
@@ -173,6 +174,7 @@ private:
     
     Modifiers m_modifiers;
     std::string m_textInput;
+    float m_frameTime = 0.0f;
     
     static constexpr float DOUBLE_CLICK_TIME = 0.3f;  // seconds
 };

@@ -57,6 +57,7 @@ int main() {
     tabs.addTab("settings_demo", "Settings", true);
     tabs.addTab("input_demo", "Input Demo", true);
     tabs.addTab("new_widgets_demo", "New Widgets", true);
+    tabs.addTab("table_demo", "Table Demo", true);
     tabs.addTab("types.cpp", "types.cpp", true);
     tabs.addTab("context.cpp", "context.cpp", true);
     
@@ -104,6 +105,32 @@ int main() {
     float inputNumberFloat = 2.5f;
     bool collapsingOpen1 = true;
     bool collapsingOpen2 = false;
+
+    // Table Demo state
+    std::vector<TableColumn> tableColumns = {
+        {"name", "Name", 180, 80, 300, Alignment::Start, true},
+        {"type", "Type", 100, 60, 150, Alignment::Center, true},
+        {"size", "Size", 80, 50, 120, Alignment::End, true},
+        {"modified", "Modified", 140, 80, 200, Alignment::Start, false}
+    };
+    struct FileEntry {
+        std::string name, type, size, modified;
+    };
+    std::vector<FileEntry> tableData = {
+        {"main.cpp", "C++ Source", "4.2 KB", "2026-01-08"},
+        {"README.md", "Markdown", "1.1 KB", "2026-01-05"},
+        {"CMakeLists.txt", "CMake", "2.8 KB", "2026-01-07"},
+        {"fastener.h", "C++ Header", "3.5 KB", "2026-01-08"},
+        {"button.cpp", "C++ Source", "2.1 KB", "2026-01-02"},
+        {"context.cpp", "C++ Source", "5.6 KB", "2026-01-06"},
+        {"table.cpp", "C++ Source", "23.5 KB", "2026-01-08"},
+        {"types.h", "C++ Header", "4.8 KB", "2026-01-03"},
+        {"window.cpp", "C++ Source", "8.2 KB", "2026-01-04"},
+        {"font.ttf", "Font", "124 KB", "2025-12-15"}
+    };
+    int tableSelectedRow = -1;
+    int tableSortColumn = 0;
+    bool tableSortAsc = true;
 
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
@@ -457,6 +484,17 @@ int main() {
                     EndVertical();
                 EndHorizontal();
             }
+            
+            ctx.layout().endContainer();
+        }
+
+        // Table Demo Window (temporarily disabled for debugging)
+        DockableWindow("Table Demo") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+            
+            // TEMPORARILY DISABLED FOR DEBUGGING
+            Label("Table Demo temporarily disabled for debugging dock tab issue");
             
             ctx.layout().endContainer();
         }

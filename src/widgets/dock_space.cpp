@@ -120,33 +120,52 @@ bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertica
     
     // Create unique ID for this splitter
     WidgetId splitterId = combineIds(hashString("##DockSplitter"), node->id);
-    WidgetInteraction interact = handleWidgetInteraction(splitterId, splitterRect);
     
-    if (interact.dragging) {
-        // Update split ratio based on mouse position
-        if (isVertical) {
-            float newRatio = (input.mousePos().x - node->bounds.x()) / node->bounds.width();
-            node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
-        } else {
-            float newRatio = (input.mousePos().y - node->bounds.y()) / node->bounds.height();
-            node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
+    // Track active splitter for drag
+    static WidgetId s_activeSplitter = INVALID_WIDGET_ID;
+    
+    bool isHovered = splitterRect.contains(input.mousePos());
+    bool isDragging = false;
+    
+    // Start drag on mouse press
+    if (isHovered && input.isMousePressed(MouseButton::Left)) {
+        s_activeSplitter = splitterId;
+        ctx->setActiveWidget(splitterId);
+    }
+    
+    // Handle dragging
+    if (s_activeSplitter == splitterId && ctx->getActiveWidget() == splitterId) {
+        if (input.isMouseReleased(MouseButton::Left)) {
+            s_activeSplitter = INVALID_WIDGET_ID;
+            ctx->clearActiveWidget();
+        } else if (input.isMouseDown(MouseButton::Left)) {
+            isDragging = true;
+            
+            // Update split ratio based on mouse position
+            if (isVertical) {
+                float newRatio = (input.mousePos().x - node->bounds.x()) / node->bounds.width();
+                node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
+            } else {
+                float newRatio = (input.mousePos().y - node->bounds.y()) / node->bounds.height();
+                node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
+            }
+            
+            // Re-layout after resize
+            node->updateLayout(node->bounds);
         }
-        
-        // Re-layout after resize
-        node->updateLayout(node->bounds);
     }
     
     // Set cursor
-    if (interact.hovered || interact.dragging) {
+    if (isHovered || isDragging) {
         window.setCursor(isVertical ? Cursor::ResizeH : Cursor::ResizeV);
     }
     
     // Draw splitter
-    Color splitterColor = interact.dragging ? theme.colors.primary : 
-                          (interact.hovered ? theme.colors.borderHover : theme.colors.border);
+    Color splitterColor = isDragging ? theme.colors.primary : 
+                          (isHovered ? theme.colors.borderHover : theme.colors.border);
     dl.addRectFilled(splitterRect, splitterColor);
     
-    return interact.dragging;
+    return isDragging;
 }
 
 //=============================================================================
@@ -192,25 +211,11 @@ void RenderDockTabBar(DockNode* node) {
         bool isSelected = (i == node->selectedTabIndex);
         bool isHovered = tabRect.contains(input.mousePos());
         
-        // Tab click and drag handling
-        WidgetId tabId = combineIds(hashString("##DockTab"), node->id ^ i);
-        WidgetInteraction interact = handleWidgetInteraction(tabId, tabRect);
-        
-        if (interact.clicked) {
+        // Simplified direct click handling for dock tabs
+        // Check if mouse was pressed over this tab
+        if (isHovered && input.isMousePressed(MouseButton::Left)) {
+            // Immediate tab switch on press (not release) for responsiveness
             node->selectedTabIndex = i;
-        }
-        
-        if (interact.dragging) {
-            // Use a threshold to distinguish between click and drag
-            static Vec2 s_dragStartPos;
-            if (input.isMousePressed(MouseButton::Left)) s_dragStartPos = input.mousePos();
-
-            float dragDistSq = (input.mousePos() - s_dragStartPos).lengthSquared();
-            if (dragDistSq > 25.0f) { // 5 pixel threshold
-                // Start dragging the window out of the dock
-                ctx->docking().beginDrag(node->dockedWindows[i], input.mousePos());
-                ctx->clearActiveWidget(); // Transition from tab-click to docking-drag
-            }
         }
         
         // Tab color

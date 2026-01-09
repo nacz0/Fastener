@@ -44,6 +44,7 @@
 #include "fastener/widgets/collapsing_header.h"
 #include "fastener/widgets/image.h"
 #include "fastener/widgets/separator.h"
+#include "fastener/widgets/table.h"
 
 // Docking
 #include "fastener/ui/dock_node.h"

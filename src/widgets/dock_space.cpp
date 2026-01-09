@@ -211,11 +211,42 @@ void RenderDockTabBar(DockNode* node) {
         bool isSelected = (i == node->selectedTabIndex);
         bool isHovered = tabRect.contains(input.mousePos());
         
-        // Simplified direct click handling for dock tabs
-        // Check if mouse was pressed over this tab
+        // Track active tab for drag detection
+        static WidgetId s_activeDockTab = INVALID_WIDGET_ID;
+        static Vec2 s_dragStartPos;
+        static int s_dragTabIndex = -1;
+        static DockNode* s_dragNode = nullptr;
+        
+        WidgetId tabId = combineIds(hashString("##DockTab"), node->id ^ i);
+        
+        // Start tracking on mouse press
         if (isHovered && input.isMousePressed(MouseButton::Left)) {
-            // Immediate tab switch on press (not release) for responsiveness
-            node->selectedTabIndex = i;
+            node->selectedTabIndex = i;  // Immediate tab switch
+            s_activeDockTab = tabId;
+            s_dragStartPos = input.mousePos();
+            s_dragTabIndex = i;
+            s_dragNode = node;
+            ctx->setActiveWidget(tabId);
+        }
+        
+        // Handle dragging for tab undocking
+        if (s_activeDockTab == tabId && s_dragNode == node && s_dragTabIndex == i) {
+            if (input.isMouseReleased(MouseButton::Left)) {
+                s_activeDockTab = INVALID_WIDGET_ID;
+                s_dragNode = nullptr;
+                s_dragTabIndex = -1;
+                ctx->clearActiveWidget();
+            } else if (input.isMouseDown(MouseButton::Left)) {
+                float dragDistSq = (input.mousePos() - s_dragStartPos).lengthSquared();
+                if (dragDistSq > 25.0f) { // 5 pixel threshold
+                    // Start dragging the window out of the dock
+                    ctx->docking().beginDrag(node->dockedWindows[i], input.mousePos());
+                    s_activeDockTab = INVALID_WIDGET_ID;
+                    s_dragNode = nullptr;
+                    s_dragTabIndex = -1;
+                    ctx->clearActiveWidget();
+                }
+            }
         }
         
         // Tab color

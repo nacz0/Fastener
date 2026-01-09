@@ -488,13 +488,67 @@ int main() {
             ctx.layout().endContainer();
         }
 
-        // Table Demo Window (temporarily disabled for debugging)
+        // Table Demo Window
         DockableWindow("Table Demo") {
             Rect contentRect = ctx.layout().currentBounds();
             ctx.layout().beginContainer(contentRect);
             
-            // TEMPORARILY DISABLED FOR DEBUGGING
-            Label("Table Demo temporarily disabled for debugging dock tab issue");
+            PanelOptions tablePanelOpts;
+            tablePanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+            
+            Panel("TableDemoPanel", tablePanelOpts) {
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label("TABLE WIDGET DEMO", titleOpts);
+                Spacing(10);
+                
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
+                
+                Label("Click column headers to sort. Resize columns by dragging dividers.", sectionOpts);
+                Spacing(10);
+                
+                // Table widget
+                TableOptions tableOpts;
+                tableOpts.style = Style().withSize(contentRect.width() - 40, 250);
+                tableOpts.alternateRowColors = true;
+                tableOpts.bordered = true;
+                tableOpts.resizableColumns = true;
+                
+                if (BeginTable("file_table", tableColumns, tableOpts)) {
+                    TableHeader(tableSortColumn, tableSortAsc);
+                    
+                    for (int i = 0; i < (int)tableData.size(); ++i) {
+                        const auto& file = tableData[i];
+                        bool isSelected = (i == tableSelectedRow);
+                        
+                        if (TableRow({file.name, file.type, file.size, file.modified}, isSelected)) {
+                            tableSelectedRow = i;
+                            statusText = "Selected: " + file.name;
+                        }
+                    }
+                    
+                    // Update sort state from table
+                    tableSortColumn = GetTableSortColumn();
+                    tableSortAsc = GetTableSortAscending();
+                    
+                    EndTable();
+                }
+                
+                Spacing(15);
+                
+                // Selected row info
+                if (tableSelectedRow >= 0 && tableSelectedRow < (int)tableData.size()) {
+                    const auto& file = tableData[tableSelectedRow];
+                    Label("Selected: " + file.name + " (" + file.size + ")", sectionOpts);
+                } else {
+                    Label("No row selected. Click a row to select it.", sectionOpts);
+                }
+                
+                Spacing(10);
+                Label("Sort column: " + std::to_string(tableSortColumn) + 
+                      (tableSortAsc ? " (ascending)" : " (descending)"), sectionOpts);
+            }
             
             ctx.layout().endContainer();
         }

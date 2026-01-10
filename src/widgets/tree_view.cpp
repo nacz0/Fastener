@@ -30,6 +30,7 @@ void TreeView::setRoot(std::shared_ptr<TreeNode> root) {
     m_selectedNode = nullptr;
     m_hoveredNode = nullptr;
     m_scrollY = 0.0f;
+    m_layoutDirty = true;
 }
 
 void TreeView::selectNode(TreeNode* node) {
@@ -59,6 +60,7 @@ void TreeView::expandAll() {
         }
     };
     if (m_root) expand(m_root.get());
+    m_layoutDirty = true;
 }
 
 void TreeView::collapseAll() {
@@ -69,16 +71,22 @@ void TreeView::collapseAll() {
         }
     };
     if (m_root) collapse(m_root.get());
+    m_layoutDirty = true;
 }
 
 void TreeView::expandTo(TreeNode* node) {
     if (!node) return;
     
     TreeNode* parent = node->parent;
+    bool changed = false;
     while (parent) {
-        parent->isExpanded = true;
+        if (!parent->isExpanded) {
+            parent->isExpanded = true;
+            changed = true;
+        }
         parent = parent->parent;
     }
+    if (changed) m_layoutDirty = true;
 }
 
 void TreeView::scrollToNode(TreeNode* node) {
@@ -97,7 +105,11 @@ void TreeView::render(const std::string& id, const Rect& bounds,
     
     // Generate ID
     ctx->pushId(id.c_str());
-    WidgetId widgetId = ctx->currentId();
+    
+    // Update layout if dirty
+    if (m_layoutDirty) {
+        updateLayout();
+    }
     
     // Draw background
     dl.addRectFilled(bounds, theme.colors.panelBackground, theme.metrics.borderRadius);
@@ -108,6 +120,7 @@ void TreeView::render(const std::string& id, const Rect& bounds,
     dl.pushClipRect(contentBounds);
     
     // Handle scrolling
+    m_contentHeight = m_flatNodes.size() * options.rowHeight;
     if (bounds.contains(ctx->input().mousePos())) {
         Vec2 scroll = ctx->input().scrollDelta();
         m_scrollY -= scroll.y * options.rowHeight * 3;
@@ -117,20 +130,43 @@ void TreeView::render(const std::string& id, const Rect& bounds,
     // Reset hovered
     m_hoveredNode = nullptr;
     
-    // Render tree starting from root's children (or root itself if showing root)
-    float y = contentBounds.y() - m_scrollY;
+    // Render visible nodes from flat list
+    float startY = contentBounds.y() - m_scrollY;
     
-    if (m_root) {
-        // Render children of root (root itself is hidden)
-        for (auto& child : m_root->children) {
-            y = renderNode(child.get(), contentBounds, y, options, events);
-        }
+    for (size_t i = 0; i < m_flatNodes.size(); ++i) {
+        float y = startY + i * options.rowHeight;
+        
+        // Simple culling
+        if (y + options.rowHeight < contentBounds.y()) continue;
+        if (y > contentBounds.bottom()) break;
+        
+        renderNode(m_flatNodes[i], contentBounds, y, options, events);
     }
-    
-    m_contentHeight = (y + m_scrollY) - contentBounds.y();
     
     dl.popClipRect();
     ctx->popId();
+}
+
+void TreeView::updateLayout() {
+    m_flatNodes.clear();
+    
+    std::function<void(TreeNode*)> flatten = [&](TreeNode* node) {
+        if (!node) return;
+        
+        // Don't add root to flat list if it's the hidden root
+        if (node != m_root.get()) {
+            m_flatNodes.push_back(node);
+        }
+        
+        if (node->isExpanded || node == m_root.get()) {
+            for (auto& child : node->children) {
+                flatten(child.get());
+            }
+        }
+    };
+    
+    flatten(m_root.get());
+    m_layoutDirty = false;
 }
 
 float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
@@ -142,18 +178,6 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     DrawList& dl = ctx->drawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
-    
-    // Skip if completely above or below visible area
-    if (y + options.rowHeight < bounds.y() || y > bounds.bottom()) {
-        // Still need to recurse for content height calculation
-        y += options.rowHeight;
-        if (node->isExpanded) {
-            for (auto& child : node->children) {
-                y = renderNode(child.get(), bounds, y, options, events);
-            }
-        }
-        return y;
-    }
     
     int depth = node->depth() - 1;  // -1 because root is hidden
     float indent = depth * options.indentWidth;
@@ -180,6 +204,7 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
             mousePos.x >= arrowX && mousePos.x < arrowX + arrowWidth) {
             // Toggle expand
             node->isExpanded = !node->isExpanded;
+            m_layoutDirty = true;
             if (node->isExpanded && events.onExpand) {
                 events.onExpand(node);
             } else if (!node->isExpanded && events.onCollapse) {
@@ -201,6 +226,7 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
         // Toggle expand on double click for folders
         if (!node->isLeaf) {
             node->isExpanded = !node->isExpanded;
+            m_layoutDirty = true;
         }
     }
     
@@ -241,14 +267,6 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     }
     
     y += options.rowHeight;
-    
-    // Render children if expanded
-    if (node->isExpanded) {
-        for (auto& child : node->children) {
-            y = renderNode(child.get(), bounds, y, options, events);
-        }
-    }
-    
     return y;
 }
 

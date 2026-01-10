@@ -2,6 +2,7 @@
 
 #include "fastener/core/types.h"
 #include "fastener/core/input.h"
+#include "fastener/platform/platform_interface.h"
 #include <memory>
 #include <functional>
 #include <string>
@@ -51,7 +52,7 @@ struct WindowMoveEvent {
 //=============================================================================
 // Window Class
 //=============================================================================
-class Window {
+class Window : public IPlatformWindow {
 public:
     Window();
     explicit Window(const std::string& title, int width = 1280, int height = 720);
@@ -67,48 +68,48 @@ public:
     // Lifecycle
     bool create(const WindowConfig& config);
     void destroy();
-    bool isOpen() const;
-    void close();
+    bool isOpen() const override;
+    void close() override;
     
     // Event handling
-    void pollEvents();
-    void waitEvents();
+    void pollEvents() override;
+    void waitEvents() override;
     
     // Rendering
-    void swapBuffers();
-    void makeContextCurrent();
+    void swapBuffers() override;
+    void makeContextCurrent() override;
     
     // Properties
-    Vec2 size() const;
-    Vec2 framebufferSize() const;  // May differ from size on high-DPI
-    float dpiScale() const;
+    Vec2 size() const override;
+    Vec2 framebufferSize() const override;  // May differ from size on high-DPI
+    float dpiScale() const override;
     
-    int width() const;
-    int height() const;
+    int width() const override;
+    int height() const override;
     
-    void setTitle(const std::string& title);
-    void setSize(int width, int height);
+    void setTitle(const std::string& title) override;
+    void setSize(int width, int height) override;
     void setMinSize(int minWidth, int minHeight);
     void setMaxSize(int maxWidth, int maxHeight);
-    void setPosition(int x, int y);
+    void setPosition(int x, int y) override;
     
-    void minimize();
-    void maximize();
-    void restore();
-    void focus();
+    void minimize() override;
+    void maximize() override;
+    void restore() override;
+    void focus() override;
     
-    bool isMinimized() const;
-    bool isMaximized() const;
-    bool isFocused() const;
+    bool isMinimized() const override;
+    bool isMaximized() const override;
+    bool isFocused() const override;
     
     // Cursor
-    void setCursor(Cursor cursor);
-    void hideCursor();
-    void showCursor();
+    void setCursor(Cursor cursor) override;
+    void hideCursor() override;
+    void showCursor() override;
     
     // Clipboard
-    std::string getClipboardText() const;
-    void setClipboardText(const std::string& text);
+    std::string getClipboardText() const override;
+    void setClipboardText(const std::string& text) override;
     
     // Callbacks
     using ResizeCallback = std::function<void(const WindowResizeEvent&)>;
@@ -128,11 +129,11 @@ public:
     void clearDroppedFiles();
     
     // Input access
-    InputState& input();
-    const InputState& input() const;
+    InputState& input() override;
+    const InputState& input() const override;
     
     // Platform handle (use with caution)
-    void* nativeHandle() const;
+    void* nativeHandle() const override;
     
     // Implementation (public for MSVC compatibility)
     struct Impl;

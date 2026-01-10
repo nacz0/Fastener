@@ -129,6 +129,11 @@ private:
     float m_scrollY = 0.0f;
     float m_contentHeight = 0.0f;
     
+    // Caching
+    bool m_layoutDirty = true;
+    std::vector<TreeNode*> m_flatNodes;
+    void updateLayout();
+    
     // Internal rendering
     float renderNode(TreeNode* node, const Rect& bounds, float y,
                      const TreeViewOptions& options,

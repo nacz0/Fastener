@@ -312,6 +312,11 @@ constexpr WidgetId combineIds(WidgetId parent, WidgetId child) {
     return parent ^ (child * 1099511628211ULL);
 }
 
+// User-defined literal for compile-time ID generation
+inline constexpr WidgetId operator""_id(const char* str, size_t len) {
+    return hashString(str);
+}
+
 //=============================================================================
 // Enums
 //=============================================================================

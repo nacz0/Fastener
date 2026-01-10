@@ -1,5 +1,6 @@
 #include "fastener/core/context.h"
 #include "fastener/core/log.h"
+#include "fastener/platform/platform_interface.h"
 #include "fastener/platform/window.h"
 #include "fastener/graphics/renderer.h"
 #include "fastener/graphics/draw_list.h"
@@ -31,7 +32,7 @@ struct Context::Impl {
     
     // Input
     InputState* inputState = nullptr;
-    Window* currentWindow = nullptr;
+    IPlatformWindow* currentWindow = nullptr;
     
     // Time
     std::chrono::steady_clock::time_point startTime;
@@ -76,7 +77,7 @@ Context::~Context() {
     }
 }
 
-void Context::beginFrame(Window& window) {
+void Context::beginFrame(IPlatformWindow& window) {
     s_current = this;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
@@ -108,7 +109,7 @@ void Context::beginFrame(Window& window) {
     
     // Begin root layout container
     m_impl->layout.beginContainer(
-        Rect(0, 0, window.width(), window.height()),
+        Rect(0.0f, 0.0f, static_cast<float>(window.width()), static_cast<float>(window.height())),
         LayoutDirection::Vertical
     );
     
@@ -202,7 +203,7 @@ LayoutContext& Context::layout() {
     return m_impl->layout;
 }
 
-Window& Context::window() {
+IPlatformWindow& Context::window() {
     return *m_impl->currentWindow;
 }
 

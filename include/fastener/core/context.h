@@ -2,6 +2,7 @@
 
 #include "fastener/core/types.h"
 #include "fastener/core/input.h"
+#include "fastener/platform/platform_interface.h"
 #include <vector>
 #include <deque>
 #include <functional>
@@ -10,7 +11,6 @@
 namespace fst {
 
 // Forward declarations
-class Window;
 class Renderer;
 class DrawList;
 class Theme;
@@ -31,7 +31,7 @@ public:
     Context& operator=(const Context&) = delete;
     
     // Frame management
-    void beginFrame(Window& window);
+    void beginFrame(IPlatformWindow& window);
     void endFrame();
     
     // Theme
@@ -52,7 +52,7 @@ public:
     DrawList& drawList();
     Renderer& renderer();
     LayoutContext& layout();
-    Window& window();
+    IPlatformWindow& window();
     DockContext& docking();
     
     // Time

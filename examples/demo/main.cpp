@@ -138,8 +138,8 @@ int main() {
     std::vector<std::string> droppedFilePaths;
     std::vector<std::string> dragDropList1 = {"Item A", "Item B", "Item C"};
     std::vector<std::string> dragDropList2 = {"Item X", "Item Y", "Item Z"};
-    int selectedDragItem1 = -1;
-    int selectedDragItem2 = -1;
+    std::string selectedDragItem1;
+    std::string selectedDragItem2;
 
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
@@ -630,33 +630,99 @@ int main() {
                 PanelOptions list1Opts;
                 list1Opts.style = Style().withSize(listWidth, 180);
                 Panel("List1Panel", list1Opts) {
-                    // Target for List 1 (inside panel to match content area)
-                    if (BeginDragDropTarget()) {
-                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
-                            std::string item = (const char*)payload->data.data();
-                            // Find and remove from list 2
-                            auto it = std::find(dragDropList2.begin(), dragDropList2.end(), item);
-                            if (it != dragDropList2.end()) {
-                                dragDropList2.erase(it);
-                                dragDropList1.push_back(item);
-                            }
-                        }
-                        EndDragDropTarget();
-                    }
+                    Rect list1Rect = ctx.layout().currentBounds();
+                    bool itemTargetHit = false;
+                    
+                    struct DndAction {
+                        std::string item;
+                        int targetIndex = -1;
+                        bool insertAfter = false;
+                    } pendingDrop;
 
                     for (size_t i = 0; i < dragDropList1.size(); ++i) {
                         SelectableOptions selOpts;
                         selOpts.spanWidth = true;
-                        if (Selectable(dragDropList1[i], selectedDragItem1 == (int)i, selOpts)) {
-                            selectedDragItem1 = (int)i;
+                        if (Selectable(dragDropList1[i], selectedDragItem1 == dragDropList1[i], selOpts)) {
+                            selectedDragItem1 = dragDropList1[i];
                         }
                         
-                        // Source for List 1 items
+                        // Item Drop Target (Insert Before/After)
+                        Rect itemRect = ctx.getLastWidgetBounds();
+                        Rect targetRect = itemRect;
+                        targetRect.pos.y -= (i == 0) ? 8.0f : 2.0f; 
+                        targetRect.size.y += (i == 0) ? 10.0f : 4.0f;
+                        
+                        if (BeginDragDropTarget(targetRect)) {
+                            itemTargetHit = true;
+                            bool insertAfter = ctx.input().mousePos().y > itemRect.center().y;
+                            
+                            // Visual Feedback
+                            if (IsDragDropActive() && GetDragDropPayload()->type == "DND_DEMO_ITEM") {
+                                float halfSpacing = theme.metrics.paddingSmall / 2.0f;
+                                float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() - halfSpacing;
+                                dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
+                            }
+
+                            if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
+                                pendingDrop = {(const char*)payload->data.data(), (int)i, insertAfter};
+                            }
+                            EndDragDropTarget();
+                        }
+                        
                         if (BeginDragDropSource()) {
+                            selectedDragItem1 = dragDropList1[i];
                             SetDragDropPayload("DND_DEMO_ITEM", dragDropList1[i].c_str(), dragDropList1[i].size() + 1);
                             SetDragDropDisplayText("Moving: " + dragDropList1[i]);
                             EndDragDropSource();
                         }
+                    }
+
+                    // Process deferred drop
+                    if (pendingDrop.targetIndex != -1) {
+                        std::string item = pendingDrop.item;
+                        int i = pendingDrop.targetIndex;
+                        bool insertAfter = pendingDrop.insertAfter;
+
+                        auto it1 = std::find(dragDropList1.begin(), dragDropList1.end(), item);
+                        if (it1 != dragDropList1.end()) {
+                            int oldIndex = (int)std::distance(dragDropList1.begin(), it1);
+                            int newIndex = insertAfter ? i + 1 : i;
+                            if (newIndex > oldIndex) newIndex--;
+                            dragDropList1.erase(it1);
+                            dragDropList1.insert(dragDropList1.begin() + newIndex, item);
+                            selectedDragItem1 = item;
+                        } else {
+                            auto it2 = std::find(dragDropList2.begin(), dragDropList2.end(), item);
+                            if (it2 != dragDropList2.end()) {
+                                dragDropList2.erase(it2);
+                                int newIndex = insertAfter ? i + 1 : i;
+                                dragDropList1.insert(dragDropList1.begin() + newIndex, item);
+                                selectedDragItem1 = item;
+                                selectedDragItem2 = ""; // Clear other selection
+                            }
+                        }
+                    }
+
+                    // Container Drop Target (Fallback: Append)
+                    if (!itemTargetHit && BeginDragDropTarget(list1Rect)) {
+                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
+                            std::string item = (const char*)payload->data.data();
+                            auto it2 = std::find(dragDropList2.begin(), dragDropList2.end(), item);
+                            if (it2 != dragDropList2.end()) {
+                                dragDropList2.erase(it2);
+                                dragDropList1.push_back(item);
+                                selectedDragItem1 = item;
+                                selectedDragItem2 = "";
+                            } else {
+                                auto itSelf = std::find(dragDropList1.begin(), dragDropList1.end(), item);
+                                if (itSelf != dragDropList1.end()) {
+                                    dragDropList1.erase(itSelf);
+                                    dragDropList1.push_back(item);
+                                    selectedDragItem1 = item;
+                                }
+                            }
+                        }
+                        EndDragDropTarget();
                     }
                 }
                 
@@ -668,33 +734,99 @@ int main() {
                 PanelOptions list2Opts;
                 list2Opts.style = Style().withSize(listWidth, 180);
                 Panel("List2Panel", list2Opts) {
-                    // Target for List 2 (inside panel to match content area)
-                    if (BeginDragDropTarget()) {
-                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
-                            std::string item = (const char*)payload->data.data();
-                            // Find and remove from list 1
-                            auto it = std::find(dragDropList1.begin(), dragDropList1.end(), item);
-                            if (it != dragDropList1.end()) {
-                                dragDropList1.erase(it);
-                                dragDropList2.push_back(item);
-                            }
-                        }
-                        EndDragDropTarget();
-                    }
+                    Rect list2Rect = ctx.layout().currentBounds();
+                    bool itemTargetHit = false;
+                    
+                    struct DndAction {
+                        std::string item;
+                        int targetIndex = -1;
+                        bool insertAfter = false;
+                    } pendingDrop;
 
                     for (size_t i = 0; i < dragDropList2.size(); ++i) {
                         SelectableOptions selOpts;
                         selOpts.spanWidth = true;
-                        if (Selectable(dragDropList2[i], selectedDragItem2 == (int)i, selOpts)) {
-                            selectedDragItem2 = (int)i;
+                        if (Selectable(dragDropList2[i], selectedDragItem2 == dragDropList2[i], selOpts)) {
+                            selectedDragItem2 = dragDropList2[i];
                         }
                         
-                        // Source for List 2 items
+                        // Item Drop Target (Insert Before/After)
+                        Rect itemRect = ctx.getLastWidgetBounds();
+                        Rect targetRect = itemRect;
+                        targetRect.pos.y -= (i == 0) ? 8.0f : 2.0f; 
+                        targetRect.size.y += (i == 0) ? 10.0f : 4.0f;
+                        
+                        if (BeginDragDropTarget(targetRect)) {
+                            itemTargetHit = true;
+                            bool insertAfter = ctx.input().mousePos().y > itemRect.center().y;
+                            
+                            // Visual Feedback
+                            if (IsDragDropActive() && GetDragDropPayload()->type == "DND_DEMO_ITEM") {
+                                float halfSpacing = theme.metrics.paddingSmall / 2.0f;
+                                float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() - halfSpacing;
+                                dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
+                            }
+
+                            if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
+                                pendingDrop = {(const char*)payload->data.data(), (int)i, insertAfter};
+                            }
+                            EndDragDropTarget();
+                        }
+                        
                         if (BeginDragDropSource()) {
+                            selectedDragItem2 = dragDropList2[i];
                             SetDragDropPayload("DND_DEMO_ITEM", dragDropList2[i].c_str(), dragDropList2[i].size() + 1);
                             SetDragDropDisplayText("Moving: " + dragDropList2[i]);
                             EndDragDropSource();
                         }
+                    }
+
+                    // Process deferred drop
+                    if (pendingDrop.targetIndex != -1) {
+                        std::string item = pendingDrop.item;
+                        int i = pendingDrop.targetIndex;
+                        bool insertAfter = pendingDrop.insertAfter;
+
+                        auto it2 = std::find(dragDropList2.begin(), dragDropList2.end(), item);
+                        if (it2 != dragDropList2.end()) {
+                            int oldIndex = (int)std::distance(dragDropList2.begin(), it2);
+                            int newIndex = insertAfter ? i + 1 : i;
+                            if (newIndex > oldIndex) newIndex--;
+                            dragDropList2.erase(it2);
+                            dragDropList2.insert(dragDropList2.begin() + newIndex, item);
+                            selectedDragItem2 = item;
+                        } else {
+                            auto it1 = std::find(dragDropList1.begin(), dragDropList1.end(), item);
+                            if (it1 != dragDropList1.end()) {
+                                dragDropList1.erase(it1);
+                                int newIndex = insertAfter ? i + 1 : i;
+                                dragDropList2.insert(dragDropList2.begin() + newIndex, item);
+                                selectedDragItem2 = item;
+                                selectedDragItem1 = ""; // Clear other selection
+                            }
+                        }
+                    }
+
+                    // Container Drop Target (Fallback: Append)
+                    if (!itemTargetHit && BeginDragDropTarget(list2Rect)) {
+                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
+                            std::string item = (const char*)payload->data.data();
+                            auto it1 = std::find(dragDropList1.begin(), dragDropList1.end(), item);
+                            if (it1 != dragDropList1.end()) {
+                                dragDropList1.erase(it1);
+                                dragDropList2.push_back(item);
+                                selectedDragItem2 = item;
+                                selectedDragItem1 = "";
+                            } else {
+                                auto itSelf = std::find(dragDropList2.begin(), dragDropList2.end(), item);
+                                if (itSelf != dragDropList2.end()) {
+                                    dragDropList2.erase(itSelf);
+                                    dragDropList2.push_back(item);
+                                    selectedDragItem2 = item;
+                                }
+                            }
+                        }
+                        EndDragDropTarget();
                     }
                 }
             }

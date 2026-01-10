@@ -208,6 +208,29 @@ bool BeginDragDropTarget() {
     }
     
     s_inTargetBlock = false;
+    s_inTargetBlock = false;
+    return false;
+}
+
+bool BeginDragDropTarget(const Rect& targetRect) {
+    if (!s_dragDropState.active) return false;
+    
+    auto* ctx = Context::current();
+    if (!ctx) return false;
+    
+    s_inTargetBlock = true;
+    
+    s_currentTargetRect = targetRect;
+    
+    const auto& input = ctx->input();
+    
+    // Check if mouse is over this target
+    if (s_currentTargetRect.contains(input.mousePos())) {
+        s_dragDropState.hoveredDropTarget = ctx->currentId();
+        return true;
+    }
+    
+    s_inTargetBlock = false;
     return false;
 }
 
@@ -216,6 +239,11 @@ const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags 
     
     // Check type match
     if (s_dragDropState.payload.type != type) {
+        return nullptr;
+    }
+
+    // Prevent handling if already delivered to another target
+    if (s_dragDropState.payload.isDelivered) {
         return nullptr;
     }
     

@@ -130,6 +130,13 @@ void EndDragDropSource();
 bool BeginDragDropTarget();
 
 /**
+ * @brief Begin a drop target with explicit bounds.
+ * @param targetRect The rectangle to check for mouse overlap
+ * @return true if something is being dragged over this target
+ */
+bool BeginDragDropTarget(const Rect& targetRect);
+
+/**
  * @brief Accept a payload of specific type
  * @param type Payload type to accept (must match SetDragDropPayload type)
  * @param flags Optional flags

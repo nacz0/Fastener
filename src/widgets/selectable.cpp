@@ -49,6 +49,8 @@ bool Selectable(const char* label, bool& selected, const SelectableOptions& opti
 
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
+    wc.ctx->setLastWidgetId(id);
+    wc.ctx->setLastWidgetBounds(bounds);
     WidgetState widgetState = getWidgetState(id);
     widgetState.disabled = options.disabled;
 
@@ -133,6 +135,8 @@ bool SelectableWithIcon(const std::string& icon, const std::string& label,
     }
 
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
+    wc.ctx->setLastWidgetId(id);
+    wc.ctx->setLastWidgetBounds(bounds);
     WidgetState widgetState = getWidgetState(id);
     widgetState.disabled = options.disabled;
 

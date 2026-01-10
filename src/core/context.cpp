@@ -6,6 +6,7 @@
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
 #include "fastener/ui/dock_context.h"
+#include "fastener/ui/drag_drop.h"
 #include <vector>
 #include <chrono>
 
@@ -41,6 +42,8 @@ struct Context::Impl {
     WidgetId focusedWidget = INVALID_WIDGET_ID;
     WidgetId hoveredWidget = INVALID_WIDGET_ID;
     WidgetId activeWidget = INVALID_WIDGET_ID;
+    WidgetId lastWidgetId = INVALID_WIDGET_ID;
+    Rect lastWidgetBounds;
     
     // ID stack
     std::vector<WidgetId> idStack;
@@ -141,6 +144,9 @@ void Context::endFrame() {
     m_impl->renderer.render(m_impl->drawList);
     m_impl->renderer.endFrame();
     
+    // Cleanup drag and drop state if needed
+    EndDragDropFrame();
+    
     s_current = nullptr;
 }
 
@@ -240,6 +246,22 @@ void Context::setActiveWidget(WidgetId id) {
 
 void Context::clearActiveWidget() {
     m_impl->activeWidget = INVALID_WIDGET_ID;
+}
+
+WidgetId Context::getLastWidgetId() const {
+    return m_impl->lastWidgetId;
+}
+
+void Context::setLastWidgetId(WidgetId id) {
+    m_impl->lastWidgetId = id;
+}
+
+Rect Context::getLastWidgetBounds() const {
+    return m_impl->lastWidgetBounds;
+}
+
+void Context::setLastWidgetBounds(const Rect& bounds) {
+    m_impl->lastWidgetBounds = bounds;
 }
 
 bool Context::isCapturedBy(WidgetId id) const {

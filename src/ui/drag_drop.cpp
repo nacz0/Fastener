@@ -4,6 +4,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
 #include "fastener/core/input.h"
+#include "fastener/ui/layout.h"
 
 namespace fst {
 
@@ -11,7 +12,11 @@ namespace fst {
 // Global Drag Drop State
 //=============================================================================
 
-static DragDropState s_dragDropState;
+struct DragDropStateEx : DragDropState {
+    bool pendingClear = false;
+};
+    
+static DragDropStateEx s_dragDropState;
 static WidgetId s_currentSourceWidget = INVALID_WIDGET_ID;
 static Rect s_currentTargetRect;
 static bool s_inSourceBlock = false;
@@ -72,44 +77,64 @@ bool BeginDragDropSource(DragDropFlags flags) {
     
     const auto& input = ctx->input();
     
-    // Check if already dragging from this source
-    if (s_dragDropState.active) {
-        s_currentSourceWidget = s_dragDropState.payload.sourceWidget;
-        return true;
+    // Start new drag on mouse down + drag threshold
+    // BeginDragDropSource must be called AFTER the widget it applies to
+    WidgetId lastWidgetId = ctx->getLastWidgetId();
+    if (lastWidgetId == INVALID_WIDGET_ID) {
+        // Fallback to hovered if last widget not set (but this is risky)
+        lastWidgetId = ctx->getHoveredWidget();
+        if (lastWidgetId == INVALID_WIDGET_ID) {
+            s_inSourceBlock = false;
+            return false;
+        }
     }
     
-    // Start new drag on mouse down + drag threshold
-    // Require the widget to be hovered and mouse held
-    WidgetId hoveredWidget = ctx->getHoveredWidget();
-    if (hoveredWidget == INVALID_WIDGET_ID) {
-        s_inSourceBlock = false;
-        return false;
+    // Check if THIS widget is the active source
+    if (s_dragDropState.active) {
+        if (s_dragDropState.payload.sourceWidget == lastWidgetId) {
+            s_currentSourceWidget = s_dragDropState.payload.sourceWidget;
+            return true;
+        }
+        return false; // Another widget is dragging
     }
+    
+    // Static state for potential drag - must track which widget initiated it
+    static Vec2 s_mousePressPos;
+    static bool s_potentialDrag = false;
+    static WidgetId s_potentialDragSource = INVALID_WIDGET_ID;
     
     if (input.isMouseDown(MouseButton::Left)) {
-        static Vec2 s_mousePressPos;
-        static bool s_potentialDrag = false;
-        
+        // On mouse press, check if this widget's bounds contain the press position
+        // Only allow a widget to start a potential drag if mouse was pressed on it
         if (input.isMousePressed(MouseButton::Left)) {
-            s_mousePressPos = input.mousePos();
-            s_potentialDrag = true;
+            // Get bounds for this widget from the last widget bounds (set by the widget before BeginDragDropSource)
+            Rect widgetBounds = ctx->getLastWidgetBounds();
+            if (widgetBounds.contains(input.mousePos())) {
+                s_mousePressPos = input.mousePos();
+                s_potentialDrag = true;
+                s_potentialDragSource = lastWidgetId;
+            }
         }
         
-        if (s_potentialDrag) {
+        // Only allow drag if THIS widget started the potential drag
+        if (s_potentialDrag && s_potentialDragSource == lastWidgetId) {
             float dragDistSq = (input.mousePos() - s_mousePressPos).lengthSquared();
             if (dragDistSq > 25.0f) { // 5 pixel threshold
                 // Start drag
                 s_dragDropState.active = true;
                 s_dragDropState.startPos = s_mousePressPos;
                 s_dragDropState.currentPos = input.mousePos();
-                s_dragDropState.payload.sourceWidget = hoveredWidget;
-                s_currentSourceWidget = hoveredWidget;
+                s_dragDropState.payload.sourceWidget = lastWidgetId;
+                s_currentSourceWidget = lastWidgetId;
                 s_potentialDrag = false;
+                s_potentialDragSource = INVALID_WIDGET_ID;
                 return true;
             }
         }
     } else {
         // Mouse released, cancel potential drag
+        s_potentialDrag = false;
+        s_potentialDragSource = INVALID_WIDGET_ID;
         s_inSourceBlock = false;
         return false;
     }
@@ -150,10 +175,9 @@ void EndDragDropSource() {
         
         // Check for drop (mouse released)
         if (!input.isMouseDown(MouseButton::Left) && s_dragDropState.active) {
-            // Will be handled by target, but timeout if no target
-            if (!s_dragDropState.isOverValidTarget) {
-                s_dragDropState.clear();
-            }
+            // Do NOT clear here immediately, as targets might be rendered later in the frame.
+            // Mark for clearing at end of frame.
+            s_dragDropState.pendingClear = true;
         }
     }
     
@@ -256,6 +280,16 @@ const DragPayload* GetDragDropPayload() {
 
 void CancelDragDrop() {
     s_dragDropState.clear();
+    s_dragDropState.pendingClear = false;
+}
+
+void EndDragDropFrame() {
+    // If pending clear was set (mouse released), and we reached end of frame,
+    // we can safely clear the state now.
+    if (s_dragDropState.pendingClear) {
+        s_dragDropState.clear();
+        s_dragDropState.pendingClear = false;
+    }
 }
 
 } // namespace fst

@@ -72,6 +72,12 @@ public:
     WidgetId getActiveWidget() const;
     void setActiveWidget(WidgetId id);
     void clearActiveWidget();
+
+    // Last used widget (for Drag & Drop etc.)
+    WidgetId getLastWidgetId() const;
+    void setLastWidgetId(WidgetId id);
+    Rect getLastWidgetBounds() const;
+    void setLastWidgetBounds(const Rect& bounds);
     
     /** @brief Check if a specific widget has captured the mouse. */
     bool isCapturedBy(WidgetId id) const;

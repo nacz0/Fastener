@@ -1,4 +1,6 @@
 #include "fastener/fastener.h"
+#include <iostream>
+#include <vector>
 #include <string>
 #include <unordered_map>
 #include <algorithm>
@@ -132,6 +134,13 @@ int main() {
     int tableSortColumn = 0;
     bool tableSortAsc = true;
 
+    // Drag and Drop Demo state
+    std::vector<std::string> droppedFilePaths;
+    std::vector<std::string> dragDropList1 = {"Item A", "Item B", "Item C"};
+    std::vector<std::string> dragDropList2 = {"Item X", "Item Y", "Item Z"};
+    int selectedDragItem1 = -1;
+    int selectedDragItem2 = -1;
+
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
         if (it == editors.end()) {
@@ -243,10 +252,18 @@ int main() {
         DockBuilder::DockWindow("Settings", centralNode);
         DockBuilder::DockWindow("Input Demo", centralNode);
         DockBuilder::DockWindow("New Widgets", centralNode);
+        DockBuilder::DockWindow("Drag & Drop Demo", centralNode);
         
         DockBuilder::Finish();
         layoutInitialized = true;
     };
+    
+    // Setup file drop callback
+    window.setFileDropCallback([&droppedFilePaths](const std::vector<std::string>& paths) {
+        for (const auto& path : paths) {
+            droppedFilePaths.push_back(path);
+        }
+    });
     
     auto renderFrame = [&]() {
         ctx.beginFrame(window);
@@ -548,6 +565,138 @@ int main() {
                 Spacing(10);
                 Label("Sort column: " + std::to_string(tableSortColumn) + 
                       (tableSortAsc ? " (ascending)" : " (descending)"), sectionOpts);
+            }
+            
+            ctx.layout().endContainer();
+        }
+
+        // Drag & Drop Demo Window
+        DockableWindow("Drag & Drop Demo") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+            
+            PanelOptions ddPanelOpts;
+            ddPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+            
+            Panel("DragDropDemoPanel", ddPanelOpts) {
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label("DRAG & DROP DEMO", titleOpts);
+                Spacing(10);
+                
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
+                
+                // Section 1: System File Drop
+                Label("System File Drop", titleOpts);
+                Label("Drag files from your desktop/explorer onto this window:", sectionOpts);
+                Spacing(5);
+                
+                // Display dropped files
+                if (droppedFilePaths.empty()) {
+                    Label("No files dropped yet. Try dragging files here!", sectionOpts);
+                } else {
+                    for (size_t i = 0; i < droppedFilePaths.size() && i < 10; ++i) {
+                        Label(std::to_string(i + 1) + ". " + droppedFilePaths[i], sectionOpts);
+                    }
+                    if (droppedFilePaths.size() > 10) {
+                        Label("... and " + std::to_string(droppedFilePaths.size() - 10) + " more", sectionOpts);
+                    }
+                    
+                    Spacing(5);
+                    ButtonOptions clearBtnOpts;
+                    clearBtnOpts.style = Style().withSize(120, 28);
+                    if (Button("Clear Files", clearBtnOpts)) {
+                        droppedFilePaths.clear();
+                    }
+                }
+                
+                Spacing(20);
+                Separator();
+                Spacing(10);
+                
+                // Section 2: Internal Drag and Drop
+                Label("Internal Drag & Drop", titleOpts);
+                Label("Drag items between lists to move them:", sectionOpts);
+                Spacing(10);
+                
+                // Two lists side by side
+                Rect listsRect = ctx.layout().currentBounds();
+                float listWidth = (listsRect.width() - 20) / 2;
+                
+                // --- List 1 ---
+                Label("List 1 (Drop here)", sectionOpts);
+                
+                PanelOptions list1Opts;
+                list1Opts.style = Style().withSize(listWidth, 180);
+                Panel("List1Panel", list1Opts) {
+                    // Target for List 1 (inside panel to match content area)
+                    if (BeginDragDropTarget()) {
+                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
+                            std::string item = (const char*)payload->data.data();
+                            // Find and remove from list 2
+                            auto it = std::find(dragDropList2.begin(), dragDropList2.end(), item);
+                            if (it != dragDropList2.end()) {
+                                dragDropList2.erase(it);
+                                dragDropList1.push_back(item);
+                            }
+                        }
+                        EndDragDropTarget();
+                    }
+
+                    for (size_t i = 0; i < dragDropList1.size(); ++i) {
+                        SelectableOptions selOpts;
+                        selOpts.spanWidth = true;
+                        if (Selectable(dragDropList1[i], selectedDragItem1 == (int)i, selOpts)) {
+                            selectedDragItem1 = (int)i;
+                        }
+                        
+                        // Source for List 1 items
+                        if (BeginDragDropSource()) {
+                            SetDragDropPayload("DND_DEMO_ITEM", dragDropList1[i].c_str(), dragDropList1[i].size() + 1);
+                            SetDragDropDisplayText("Moving: " + dragDropList1[i]);
+                            EndDragDropSource();
+                        }
+                    }
+                }
+                
+                Spacing(15);
+                
+                // --- List 2 ---
+                Label("List 2 (Drop here)", sectionOpts);
+                
+                PanelOptions list2Opts;
+                list2Opts.style = Style().withSize(listWidth, 180);
+                Panel("List2Panel", list2Opts) {
+                    // Target for List 2 (inside panel to match content area)
+                    if (BeginDragDropTarget()) {
+                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
+                            std::string item = (const char*)payload->data.data();
+                            // Find and remove from list 1
+                            auto it = std::find(dragDropList1.begin(), dragDropList1.end(), item);
+                            if (it != dragDropList1.end()) {
+                                dragDropList1.erase(it);
+                                dragDropList2.push_back(item);
+                            }
+                        }
+                        EndDragDropTarget();
+                    }
+
+                    for (size_t i = 0; i < dragDropList2.size(); ++i) {
+                        SelectableOptions selOpts;
+                        selOpts.spanWidth = true;
+                        if (Selectable(dragDropList2[i], selectedDragItem2 == (int)i, selOpts)) {
+                            selectedDragItem2 = (int)i;
+                        }
+                        
+                        // Source for List 2 items
+                        if (BeginDragDropSource()) {
+                            SetDragDropPayload("DND_DEMO_ITEM", dragDropList2[i].c_str(), dragDropList2[i].size() + 1);
+                            SetDragDropDisplayText("Moving: " + dragDropList2[i]);
+                            EndDragDropSource();
+                        }
+                    }
+                }
             }
             
             ctx.layout().endContainer();

@@ -162,4 +162,10 @@ const DragPayload* GetDragDropPayload();
  */
 void CancelDragDrop();
 
+/**
+ * @brief Ends the drag and drop frame, performing cleanup.
+ *        Called internally by the Context.
+ */
+void EndDragDropFrame();
+
 } // namespace fst

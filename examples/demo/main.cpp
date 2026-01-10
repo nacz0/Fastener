@@ -649,8 +649,8 @@ int main() {
                         // Item Drop Target (Insert Before/After)
                         Rect itemRect = ctx.getLastWidgetBounds();
                         Rect targetRect = itemRect;
-                        targetRect.pos.y -= (i == 0) ? 8.0f : 2.0f; 
-                        targetRect.size.y += (i == 0) ? 10.0f : 4.0f;
+                        targetRect.pos.y -= (i == 0) ? 15.0f : 2.0f; 
+                        targetRect.size.y += (i == 0) ? 17.0f : 4.0f;
                         
                         if (BeginDragDropTarget(targetRect)) {
                             itemTargetHit = true;
@@ -659,7 +659,8 @@ int main() {
                             // Visual Feedback
                             if (IsDragDropActive() && GetDragDropPayload()->type == "DND_DEMO_ITEM") {
                                 float halfSpacing = theme.metrics.paddingSmall / 2.0f;
-                                float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() - halfSpacing;
+                                // If first item and dropping above, shift line down slightly to avoid panel clipping
+                                float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() + (i == 0 ? 2.0f : -halfSpacing);
                                 dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
                             }
 
@@ -753,8 +754,8 @@ int main() {
                         // Item Drop Target (Insert Before/After)
                         Rect itemRect = ctx.getLastWidgetBounds();
                         Rect targetRect = itemRect;
-                        targetRect.pos.y -= (i == 0) ? 8.0f : 2.0f; 
-                        targetRect.size.y += (i == 0) ? 10.0f : 4.0f;
+                        targetRect.pos.y -= (i == 0) ? 15.0f : 2.0f; 
+                        targetRect.size.y += (i == 0) ? 17.0f : 4.0f;
                         
                         if (BeginDragDropTarget(targetRect)) {
                             itemTargetHit = true;
@@ -763,7 +764,7 @@ int main() {
                             // Visual Feedback
                             if (IsDragDropActive() && GetDragDropPayload()->type == "DND_DEMO_ITEM") {
                                 float halfSpacing = theme.metrics.paddingSmall / 2.0f;
-                                float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() - halfSpacing;
+                                float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() + (i == 0 ? 2.0f : -halfSpacing);
                                 dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
                             }
 

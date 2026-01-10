@@ -7,6 +7,7 @@
 #include <deque>
 #include <functional>
 #include <memory>
+#include <string_view>
 
 namespace fst {
 
@@ -52,7 +53,7 @@ public:
     DrawList& drawList();
     Renderer& renderer();
     LayoutContext& layout();
-    IPlatformWindow& window();
+    IPlatformWindow& window() const;
     DockContext& docking();
     
     // Time
@@ -94,11 +95,11 @@ public:
     
     // ID stack (for hierarchical widgets)
     void pushId(WidgetId id);
-    void pushId(const char* str);
+    void pushId(std::string_view str);
     void pushId(int idx);
     void popId();
     WidgetId currentId() const;
-    WidgetId makeId(const char* str) const;
+    WidgetId makeId(std::string_view str) const;
     WidgetId makeId(int idx) const;
     
     // Global access (use sparingly)

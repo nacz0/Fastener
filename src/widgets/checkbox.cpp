@@ -26,7 +26,7 @@ namespace fst {
  * @param options Checkbox styling and behavior options
  * @return true if the checkbox state was changed this frame
  */
-bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) {
+bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
     if (!wc.valid()) return false;
@@ -105,24 +105,17 @@ bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options) 
     }
     
     // Draw label text
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         float textY = layout_utils::verticalCenterY(bounds.y(), height, textSize.y);
         Vec2 textPos(boxBounds.right() + theme.metrics.paddingSmall, textY);
         
         Color textColor = options.disabled 
             ? theme.colors.textDisabled 
             : theme.colors.text;
-        dl.addText(font, textPos, label, nullptr, textColor);
+        dl.addText(font, textPos, label, textColor);
     }
     
     return changed;
-}
-
-/**
- * @brief String overload for Checkbox.
- */
-bool Checkbox(const std::string& label, bool& checked, const CheckboxOptions& options) {
-    return Checkbox(label.c_str(), checked, options);
 }
 
 } // namespace fst

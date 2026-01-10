@@ -42,7 +42,7 @@ static std::unordered_map<WidgetId, ComboBoxState> s_comboStates;
  * @param options ComboBox styling and behavior options
  * @return true if the selection was changed this frame
  */
-bool ComboBox(const char* label, int& selectedIndex, 
+bool ComboBox(std::string_view label, int& selectedIndex, 
               const std::vector<std::string>& items,
               const ComboBoxOptions& options) {
     // Get widget context
@@ -61,7 +61,7 @@ bool ComboBox(const char* label, int& selectedIndex,
     float height = options.style.height > 0 ? options.style.height : 28.0f;
     float labelWidth = 0;
 
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
@@ -108,10 +108,10 @@ bool ComboBox(const char* label, int& selectedIndex,
     }
 
     // Draw label
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         Vec2 labelPos(bounds.x(), bounds.y() + (height - font->lineHeight()) * 0.5f);
         Color labelColor = options.disabled ? theme.colors.textDisabled : theme.colors.text;
-        dl.addText(font, labelPos, label, nullptr, labelColor);
+        dl.addText(font, labelPos, label, labelColor);
     }
 
     // Draw combo box button
@@ -174,7 +174,6 @@ bool ComboBox(const char* label, int& selectedIndex,
     // Draw dropdown popup safely at the end of frame
     if (state.isOpen && !items.empty()) {
         // Capture data needed for deferred rendering
-        // We copy items to satisfy lifetime requirements if the user passed a temporary
         std::vector<std::string> safeItems = items;
         int selectedIndexCopy = selectedIndex;
         
@@ -185,12 +184,11 @@ bool ComboBox(const char* label, int& selectedIndex,
             DrawList& dl = ctx->drawList();
             Font* font = ctx->font();
             InputState& input = ctx->input();
-            const Theme& theme = ctx->theme(); // Theme might have changed? Unlikely for one frame.
+            const Theme& theme = ctx->theme();
 
             float itemHeight = font ? font->lineHeight() + theme.metrics.paddingSmall * 2 : 24.0f;
             float dropdownHeight = std::min(options.dropdownMaxHeight, itemHeight * (float)safeItems.size());
             Rect dropdownBounds(boxBounds.x(), boxBounds.bottom() + 2, boxBounds.width(), dropdownHeight);
-            // Register occlusion for the dropdown AND the small gap between button and dropdown
             ctx->addFloatingWindowRect(Rect(boxBounds.x(), boxBounds.bottom(), boxBounds.width(), dropdownHeight + 2));
 
             // Dropdown background with shadow
@@ -200,69 +198,6 @@ bool ComboBox(const char* label, int& selectedIndex,
 
             dl.pushClipRect(dropdownBounds);
 
-            // Handle keyboard (Note: Input handling in deferred render is tricky because 
-            // the main logic handled some input already. However, for a popup, handling clicks here is fine
-            // as long as we don't conflict with main loop. Ideally input is handled in the main pass, 
-            // and only *drawing* is deferred. But for Z-order of interactions, deferred interaction is also standard for overlays.)
-            //
-            // ACTUALLY: Input handling should ideally remain in the main pass for consistency, 
-            // but for correct Z-order of "clicking the popup vs clicking the widget below", 
-            // the popup needs to handle input. 
-            // Since Fastener resets input state per frame, reading input here is valid.
-
-            // Handle keyboard (re-check state to be sure)
-            if (input.isKeyPressed(Key::Down)) {
-                state.hoveredIndex = std::min(state.hoveredIndex + 1, (int)safeItems.size() - 1);
-            }
-            if (input.isKeyPressed(Key::Up)) {
-                state.hoveredIndex = std::max(state.hoveredIndex - 1, 0);
-            }
-            
-            // We need to write back to selectedIndex. 
-            // Issue: selectedIndex is a reference parameter to ComboBox function. It is NOT available here.
-            // We cannot capture a reference to a local variable of the caller (int& selectedIndex).
-            // This suggests we must split logic: 
-            // 1. Handle Input in main pass (updates state & selectedIndex).
-            // 2. Defer only Drawing.
-            //
-            // But if we handle input in main pass, clicks on the dropdown might ‘pass through’ to widgets below 
-            // because the main pass doesn't know the dropdown covers them (unless we claim that space).
-            //
-            // COMPROMISE: We will handle input in the main pass (before defer), 
-            // but we need to ensure we don't interact with covered widgets.
-            // Fastener's "handleWidgetInteraction" handles this by ID.
-            // But standard check "bounds.contains(mouse)" implies visual bounds.
-            //
-            // For now, let's keep drawing deferred. Input collision is a harder problem in immediate mode 
-            // without a full window manager layer. 
-            // To fix "clicking dropdown clicks widget below": 
-            // The dropdown needs to block input. 
-            // We can check "if any combo is open" in `handleWidgetInteraction`? 
-            // Or `ComboBox` acts as a modal?
-            //
-            // Let's stick to fixing the VISUAL overlap first (Issue 1).
-            // We will move ONLY the drawing code to deferRender.
-            // Input logic remains in main pass.
-            // This means we might need to duplicate loop logic or pre-calculate layout.
-            //
-            // Actually, we can iterate items in main pass to handle input, 
-            // and iterate again in deferred pass to draw.
-            
-            // ... Wait, moving code block to deferRender is easiest, but selectedIndex reference is lost.
-            // We can't update selectedIndex from the deferred callback.
-            //
-            // Correction: We can update `state.hoveredIndex` etc.
-            // But confirming selection requires writing to `selectedIndex`.
-            //
-            // Alternative: ComboBox returns `bool changed`. 
-            // If we defer input handling, we can't return `true` this frame anyway.
-            //
-            // OK, rigorous approach:
-            // 1. Main pass: Calculate dropdown bounds. Render nothing (deferred).
-            //    Handle input for the dropdown (check clicks). Update `state` and `selectedIndex`.
-            //    If input handled, consume it so others don't get it? (Fastener input system is simple).
-            // 2. Deferred pass: Just Draw using the state.
-            
             // Handle scroll
             if (dropdownBounds.contains(input.mousePos())) {
                 state.scrollOffset -= input.scrollDelta().y * itemHeight;
@@ -278,10 +213,9 @@ bool ComboBox(const char* label, int& selectedIndex,
                 Rect itemRect(dropdownBounds.x(), y, dropdownBounds.width(), itemHeight);
                 
                 // Draw hover/selected background
-                int currentSelected = selectedIndexCopy; // Named for clarity inside lambda
                 if (i == state.hoveredIndex) {
                     dl.addRectFilled(itemRect, theme.colors.selection);
-                } else if (i == currentSelected) {
+                } else if (i == selectedIndexCopy) {
                     dl.addRectFilled(itemRect, theme.colors.selection.withAlpha((uint8_t)100));
                 }
 
@@ -300,12 +234,6 @@ bool ComboBox(const char* label, int& selectedIndex,
     }
 
     return changed;
-}
-
-bool ComboBox(const std::string& label, int& selectedIndex, 
-              const std::vector<std::string>& items,
-              const ComboBoxOptions& options) {
-    return ComboBox(label.c_str(), selectedIndex, items, options);
 }
 
 } // namespace fst

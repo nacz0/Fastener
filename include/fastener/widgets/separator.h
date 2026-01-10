@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 namespace fst {
 
@@ -32,7 +33,6 @@ void Separator(const SeparatorOptions& options = {});
  * @param label Text to display centered on the separator
  * @param options Styling options
  */
-void SeparatorWithLabel(const char* label, const SeparatorOptions& options = {});
-void SeparatorWithLabel(const std::string& label, const SeparatorOptions& options = {});
+void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options = {});
 
 } // namespace fst

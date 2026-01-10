@@ -4,7 +4,7 @@
 #include "fastener/ui/style.h"
 #include <string>
 #include <vector>
-#include <functional>
+#include <string_view>
 
 namespace fst {
 
@@ -28,11 +28,7 @@ struct ListboxOptions {
  * @param options Listbox styling and behavior options
  * @return true if the selection was changed this frame
  */
-bool Listbox(const std::string& label, int& selectedIndex, 
-             const std::vector<std::string>& items,
-             const ListboxOptions& options = {});
-
-bool Listbox(const char* label, int& selectedIndex, 
+bool Listbox(std::string_view label, int& selectedIndex, 
              const std::vector<std::string>& items,
              const ListboxOptions& options = {});
 
@@ -45,7 +41,7 @@ bool Listbox(const char* label, int& selectedIndex,
  * @param options Listbox styling and behavior options
  * @return true if the selection was changed this frame
  */
-bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
+bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
                   const std::vector<std::string>& items,
                   const ListboxOptions& options = {});
 

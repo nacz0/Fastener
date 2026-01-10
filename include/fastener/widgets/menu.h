@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -37,7 +38,7 @@ struct MenuItem {
     std::function<void()> action;
     
     MenuItem() = default;
-    MenuItem(const std::string& id, const std::string& label, 
+    MenuItem(std::string_view id, std::string_view label, 
              std::function<void()> action = nullptr)
         : id(id), label(label), action(action) {}
     
@@ -48,13 +49,13 @@ struct MenuItem {
         return item;
     }
     
-    static MenuItem submenu(const std::string& id, const std::string& label) {
+    static MenuItem submenu(std::string_view id, std::string_view label) {
         MenuItem item(id, label);
         item.type = MenuItemType::Submenu;
         return item;
     }
     
-    static MenuItem checkbox(const std::string& id, const std::string& label, 
+    static MenuItem checkbox(std::string_view id, std::string_view label, 
                              bool checked, std::function<void()> action = nullptr) {
         MenuItem item(id, label, action);
         item.type = MenuItemType::Checkbox;
@@ -69,8 +70,8 @@ struct MenuItem {
     }
     
     // Chainable setters
-    MenuItem& withShortcut(const std::string& sc) { shortcut = sc; return *this; }
-    MenuItem& withIcon(const std::string& ic) { icon = ic; return *this; }
+    MenuItem& withShortcut(std::string_view sc) { shortcut = sc; return *this; }
+    MenuItem& withIcon(std::string_view ic) { icon = ic; return *this; }
     MenuItem& disabled() { enabled = false; return *this; }
 };
 
@@ -83,7 +84,7 @@ public:
     ~MenuBar();
     
     // Add top-level menu
-    void addMenu(const std::string& label, const std::vector<MenuItem>& items);
+    void addMenu(std::string_view label, const std::vector<MenuItem>& items);
     void clear();
     
     // Render - returns height of menu bar

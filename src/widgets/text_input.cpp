@@ -28,7 +28,7 @@ namespace fst {
  * @param options TextInput styling and behavior options
  * @return true if the text value was changed this frame
  */
-bool TextInput(const char* id, std::string& value, const TextInputOptions& options) {
+bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
     if (!wc.valid()) return false;
@@ -145,22 +145,10 @@ bool TextInput(const char* id, std::string& value, const TextInputOptions& optio
     return changed;
 }
 
-//=============================================================================
-// TextInput Overloads
-//=============================================================================
-
-/**
- * @brief String overload for TextInput.
- */
-bool TextInput(const std::string& id, std::string& value, const TextInputOptions& options) {
-    return TextInput(id.c_str(), value, options);
-}
-
 /**
  * @brief TextInput with integrated label.
- * @note TODO: Implement proper label + input row layout
  */
-bool TextInputWithLabel(const std::string& label, std::string& value, 
+bool TextInputWithLabel(std::string_view label, std::string& value, 
                         const TextInputOptions& options) {
     return TextInput(label, value, options);
 }

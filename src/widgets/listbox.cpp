@@ -32,7 +32,7 @@ static std::unordered_map<WidgetId, ListboxState> s_listboxStates;
 // Listbox Implementation
 //=============================================================================
 
-bool Listbox(const char* label, int& selectedIndex, 
+bool Listbox(std::string_view label, int& selectedIndex, 
              const std::vector<std::string>& items,
              const ListboxOptions& options) {
     auto wc = getWidgetContext();
@@ -54,7 +54,7 @@ bool Listbox(const char* label, int& selectedIndex,
         : (font ? font->lineHeight() + theme.metrics.paddingSmall * 2 : 24.0f);
     float labelWidth = 0;
 
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
@@ -63,10 +63,10 @@ bool Listbox(const char* label, int& selectedIndex,
     Rect boxBounds(bounds.x() + labelWidth, bounds.y(), width, height);
 
     // Draw label
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         Vec2 labelPos(bounds.x(), bounds.y() + theme.metrics.paddingSmall);
         Color labelColor = options.disabled ? theme.colors.textDisabled : theme.colors.text;
-        dl.addText(font, labelPos, label, nullptr, labelColor);
+        dl.addText(font, labelPos, label, labelColor);
     }
 
     // Draw listbox background
@@ -88,7 +88,8 @@ bool Listbox(const char* label, int& selectedIndex,
     // Handle scrollbar interaction
     if (needsScrollbar && !options.disabled) {
         Rect track(boxBounds.right() - scrollbarWidth, boxBounds.y(), scrollbarWidth, boxBounds.height());
-        WidgetId scrollbarId = wc.ctx->makeId((std::string(label) + "_scroller").c_str());
+        std::string scrollerLabel = std::string(label) + "_scroller";
+        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
         
         // Handle scrollbar dragging
         WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
@@ -157,7 +158,7 @@ bool Listbox(const char* label, int& selectedIndex,
             Color textColor = (i == selectedIndex) 
                 ? theme.colors.selectionText 
                 : (options.disabled ? theme.colors.textDisabled : theme.colors.text);
-            dl.addText(font, textPos, items[i].c_str(), textColor);
+            dl.addText(font, textPos, items[i], textColor);
         }
     }
 
@@ -179,7 +180,8 @@ bool Listbox(const char* label, int& selectedIndex,
 
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
         
-        WidgetId scrollbarId = wc.ctx->makeId((std::string(label) + "_scroller").c_str());
+        std::string scrollerLabel = std::string(label) + "_scroller";
+        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
         WidgetState scrollState = getWidgetState(scrollbarId);
         
         Color thumbColor = (scrollState.hovered || scrollState.active)
@@ -213,13 +215,7 @@ bool Listbox(const char* label, int& selectedIndex,
     return changed;
 }
 
-bool Listbox(const std::string& label, int& selectedIndex, 
-             const std::vector<std::string>& items,
-             const ListboxOptions& options) {
-    return Listbox(label.c_str(), selectedIndex, items, options);
-}
-
-bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
+bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
                   const std::vector<std::string>& items,
                   const ListboxOptions& options) {
     auto wc = getWidgetContext();
@@ -230,7 +226,7 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
-    WidgetId id = wc.ctx->makeId(label.c_str());
+    WidgetId id = wc.ctx->makeId(label);
     ListboxState& state = s_listboxStates[id];
 
     float width = options.style.width > 0 ? options.style.width : 200.0f;
@@ -251,7 +247,7 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
     if (font && !label.empty()) {
         Vec2 labelPos(bounds.x(), bounds.y() + theme.metrics.paddingSmall);
         Color labelColor = options.disabled ? theme.colors.textDisabled : theme.colors.text;
-        dl.addText(font, labelPos, label.c_str(), nullptr, labelColor);
+        dl.addText(font, labelPos, label, labelColor);
     }
 
     float radius = theme.metrics.borderRadiusSmall;
@@ -271,7 +267,8 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
     // Handle scrollbar interaction
     if (needsScrollbar && !options.disabled) {
         Rect track(boxBounds.right() - scrollbarWidth, boxBounds.y(), scrollbarWidth, boxBounds.height());
-        WidgetId scrollbarId = wc.ctx->makeId((label + "_scroller").c_str()); // Label is std::string here
+        std::string scrollerLabel = std::string(label) + "_scroller";
+        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
         
         WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
         
@@ -345,7 +342,7 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
             Color textColor = selected 
                 ? theme.colors.selectionText 
                 : (options.disabled ? theme.colors.textDisabled : theme.colors.text);
-            dl.addText(font, textPos, items[i].c_str(), textColor);
+            dl.addText(font, textPos, items[i], textColor);
         }
     }
 
@@ -366,7 +363,8 @@ bool ListboxMulti(const std::string& label, std::vector<int>& selectedIndices,
 
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
         
-        WidgetId scrollbarId = wc.ctx->makeId((label + "_scroller").c_str());
+        std::string scrollerLabel = std::string(label) + "_scroller";
+        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
         WidgetState scrollState = getWidgetState(scrollbarId);
 
         Color thumbColor = (scrollState.hovered || scrollState.active)

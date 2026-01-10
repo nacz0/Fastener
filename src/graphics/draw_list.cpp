@@ -23,6 +23,7 @@ void DrawList::clear() {
         m_layers[i].indices.clear();
         m_layers[i].commands.clear();
         m_layers[i].clipRectStack.clear();
+        m_layers[i].colorStack.clear();
         m_layers[i].currentTexture = 0;
     }
     m_currentLayer = Layer::Default;
@@ -98,6 +99,32 @@ Rect DrawList::currentClipRect() const {
     return data.clipRectStack.back();
 }
 
+void DrawList::pushColor(Color color) {
+    currentData().colorStack.push_back(color);
+}
+
+void DrawList::popColor() {
+    auto& data = currentData();
+    if (!data.colorStack.empty()) {
+        data.colorStack.pop_back();
+    }
+}
+
+Color DrawList::currentColor() const {
+    auto& data = currentData();
+    if (data.colorStack.empty()) {
+        return Color::white();
+    }
+    return data.colorStack.back();
+}
+
+Color DrawList::resolveColor(Color color) const {
+    if (color == Color::none()) {
+        return currentColor();
+    }
+    return color;
+}
+
 void DrawList::setTexture(uint32_t textureId) {
     auto& data = currentData();
     if (data.currentTexture != textureId) {
@@ -158,32 +185,35 @@ void DrawList::addQuad(const Vec2& p0, const Vec2& p1, const Vec2& p2, const Vec
 
 void DrawList::addQuadFilled(const Rect& rect, Color color) {
     setTexture(0);
+    Color finalColor = resolveColor(color);
     addQuad(
         rect.topLeft(), rect.topRight(), rect.bottomRight(), rect.bottomLeft(),
         {0, 0}, {1, 0}, {1, 1}, {0, 1},
-        color
+        finalColor
     );
 }
 
 void DrawList::addRectFilled(const Rect& rect, Color color, float rounding) {
     setTexture(0);
+    Color finalColor = resolveColor(color);
     if (rounding <= 0.0f) {
-        addQuadFilled(rect, color);
+        addQuadFilled(rect, finalColor);
     } else {
-        primRectFilled(rect, color, rounding);
+        primRectFilled(rect, finalColor, rounding);
     }
 }
 
 void DrawList::addRect(const Rect& rect, Color color, float rounding) {
     setTexture(0);
+    Color finalColor = resolveColor(color);
     if (rounding <= 0.0f) {
         float thickness = 1.0f;
-        addRectFilled(Rect(rect.x(), rect.y(), rect.width(), thickness), color);
-        addRectFilled(Rect(rect.x(), rect.bottom() - thickness, rect.width(), thickness), color);
-        addRectFilled(Rect(rect.x(), rect.y(), thickness, rect.height()), color);
-        addRectFilled(Rect(rect.right() - thickness, rect.y(), thickness, rect.height()), color);
+        addRectFilled(Rect(rect.x(), rect.y(), rect.width(), thickness), finalColor);
+        addRectFilled(Rect(rect.x(), rect.bottom() - thickness, rect.width(), thickness), finalColor);
+        addRectFilled(Rect(rect.x(), rect.y(), thickness, rect.height()), finalColor);
+        addRectFilled(Rect(rect.right() - thickness, rect.y(), thickness, rect.height()), finalColor);
     } else {
-        primRect(rect, color, rounding);
+        primRect(rect, finalColor, rounding);
     }
 }
 
@@ -306,6 +336,7 @@ void DrawList::primRect(const Rect& rect, Color color, float rounding) {
 
 void DrawList::addLine(const Vec2& p1, const Vec2& p2, Color color, float thickness) {
     setTexture(0);
+    Color finalColor = resolveColor(color);
     Vec2 dir = (p2 - p1).normalized();
     Vec2 normal = {-dir.y, dir.x};
     Vec2 offset = normal * (thickness * 0.5f);
@@ -313,7 +344,7 @@ void DrawList::addLine(const Vec2& p1, const Vec2& p2, Color color, float thickn
     addQuad(
         p1 - offset, p1 + offset, p2 + offset, p2 - offset,
         {0, 0}, {1, 0}, {1, 1}, {0, 1},
-        color
+        finalColor
     );
 }
 
@@ -323,6 +354,7 @@ void DrawList::addCircle(const Vec2& center, float radius, Color color, int segm
     }
     
     float thickness = 1.0f;
+    Color finalColor = resolveColor(color);
     
     for (int i = 0; i < segments; ++i) {
         float a1 = 2.0f * 3.14159f * i / segments;
@@ -331,7 +363,7 @@ void DrawList::addCircle(const Vec2& center, float radius, Color color, int segm
         Vec2 p1 = center + Vec2(std::cos(a1), std::sin(a1)) * radius;
         Vec2 p2 = center + Vec2(std::cos(a2), std::sin(a2)) * radius;
         
-        addLine(p1, p2, color, thickness);
+        addLine(p1, p2, finalColor, thickness);
     }
 }
 
@@ -341,15 +373,16 @@ void DrawList::addCircleFilled(const Vec2& center, float radius, Color color, in
         segments = std::max(12, static_cast<int>(radius * 0.5f));
     }
     
+    Color finalColor = resolveColor(color);
     updateCommand();
     
     uint32_t centerIdx = static_cast<uint32_t>(currentData().vertices.size());
-    addVertex(center, {0.5f, 0.5f}, color);
+    addVertex(center, {0.5f, 0.5f}, finalColor);
     
     for (int i = 0; i <= segments; ++i) {
         float angle = 2.0f * 3.14159f * i / segments;
         Vec2 p = center + Vec2(std::cos(angle), std::sin(angle)) * radius;
-        addVertex(p, {0.5f, 0.5f}, color);
+        addVertex(p, {0.5f, 0.5f}, finalColor);
         
         if (i > 0) {
             addIndex(centerIdx);
@@ -360,36 +393,33 @@ void DrawList::addCircleFilled(const Vec2& center, float radius, Color color, in
 }
 
 void DrawList::addTriangle(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color) {
-    addLine(p1, p2, color);
-    addLine(p2, p3, color);
-    addLine(p3, p1, color);
+    Color finalColor = resolveColor(color);
+    addLine(p1, p2, finalColor);
+    addLine(p2, p3, finalColor);
+    addLine(p3, p1, finalColor);
 }
 
 void DrawList::addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color) {
     setTexture(0);
+    Color finalColor = resolveColor(color);
     updateCommand();
     
     uint32_t idx = static_cast<uint32_t>(currentData().vertices.size());
     
-    addVertex(p1, {0, 0}, color);
-    addVertex(p2, {0.5f, 1}, color);
-    addVertex(p3, {1, 0}, color);
+    addVertex(p1, {0, 0}, finalColor);
+    addVertex(p2, {0.5f, 1}, finalColor);
+    addVertex(p3, {1, 0}, finalColor);
     
     addIndex(idx + 0);
     addIndex(idx + 1);
     addIndex(idx + 2);
 }
 
-void DrawList::addText(const Font* font, const Vec2& pos, const std::string& text, Color color) {
-    addText(font, pos, text.c_str(), text.c_str() + text.size(), color);
-}
-
-void DrawList::addText(const Font* font, const Vec2& pos, const char* text, const char* textEnd, Color color) {
-    if (!font || !text || !font->isValid()) return;
+void DrawList::addText(const Font* font, const Vec2& pos, std::string_view text, Color color) {
+    if (!font || text.empty() || !font->isValid()) return;
     
-    if (!textEnd) {
-        textEnd = text + std::strlen(text);
-    }
+    const char* textStart = text.data();
+    const char* textEnd = text.data() + text.size();
     
     // Use font atlas texture
     setTexture(font->atlasTexture().handle());
@@ -400,7 +430,7 @@ void DrawList::addText(const Font* font, const Vec2& pos, const char* text, cons
     
     Font* mutableFont = const_cast<Font*>(font);  // For lazy glyph loading
     
-    const char* s = text;
+    const char* s = textStart;
     while (s < textEnd) {
         // Decode UTF-8
         uint32_t codepoint;
@@ -456,7 +486,7 @@ void DrawList::addText(const Font* font, const Vec2& pos, const char* text, cons
                 glyphRect.bottomRight(), glyphRect.bottomLeft(),
                 {glyph->uvX0, glyph->uvY0}, {glyph->uvX1, glyph->uvY0},
                 {glyph->uvX1, glyph->uvY1}, {glyph->uvX0, glyph->uvY1},
-                color
+                resolveColor(color)
             );
         }
         

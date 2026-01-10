@@ -149,7 +149,7 @@ void Tooltip(const char* text, const TooltipOptions& options) {
         Vec2 tooltipPos(mousePos.x + offsetX, mousePos.y + offsetY);
         
         // Keep within window bounds
-        Window& window = ctx->window();
+        IPlatformWindow& window = ctx->window();
         float windowW = static_cast<float>(window.width());
         float windowH = static_cast<float>(window.height());
         
@@ -292,7 +292,7 @@ bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
     if (font) {
         Vec2 qSize = font->measureText("?");
         Vec2 qPos(center.x - qSize.x * 0.5f, center.y - qSize.y * 0.5f);
-        dl.addText(font, qPos, "?", nullptr, textColor);
+        dl.addText(font, qPos, "?", textColor);
     }
     
     // Show tooltip if hovered

@@ -18,14 +18,13 @@ namespace fst {
 // Selectable Implementation
 //=============================================================================
 
-bool Selectable(const char* label, bool& selected, const SelectableOptions& options) {
+bool Selectable(std::string_view label, bool& selected, const SelectableOptions& options) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
     DrawList& dl = *wc.dl;
     Font* font = wc.font;
-    InputState& input = wc.ctx->input();
 
     WidgetId id = wc.ctx->makeId(label);
 
@@ -39,20 +38,17 @@ bool Selectable(const char* label, bool& selected, const SelectableOptions& opti
         ? options.style.width 
         : (options.spanWidth ? 0.0f : textWidth + theme.metrics.paddingSmall * 2);
 
-    // Allocate bounds (spanWidth uses layout's available width)
+    // Allocate bounds
     Rect bounds = allocateWidgetBounds(options.style, width, height);
     
     if (options.spanWidth && bounds.width() < textWidth + theme.metrics.paddingSmall * 2) {
-        // Fallback if layout doesn't provide enough width
         bounds.size.x = textWidth + theme.metrics.paddingSmall * 2;
     }
 
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    wc.ctx->setLastWidgetId(id);
-    wc.ctx->setLastWidgetBounds(bounds);
-    WidgetState widgetState = getWidgetState(id);
-    widgetState.disabled = options.disabled;
+    WidgetState state = getWidgetState(id);
+    state.disabled = options.disabled;
 
     bool clicked = false;
     if (interaction.clicked && !options.disabled) {
@@ -61,32 +57,21 @@ bool Selectable(const char* label, bool& selected, const SelectableOptions& opti
     }
 
     // Draw background
-    Color bgColor = Color(0, 0, 0, 0); // Transparent by default
     if (selected) {
-        bgColor = theme.colors.selection;
-    } else if (widgetState.hovered && !options.disabled) {
-        bgColor = theme.colors.selection.withAlpha((uint8_t)80);
-    }
-
-    if (bgColor.a > 0) {
-        dl.addRectFilled(bounds, bgColor, theme.metrics.borderRadiusSmall);
+        dl.addRectFilled(bounds, theme.colors.selection, theme.metrics.borderRadiusSmall);
+    } else if (state.hovered && !options.disabled) {
+        dl.addRectFilled(bounds, theme.colors.buttonHover, theme.metrics.borderRadiusSmall);
     }
 
     // Draw text
     if (font) {
+        Color textColor = options.disabled ? theme.colors.textDisabled : 
+                         (selected ? theme.colors.selectionText : theme.colors.text);
+        
         Vec2 textPos(
             bounds.x() + theme.metrics.paddingSmall,
             bounds.center().y - font->lineHeight() * 0.5f
         );
-        
-        Color textColor;
-        if (options.disabled) {
-            textColor = theme.colors.textDisabled;
-        } else if (selected) {
-            textColor = theme.colors.selectionText;
-        } else {
-            textColor = theme.colors.text;
-        }
         
         dl.addText(font, textPos, label, textColor);
     }
@@ -94,17 +79,8 @@ bool Selectable(const char* label, bool& selected, const SelectableOptions& opti
     return clicked;
 }
 
-bool Selectable(const std::string& label, bool& selected, const SelectableOptions& options) {
-    return Selectable(label.c_str(), selected, options);
-}
 
-// Non-modifying overload
-bool Selectable(const std::string& label, bool selected, const SelectableOptions& options) {
-    bool sel = selected;
-    return Selectable(label.c_str(), sel, options);
-}
-
-bool SelectableWithIcon(const std::string& icon, const std::string& label, 
+bool SelectableWithIcon(std::string_view icon, std::string_view label, 
                         bool& selected, const SelectableOptions& options) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return false;
@@ -112,10 +88,10 @@ bool SelectableWithIcon(const std::string& icon, const std::string& label,
     const Theme& theme = *wc.theme;
     DrawList& dl = *wc.dl;
     Font* font = wc.font;
-    InputState& input = wc.ctx->input();
 
-    std::string fullLabel = icon + " " + label;
-    WidgetId id = wc.ctx->makeId(fullLabel.c_str());
+    std::string combinedId(icon);
+    combinedId += label;
+    WidgetId id = wc.ctx->makeId(combinedId);
 
     float iconWidth = font ? font->measureText(icon).x : 16.0f;
     float textWidth = font ? font->measureText(label).x : 100.0f;
@@ -130,15 +106,9 @@ bool SelectableWithIcon(const std::string& icon, const std::string& label,
 
     Rect bounds = allocateWidgetBounds(options.style, width, height);
 
-    if (options.spanWidth && bounds.width() < totalWidth + theme.metrics.paddingSmall * 2) {
-        bounds.size.x = totalWidth + theme.metrics.paddingSmall * 2;
-    }
-
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    wc.ctx->setLastWidgetId(id);
-    wc.ctx->setLastWidgetBounds(bounds);
-    WidgetState widgetState = getWidgetState(id);
-    widgetState.disabled = options.disabled;
+    WidgetState state = getWidgetState(id);
+    state.disabled = options.disabled;
 
     bool clicked = false;
     if (interaction.clicked && !options.disabled) {
@@ -147,38 +117,24 @@ bool SelectableWithIcon(const std::string& icon, const std::string& label,
     }
 
     // Draw background
-    Color bgColor = Color(0, 0, 0, 0);
     if (selected) {
-        bgColor = theme.colors.selection;
-    } else if (widgetState.hovered && !options.disabled) {
-        bgColor = theme.colors.selection.withAlpha((uint8_t)80);
-    }
-
-    if (bgColor.a > 0) {
-        dl.addRectFilled(bounds, bgColor, theme.metrics.borderRadiusSmall);
+        dl.addRectFilled(bounds, theme.colors.selection, theme.metrics.borderRadiusSmall);
+    } else if (state.hovered && !options.disabled) {
+        dl.addRectFilled(bounds, theme.colors.buttonHover, theme.metrics.borderRadiusSmall);
     }
 
     // Draw icon and text
     if (font) {
         float y = bounds.center().y - font->lineHeight() * 0.5f;
         
-        Color textColor;
-        if (options.disabled) {
-            textColor = theme.colors.textDisabled;
-        } else if (selected) {
-            textColor = theme.colors.selectionText;
-        } else {
-            textColor = theme.colors.text;
-        }
-
-        // Icon (slightly dimmed if not selected)
+        Color textColor = options.disabled ? theme.colors.textDisabled : 
+                         (selected ? theme.colors.selectionText : theme.colors.text);
         Color iconColor = selected ? textColor : theme.colors.textSecondary;
-        Vec2 iconPos(bounds.x() + theme.metrics.paddingSmall, y);
-        dl.addText(font, iconPos, icon, iconColor);
 
-        // Label text
-        Vec2 textPos(bounds.x() + theme.metrics.paddingSmall + iconWidth + theme.metrics.paddingSmall, y);
-        dl.addText(font, textPos, label, textColor);
+        float x = bounds.x() + theme.metrics.paddingSmall;
+        dl.addText(font, Vec2(x, y), icon, iconColor);
+        x += iconWidth + theme.metrics.paddingSmall;
+        dl.addText(font, Vec2(x, y), label, textColor);
     }
 
     return clicked;

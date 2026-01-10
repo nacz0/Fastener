@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 namespace fst {
 
@@ -26,9 +27,7 @@ struct CollapsingHeaderOptions {
  * @param options Styling and behavior options
  * @return true if the header is currently open (for conditional child rendering)
  */
-[[nodiscard]] bool CollapsingHeader(const char* label, bool& isOpen, 
-                      const CollapsingHeaderOptions& options = {});
-[[nodiscard]] bool CollapsingHeader(const std::string& label, bool& isOpen,
-                      const CollapsingHeaderOptions& options = {});
+[[nodiscard]] bool CollapsingHeader(std::string_view label, bool& isOpen, 
+                       const CollapsingHeaderOptions& options = {});
 
 } // namespace fst

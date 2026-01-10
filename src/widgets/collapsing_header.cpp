@@ -26,7 +26,7 @@ namespace fst {
  * @param options Styling and behavior options
  * @return true if the header is currently open (for conditional child rendering)
  */
-bool CollapsingHeader(const char* label, bool& isOpen,
+bool CollapsingHeader(std::string_view label, bool& isOpen,
                       const CollapsingHeaderOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
@@ -95,21 +95,13 @@ bool CollapsingHeader(const char* label, bool& isOpen,
     }
     
     // Draw label text
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         float textY = layout_utils::verticalCenterY(bounds.y(), height, textSize.y);
         float textX = arrowX + arrowSize + theme.metrics.paddingSmall;
-        dl.addText(font, Vec2(textX, textY), label, nullptr, theme.colors.text);
+        dl.addText(font, Vec2(textX, textY), label, theme.colors.text);
     }
     
     return isOpen;
-}
-
-/**
- * @brief String overload for CollapsingHeader.
- */
-bool CollapsingHeader(const std::string& label, bool& isOpen,
-                      const CollapsingHeaderOptions& options) {
-    return CollapsingHeader(label.c_str(), isOpen, options);
 }
 
 } // namespace fst

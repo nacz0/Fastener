@@ -3,6 +3,8 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace fst {
 
@@ -16,11 +18,10 @@ struct LabelOptions {
     Alignment align = Alignment::Start;
 };
 
-void Label(const std::string& text, const LabelOptions& options = {});
-void Label(const char* text, const LabelOptions& options = {});
+void Label(std::string_view text, const LabelOptions& options = {});
 
 // Convenience overloads
-void LabelSecondary(const std::string& text);
-void LabelHeading(const std::string& text);
+void LabelSecondary(std::string_view text);
+void LabelHeading(std::string_view text);
 
 } // namespace fst

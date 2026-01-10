@@ -67,8 +67,7 @@ public:
     const Texture& atlasTexture() const { return m_atlas; }
     
     // Text measurement
-    Vec2 measureText(const std::string& text) const;
-    Vec2 measureText(const char* text, const char* textEnd = nullptr) const;
+    Vec2 measureText(std::string_view text) const;
     
     // Character iteration helper
     struct CharacterInfo {

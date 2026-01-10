@@ -27,7 +27,7 @@ namespace fst {
  * @param options Styling and behavior options
  * @return true if this radio button was selected this frame
  */
-bool RadioButton(const char* label, int& selectedIndex, int index,
+bool RadioButton(std::string_view label, int& selectedIndex, int index,
                  const RadioButtonOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
@@ -104,25 +104,17 @@ bool RadioButton(const char* label, int& selectedIndex, int index,
     }
     
     // Draw label text
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         float textY = layout_utils::verticalCenterY(bounds.y(), height, textSize.y);
         Vec2 textPos(bounds.x() + circleSize + theme.metrics.paddingSmall, textY);
         
         Color textColor = options.disabled 
             ? theme.colors.textDisabled 
             : theme.colors.text;
-        dl.addText(font, textPos, label, nullptr, textColor);
+        dl.addText(font, textPos, label, textColor);
     }
     
     return changed;
-}
-
-/**
- * @brief String overload for RadioButton.
- */
-bool RadioButton(const std::string& label, int& selectedIndex, int index,
-                 const RadioButtonOptions& options) {
-    return RadioButton(label.c_str(), selectedIndex, index, options);
 }
 
 } // namespace fst

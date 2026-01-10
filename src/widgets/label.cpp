@@ -23,7 +23,7 @@ namespace fst {
  * @param text Text content to display
  * @param options Label styling options (color, size, position)
  */
-void Label(const char* text, const LabelOptions& options) {
+void Label(std::string_view text, const LabelOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
     if (!wc.valid() || !wc.font) return;
@@ -46,14 +46,7 @@ void Label(const char* text, const LabelOptions& options) {
     Rect bounds = allocateWidgetBounds(options.style, width, height);
     
     // Draw text
-    dl.addText(font, bounds.pos, text, nullptr, textColor);
-}
-
-/**
- * @brief String overload for Label.
- */
-void Label(const std::string& text, const LabelOptions& options) {
-    Label(text.c_str(), options);
+    dl.addText(font, bounds.pos, text, textColor);
 }
 
 //=============================================================================
@@ -62,9 +55,8 @@ void Label(const std::string& text, const LabelOptions& options) {
 
 /**
  * @brief Renders text with secondary/muted styling.
- * @param text Text content to display
  */
-void LabelSecondary(const std::string& text) {
+void LabelSecondary(std::string_view text) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return;
     
@@ -75,10 +67,8 @@ void LabelSecondary(const std::string& text) {
 
 /**
  * @brief Renders text as a heading (larger/emphasized).
- * @param text Text content to display
- * @note TODO: Use larger font when font sizing is implemented
  */
-void LabelHeading(const std::string& text) {
+void LabelHeading(std::string_view text) {
     Label(text);
 }
 

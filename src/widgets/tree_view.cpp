@@ -89,12 +89,7 @@ void TreeView::expandTo(TreeNode* node) {
     if (changed) m_layoutDirty = true;
 }
 
-void TreeView::scrollToNode(TreeNode* node) {
-    // TODO: Calculate y position of node and scroll to it
-    expandTo(node);
-}
-
-void TreeView::render(const std::string& id, const Rect& bounds,
+void TreeView::render(std::string_view id, const Rect& bounds,
                       const TreeViewOptions& options,
                       const TreeViewEvents& events) {
     Context* ctx = Context::current();
@@ -104,7 +99,7 @@ void TreeView::render(const std::string& id, const Rect& bounds,
     const Theme& theme = ctx->theme();
     
     // Generate ID
-    ctx->pushId(id.c_str());
+    ctx->pushId(id);
     
     // Update layout if dirty
     if (m_layoutDirty) {
@@ -192,7 +187,7 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     }
     
     // Handle interaction
-    WidgetId nodeId = ctx->makeId(node->id.c_str());
+    WidgetId nodeId = ctx->makeId(std::string_view(node->id));
     
     if (isHovered && ctx->input().isMousePressed(MouseButton::Left)) {
         // Check if clicked on expand arrow
@@ -259,12 +254,9 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
         x += 20.0f;
     }
     
-    // Draw label
-    if (font) {
-        Color textColor = node->isSelected ? theme.colors.selectionText : theme.colors.text;
-        Vec2 textPos(x + 4, y + (options.rowHeight - font->lineHeight()) / 2);
-        dl.addText(font, textPos, node->label, textColor);
-    }
+    Color textColor = node->isSelected ? theme.colors.selectionText : theme.colors.text;
+    Vec2 textPos(x + 4, y + (options.rowHeight - font->lineHeight()) / 2);
+    dl.addText(font, textPos, node->label, textColor);
     
     y += options.rowHeight;
     return y;
@@ -327,12 +319,13 @@ void TreeView::drawIcon(const Vec2& pos, bool isFolder, bool isExpanded, Color c
     }
 }
 
-void TreeViewSimple(const std::string& id, TreeNode* root, const Rect& bounds,
+void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
                     std::function<void(TreeNode*)> onSelect,
                     const TreeViewOptions& options) {
     static std::unordered_map<std::string, TreeView> treeViews;
     
-    auto& tv = treeViews[id];
+    std::string key(id);
+    auto& tv = treeViews[key];
     if (tv.root() != root) {
         auto sharedRoot = std::shared_ptr<TreeNode>(root, [](TreeNode*){});
         tv.setRoot(sharedRoot);
@@ -341,7 +334,7 @@ void TreeViewSimple(const std::string& id, TreeNode* root, const Rect& bounds,
     TreeViewEvents events;
     events.onSelect = onSelect;
     
-    tv.render(id, bounds, options, events);
+    tv.render(std::string_view(id), bounds, options, events);
 }
 
 } // namespace fst

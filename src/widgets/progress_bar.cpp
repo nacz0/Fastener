@@ -27,7 +27,7 @@ namespace fst {
  * @param options ProgressBar styling options
  */
 void ProgressBar(float progress, const ProgressBarOptions& options) {
-    ProgressBar("", progress, options);
+    ProgressBar(std::string_view{}, progress, options);
 }
 
 /**
@@ -39,7 +39,7 @@ void ProgressBar(float progress, const ProgressBarOptions& options) {
  * @param progress Progress value from 0.0 to 1.0 (ignored in indeterminate mode)
  * @param options ProgressBar styling and behavior options
  */
-void ProgressBar(const std::string& label, float progress, const ProgressBarOptions& options) {
+void ProgressBar(std::string_view label, float progress, const ProgressBarOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
     if (!wc.valid()) return;

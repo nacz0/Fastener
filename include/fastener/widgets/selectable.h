@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 namespace fst {
 
@@ -20,25 +21,11 @@ struct SelectableOptions {
  * @brief Renders a selectable text item (like a list item or menu entry).
  * 
  * @param label Text to display
- * @param selected Reference to selection state
+ * @param selected Reference to selection state (will be toggled on click)
  * @param options Styling options
  * @return true if clicked/toggled this frame
  */
-[[nodiscard]] bool Selectable(const std::string& label, bool& selected, 
-                const SelectableOptions& options = {});
-
-[[nodiscard]] bool Selectable(const char* label, bool& selected, 
-                const SelectableOptions& options = {});
-
-/**
- * @brief Selectable with external selection control (doesn't modify state).
- * 
- * @param label Text to display
- * @param selected Current selection state (read-only)
- * @param options Styling options
- * @return true if clicked this frame
- */
-[[nodiscard]] bool Selectable(const std::string& label, bool selected = false, 
+[[nodiscard]] bool Selectable(std::string_view label, bool& selected, 
                 const SelectableOptions& options = {});
 
 /**
@@ -50,7 +37,7 @@ struct SelectableOptions {
  * @param options Styling options
  * @return true if clicked/toggled this frame
  */
-[[nodiscard]] bool SelectableWithIcon(const std::string& icon, const std::string& label, 
+[[nodiscard]] bool SelectableWithIcon(std::string_view icon, std::string_view label, 
                         bool& selected, const SelectableOptions& options = {});
 
 } // namespace fst

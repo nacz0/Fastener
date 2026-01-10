@@ -29,9 +29,9 @@ static Context::MenuState& getMenuState() {
 MenuBar::MenuBar() = default;
 MenuBar::~MenuBar() = default;
 
-void MenuBar::addMenu(const std::string& label, const std::vector<MenuItem>& items) {
+void MenuBar::addMenu(std::string_view label, const std::vector<MenuItem>& items) {
     TopMenu menu;
-    menu.label = label;
+    menu.label = std::string(label);
     menu.items = items;
     m_menus.push_back(menu);
 }

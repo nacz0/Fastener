@@ -3,6 +3,8 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
+#include <vector>
 
 namespace fst {
 
@@ -14,6 +16,6 @@ struct ProgressBarOptions {
 };
 
 void ProgressBar(float progress, const ProgressBarOptions& options = {});
-void ProgressBar(const std::string& label, float progress, const ProgressBarOptions& options = {});
+void ProgressBar(std::string_view label, float progress, const ProgressBarOptions& options = {});
 
 } // namespace fst

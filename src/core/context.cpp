@@ -183,7 +183,7 @@ Font* Context::defaultFont() const {
     return m_impl->defaultFont.get();
 }
 
-InputState& Context::input() {
+[[nodiscard]] InputState& Context::input() {
     return *m_impl->inputState;
 }
 
@@ -191,19 +191,20 @@ const InputState& Context::input() const {
     return *m_impl->inputState;
 }
 
+[[nodiscard]] Renderer& Context::renderer() {
+    return m_impl->renderer;
+}
+
 DrawList& Context::drawList() {
     return m_impl->drawList;
 }
 
-Renderer& Context::renderer() {
-    return m_impl->renderer;
-}
 
 LayoutContext& Context::layout() {
     return m_impl->layout;
 }
 
-IPlatformWindow& Context::window() {
+[[nodiscard]] IPlatformWindow& Context::window() const {
     return *m_impl->currentWindow;
 }
 
@@ -304,7 +305,7 @@ void Context::pushId(WidgetId id) {
     m_impl->idStack.push_back(combined);
 }
 
-void Context::pushId(const char* str) {
+void Context::pushId(std::string_view str) {
     pushId(hashString(str));
 }
 
@@ -322,7 +323,7 @@ WidgetId Context::currentId() const {
     return m_impl->idStack.back();
 }
 
-WidgetId Context::makeId(const char* str) const {
+WidgetId Context::makeId(std::string_view str) const {
     return combineIds(m_impl->idStack.back(), hashString(str));
 }
 

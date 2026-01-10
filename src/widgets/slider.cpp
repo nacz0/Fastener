@@ -32,7 +32,7 @@ namespace fst {
  * @param options Slider styling and behavior options
  * @return true if the value was changed this frame
  */
-bool Slider(const char* label, float& value, float minVal, float maxVal, 
+bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
             const SliderOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
@@ -53,7 +53,7 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     float labelWidth = 0;
     float valueWidth = 0;
     
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
     
@@ -98,7 +98,7 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
     float t = slider_utils::valueToNormalized(value, minVal, maxVal);
     
     // Draw label text
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         Vec2 labelPos(
             bounds.x(),
             bounds.y() + (height - font->lineHeight()) * 0.5f
@@ -106,7 +106,7 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
         Color labelColor = options.disabled 
             ? theme.colors.textDisabled 
             : theme.colors.text;
-        dl.addText(font, labelPos, label, nullptr, labelColor);
+        dl.addText(font, labelPos, label, labelColor);
     }
     
     // Draw track background
@@ -168,24 +168,9 @@ bool Slider(const char* label, float& value, float minVal, float maxVal,
 //=============================================================================
 
 /**
- * @brief String overload for Slider.
- */
-bool Slider(const std::string& label, float& value, float min, float max,
-            const SliderOptions& options) {
-    return Slider(label.c_str(), value, min, max, options);
-}
-
-/**
  * @brief Integer slider variant.
- * 
- * @param label Label displayed before the slider
- * @param value Reference to the int value
- * @param min Minimum allowed value
- * @param max Maximum allowed value
- * @param options Slider styling options (decimals is forced to 0)
- * @return true if the value was changed this frame
  */
-bool SliderInt(const std::string& label, int& value, int min, int max,
+bool SliderInt(std::string_view label, int& value, int min, int max,
                const SliderOptions& options) {
     float floatValue = static_cast<float>(value);
     

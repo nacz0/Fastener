@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 /**
  * @file text_input.h
@@ -35,11 +36,10 @@ struct TextInputOptions {
     int maxLength = 0;         // 0 = no limit
 };
 
-[[nodiscard]] bool TextInput(const std::string& id, std::string& value, const TextInputOptions& options = {});
-[[nodiscard]] bool TextInput(const char* id, std::string& value, const TextInputOptions& options = {});
+[[nodiscard]] bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options = {});
 
 // With label
-[[nodiscard]] bool TextInputWithLabel(const std::string& label, std::string& value, 
+[[nodiscard]] bool TextInputWithLabel(std::string_view label, std::string& value, 
                         const TextInputOptions& options = {});
 
 } // namespace fst

@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 /**
  * @file slider.h
@@ -33,13 +34,30 @@ struct SliderOptions {
     bool disabled = false;
 };
 
-[[nodiscard]] bool Slider(const std::string& label, float& value, float min, float max, 
-            const SliderOptions& options = {});
-[[nodiscard]] bool Slider(const char* label, float& value, float min, float max,
+/**
+ * @brief Renders a horizontal slider for adjusting a float value.
+ * 
+ * @param label Label displayed to the left of the slider
+ * @param value Reference to the float value being adjusted
+ * @param minVal Minimum allowed value
+ * @param maxVal Maximum allowed value
+ * @param options Slider styling and behavior options
+ * @return true if the value was changed this frame
+ */
+[[nodiscard]] bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
             const SliderOptions& options = {});
 
-// Integer slider
-[[nodiscard]] bool SliderInt(const std::string& label, int& value, int min, int max,
+/**
+ * @brief Renders a horizontal slider for adjusting an integer value.
+ * 
+ * @param label Label displayed to the left of the slider
+ * @param value Reference to the integer value being adjusted
+ * @param min Minimum allowed value
+ * @param max Maximum allowed value
+ * @param options Slider styling and behavior options
+ * @return true if the value was changed this frame
+ */
+[[nodiscard]] bool SliderInt(std::string_view label, int& value, int min, int max,
                const SliderOptions& options = {});
 
 } // namespace fst

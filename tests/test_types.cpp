@@ -375,6 +375,7 @@ TEST(ColorTest, StaticColors) {
     EXPECT_EQ(Color::white(), Color(255, 255, 255, 255));
     EXPECT_EQ(Color::black(), Color(0, 0, 0, 255));
     EXPECT_EQ(Color::transparent(), Color(0, 0, 0, 0));
+    EXPECT_EQ(Color::none(), Color(0, 0, 0, 0));
     EXPECT_EQ(Color::red(), Color(255, 0, 0, 255));
     EXPECT_EQ(Color::green(), Color(0, 255, 0, 255));
     EXPECT_EQ(Color::blue(), Color(0, 0, 255, 255));
@@ -491,4 +492,10 @@ TEST(WidgetIdTest, CombineIds) {
     EXPECT_NE(combined1, combined2);
     EXPECT_NE(combined1, parent);
     EXPECT_NE(combined1, child1);
+}
+
+TEST(WidgetIdTest, Literal) {
+    using namespace fst;
+    WidgetId id = "test"_id;
+    EXPECT_EQ(id, hashString("test"));
 }

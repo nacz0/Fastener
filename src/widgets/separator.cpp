@@ -60,71 +60,50 @@ void Separator(const SeparatorOptions& options) {
  * @param label Text to display centered on the separator
  * @param options Styling options
  */
-void SeparatorWithLabel(const char* label, const SeparatorOptions& options) {
-    // Get widget context
+void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return;
-    
+
     const Theme& theme = *wc.theme;
     DrawList& dl = *wc.dl;
     Font* font = wc.font;
+
+    // Use explicit height if provided, otherwise default
+    float height = options.style.height > 0 ? options.style.height : 24.0f;
+    float labelWidth = 0;
     
-    // Determine separator color
-    Color sepColor = options.color.a > 0 ? options.color : theme.colors.border;
-    
-    // Measure label
-    Vec2 textSize = font ? font->measureText(label) : Vec2(0, 0);
-    float textPadding = theme.metrics.paddingMedium;
-    
-    // Calculate dimensions
-    float width = options.style.width;
-    if (width <= 0) {
-        width = wc.ctx->layout().allocateRemaining().width();
+    if (font && !label.empty()) {
+        labelWidth = font->measureText(label).x + theme.metrics.paddingMedium * 2;
     }
-    float totalHeight = std::max(textSize.y, options.thickness) + theme.metrics.paddingSmall * 2;
-    
-    // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, totalHeight);
-    
-    if (width <= 0) {
-        width = bounds.width();
-    }
-    
-    // Calculate line Y position
-    float lineY = bounds.center().y - options.thickness * 0.5f;
-    
-    if (font && label[0] != '\0') {
-        // Draw left line
-        float textX = bounds.center().x - textSize.x * 0.5f;
-        float leftLineWidth = textX - bounds.x() - textPadding;
-        if (leftLineWidth > 0) {
-            Rect leftLine(bounds.x(), lineY, leftLineWidth, options.thickness);
-            dl.addRectFilled(leftLine, sepColor);
+
+    // Allocate bounds - width 0 means fill width
+    Rect bounds = allocateWidgetBounds(options.style, 0.0f, height);
+
+    float centerY = bounds.center().y;
+    Color color = options.color.a > 0 ? options.color : theme.colors.border;
+
+    if (labelWidth > 0 && font) {
+        float lineY = centerY;
+        float segmentWidth = (bounds.width() - labelWidth) / 2.0f;
+        
+        // Left segment
+        if (segmentWidth > 0) {
+            dl.addLine(Vec2(bounds.x(), lineY), Vec2(bounds.x() + segmentWidth, lineY), color, options.thickness);
         }
         
-        // Draw text
-        float textY = bounds.center().y - textSize.y * 0.5f;
-        dl.addText(font, Vec2(textX, textY), label, theme.colors.textSecondary);
+        // Label
+        Vec2 labelPos(bounds.x() + segmentWidth + theme.metrics.paddingMedium, 
+                      centerY - font->lineHeight() * 0.5f);
+        dl.addText(font, labelPos, label, theme.colors.textSecondary);
         
-        // Draw right line
-        float rightLineStart = textX + textSize.x + textPadding;
-        float rightLineWidth = bounds.right() - rightLineStart;
-        if (rightLineWidth > 0) {
-            Rect rightLine(rightLineStart, lineY, rightLineWidth, options.thickness);
-            dl.addRectFilled(rightLine, sepColor);
+        // Right segment
+        if (segmentWidth > 0) {
+            dl.addLine(Vec2(bounds.right() - segmentWidth, lineY), Vec2(bounds.right(), lineY), color, options.thickness);
         }
     } else {
-        // No label, draw full line
-        Rect fullLine(bounds.x(), lineY, bounds.width(), options.thickness);
-        dl.addRectFilled(fullLine, sepColor);
+        // No label or no font, draw full line
+        dl.addLine(Vec2(bounds.x(), centerY), Vec2(bounds.right(), centerY), color, options.thickness);
     }
-}
-
-/**
- * @brief String overload for SeparatorWithLabel.
- */
-void SeparatorWithLabel(const std::string& label, const SeparatorOptions& options) {
-    SeparatorWithLabel(label.c_str(), options);
 }
 
 } // namespace fst

@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 /**
  * @file checkbox.h
@@ -30,7 +31,6 @@ struct CheckboxOptions {
     bool disabled = false;
 };
 
-[[nodiscard]] bool Checkbox(const std::string& label, bool& checked, const CheckboxOptions& options = {});
-[[nodiscard]] bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options = {});
+[[nodiscard]] bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& options = {});
 
 } // namespace fst

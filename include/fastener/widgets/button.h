@@ -30,11 +30,9 @@ struct ButtonOptions {
     std::string icon;          // Optional icon (future)
 };
 
-[[nodiscard]] bool Button(const std::string& label, const ButtonOptions& options = {});
-[[nodiscard]] bool Button(const char* label, const ButtonOptions& options = {});
+[[nodiscard]] bool Button(std::string_view label, const ButtonOptions& options = {});
 
 // Convenience overloads
-[[nodiscard]] bool ButtonPrimary(const std::string& label);
-[[nodiscard]] bool ButtonPrimary(const char* label);
+[[nodiscard]] bool ButtonPrimary(std::string_view label);
 
 } // namespace fst

@@ -262,16 +262,11 @@ void Font::updateAtlasTexture() {
     }
 }
 
-Vec2 Font::measureText(const std::string& text) const {
-    return measureText(text.c_str(), text.c_str() + text.size());
-}
-
-Vec2 Font::measureText(const char* text, const char* textEnd) const {
-    if (!text || !m_isValid) return Vec2::zero();
+Vec2 Font::measureText(std::string_view text) const {
+    if (text.empty() || !m_isValid) return Vec2::zero();
     
-    if (!textEnd) {
-        textEnd = text + std::strlen(text);
-    }
+    const char* textStart = text.data();
+    const char* textEnd = text.data() + text.size();
     
     float x = 0.0f;
     float maxX = 0.0f;
@@ -279,7 +274,7 @@ Vec2 Font::measureText(const char* text, const char* textEnd) const {
     
     uint32_t prevCodepoint = 0;
     
-    const char* s = text;
+    const char* s = textStart;
     while (s < textEnd) {
         // Decode UTF-8
         uint32_t codepoint;

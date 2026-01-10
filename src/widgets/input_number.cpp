@@ -32,7 +32,7 @@ namespace fst {
  * @param options Styling and behavior options
  * @return true if the value was changed this frame
  */
-bool InputNumber(const char* label, float& value, float minVal, float maxVal,
+bool InputNumber(std::string_view label, float& value, float minVal, float maxVal,
                  const InputNumberOptions& options) {
     // Get widget context
     auto wc = getWidgetContext();
@@ -49,7 +49,7 @@ bool InputNumber(const char* label, float& value, float minVal, float maxVal,
     
     // Calculate label width
     float labelWidth = 0;
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
     
@@ -99,10 +99,10 @@ bool InputNumber(const char* label, float& value, float minVal, float maxVal,
     value = std::clamp(value, minVal, maxVal);
     
     // Draw label
-    if (font && label[0] != '\0') {
+    if (font && !label.empty()) {
         float textY = layout_utils::verticalCenterY(bounds.y(), height, font->lineHeight());
         Color labelColor = options.disabled ? theme.colors.textDisabled : theme.colors.text;
-        dl.addText(font, Vec2(labelRect.x(), textY), label, nullptr, labelColor);
+        dl.addText(font, Vec2(labelRect.x(), textY), label, labelColor);
     }
     
     // Draw input background
@@ -162,17 +162,9 @@ bool InputNumber(const char* label, float& value, float minVal, float maxVal,
 }
 
 /**
- * @brief String overload for InputNumber.
- */
-bool InputNumber(const std::string& label, float& value, float minVal, float maxVal,
-                 const InputNumberOptions& options) {
-    return InputNumber(label.c_str(), value, minVal, maxVal, options);
-}
-
-/**
  * @brief Integer variant of InputNumber.
  */
-bool InputNumberInt(const char* label, int& value, int minVal, int maxVal,
+bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
                     const InputNumberOptions& options) {
     float floatValue = static_cast<float>(value);
     
@@ -190,14 +182,6 @@ bool InputNumberInt(const char* label, int& value, int minVal, int maxVal,
     }
     
     return changed;
-}
-
-/**
- * @brief String overload for InputNumberInt.
- */
-bool InputNumberInt(const std::string& label, int& value, int minVal, int maxVal,
-                    const InputNumberOptions& options) {
-    return InputNumberInt(label.c_str(), value, minVal, maxVal, options);
 }
 
 } // namespace fst

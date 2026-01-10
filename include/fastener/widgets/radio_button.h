@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 namespace fst {
 
@@ -27,9 +28,7 @@ struct RadioButtonOptions {
  * @param options Styling and behavior options
  * @return true if this radio button was selected this frame
  */
-[[nodiscard]] bool RadioButton(const char* label, int& selectedIndex, int index, 
-                 const RadioButtonOptions& options = {});
-[[nodiscard]] bool RadioButton(const std::string& label, int& selectedIndex, int index,
+[[nodiscard]] bool RadioButton(std::string_view label, int& selectedIndex, int index, 
                  const RadioButtonOptions& options = {});
 
 } // namespace fst

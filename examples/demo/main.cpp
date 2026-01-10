@@ -346,8 +346,8 @@ int main() {
 
                 BeginVertical(10);
                     Label("Checkboxes:", sectionOpts);
-                    Checkbox("Show Line Numbers", checkValue1);
-                    Checkbox("Word Wrap", checkValue2);
+                    (void)Checkbox("Show Line Numbers", checkValue1);
+                    (void)Checkbox("Word Wrap", checkValue2);
                 EndVertical();
                 
                 Spacing(20);
@@ -356,7 +356,7 @@ int main() {
                     Label("Select Optimization:", sectionOpts);
                     ComboBoxOptions comboOpts;
                     comboOpts.style = Style().withWidth(300);
-                    ComboBox("Performance", selectedCombo, comboOptions, comboOpts);
+                    (void)ComboBox("Performance", selectedCombo, comboOptions, comboOpts);
                 EndVertical();
                 
                 Spacing(20);
@@ -417,14 +417,14 @@ int main() {
                     Label("Sliders:", sectionOpts);
                     SliderOptions sliderOpts;
                     sliderOpts.style = Style().withWidth(250);
-                    Slider("Volume", sliderValue1, 0.0f, 100.0f, sliderOpts);
+                    (void)Slider("Volume", sliderValue1, 0.0f, 100.0f, sliderOpts);
                     
                     Spacing(20);
                     
                     Label("Text Inputs:", sectionOpts);
                     TextInputOptions tiOpts;
                     tiOpts.style = Style().withWidth(250);
-                    TextInput("Username", textInputValue, tiOpts);
+                    (void)TextInput("Username", textInputValue, tiOpts);
                 EndVertical();
             }
             
@@ -454,9 +454,9 @@ int main() {
                         Spacing(20);
                         
                         Label("RadioButtons:", sectionOpts);
-                        RadioButton("Option A", radioSelection, 0);
-                        RadioButton("Option B", radioSelection, 1);
-                        RadioButton("Option C", radioSelection, 2);
+                        (void)RadioButton("Option A", radioSelection, 0);
+                        (void)RadioButton("Option B", radioSelection, 1);
+                        (void)RadioButton("Option C", radioSelection, 2);
                     EndVertical();
                     
                     BeginVertical(10);
@@ -466,15 +466,15 @@ int main() {
                         Spacing(20);
                         
                         Label("Selectables:", sectionOpts);
-                        Selectable("Option 1", selectable1);
-                        Selectable("Option 2", selectable2);
+                        (void)Selectable("Option 1", selectable1);
+                        (void)Selectable("Option 2", selectable2);
                         
                         Spacing(20);
                         
                         Label("InputNumber:", sectionOpts);
                         InputNumberOptions inOpts;
                         inOpts.style = Style().withWidth(150);
-                        InputNumberInt("Amount", inputNumberValue, 0, 100, inOpts);
+                        (void)InputNumberInt("Amount", inputNumberValue, 0, 100, inOpts);
                     EndVertical();
                     
                     BeginVertical(10);
@@ -485,7 +485,7 @@ int main() {
                         }
                         if (CollapsingHeader("Section 2", collapsingOpen2)) {
                             Label("Content inside Section 2");
-                            Checkbox("Nested checkbox", checkValue2);
+                            (void)Checkbox("Nested checkbox", checkValue2);
                         }
                         
                         Spacing(20);
@@ -642,7 +642,8 @@ int main() {
                     for (size_t i = 0; i < dragDropList1.size(); ++i) {
                         SelectableOptions selOpts;
                         selOpts.spanWidth = true;
-                        if (Selectable(dragDropList1[i], selectedDragItem1 == dragDropList1[i], selOpts)) {
+                        bool isSelected = (selectedDragItem1 == dragDropList1[i]);
+                        if (Selectable(dragDropList1[i], isSelected, selOpts)) {
                             selectedDragItem1 = dragDropList1[i];
                         }
                         
@@ -747,7 +748,8 @@ int main() {
                     for (size_t i = 0; i < dragDropList2.size(); ++i) {
                         SelectableOptions selOpts;
                         selOpts.spanWidth = true;
-                        if (Selectable(dragDropList2[i], selectedDragItem2 == dragDropList2[i], selOpts)) {
+                        bool isSelected = (selectedDragItem2 == dragDropList2[i]);
+                        if (Selectable(dragDropList2[i], isSelected, selOpts)) {
                             selectedDragItem2 = dragDropList2[i];
                         }
                         

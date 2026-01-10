@@ -25,7 +25,7 @@ namespace fst {
  * @param options Button styling and behavior options
  * @return true if the button was clicked this frame
  */
-bool Button(const char* label, const ButtonOptions& options) {
+bool Button(std::string_view label, const ButtonOptions& options) {
     // Get widget context (Context, Theme, DrawList, Font)
     auto wc = getWidgetContext();
     if (!wc.valid()) return false;
@@ -91,33 +91,19 @@ bool Button(const char* label, const ButtonOptions& options) {
     // Draw centered label text
     if (font) {
         Vec2 textPos = layout_utils::centerInBounds(textSize, bounds);
-        dl.addText(font, textPos, label, nullptr, textColor);
+        dl.addText(font, textPos, label, textColor);
     }
     
     return interaction.clicked && !options.disabled;
 }
 
 /**
- * @brief String overload for Button.
- */
-bool Button(const std::string& label, const ButtonOptions& options) {
-    return Button(label.c_str(), options);
-}
-
-/**
  * @brief Convenience function for primary-styled button.
  */
-bool ButtonPrimary(const char* label) {
+bool ButtonPrimary(std::string_view label) {
     ButtonOptions options;
     options.primary = true;
     return Button(label, options);
-}
-
-/**
- * @brief String overload for ButtonPrimary.
- */
-bool ButtonPrimary(const std::string& label) {
-    return ButtonPrimary(label.c_str());
 }
 
 } // namespace fst

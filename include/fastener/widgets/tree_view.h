@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 #include <vector>
 #include <functional>
 #include <memory>
@@ -25,12 +26,12 @@ struct TreeNode {
     TreeNode* parent = nullptr;
     
     TreeNode() = default;
-    TreeNode(const std::string& id, const std::string& label, bool isLeaf = false)
+    TreeNode(std::string_view id, std::string_view label, bool isLeaf = false)
         : id(id), label(label), isLeaf(isLeaf) {}
     
     // Add a child node
-    std::shared_ptr<TreeNode> addChild(const std::string& childId, 
-                                        const std::string& childLabel, 
+    std::shared_ptr<TreeNode> addChild(std::string_view childId, 
+                                        std::string_view childLabel, 
                                         bool childIsLeaf = false) {
         auto child = std::make_shared<TreeNode>(childId, childLabel, childIsLeaf);
         child->parent = this;
@@ -39,7 +40,7 @@ struct TreeNode {
     }
     
     // Find node by ID (recursive)
-    TreeNode* findById(const std::string& searchId) {
+    TreeNode* findById(std::string_view searchId) {
         if (id == searchId) return this;
         for (auto& child : children) {
             if (auto found = child->findById(searchId)) {
@@ -118,7 +119,7 @@ public:
     void scrollToNode(TreeNode* node);
     
     // Rendering
-    void render(const std::string& id, const Rect& bounds, 
+    void render(std::string_view id, const Rect& bounds, 
                 const TreeViewOptions& options = {},
                 const TreeViewEvents& events = {});
     
@@ -147,7 +148,7 @@ private:
 };
 
 // Convenience function for simple tree rendering
-void TreeViewSimple(const std::string& id, TreeNode* root, const Rect& bounds,
+void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
                     std::function<void(TreeNode*)> onSelect = nullptr,
                     const TreeViewOptions& options = {});
 

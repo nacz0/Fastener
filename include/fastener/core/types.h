@@ -4,6 +4,7 @@
 #include <cmath>
 #include <algorithm>
 #include <string>
+#include <string_view>
 
 namespace fst {
 
@@ -247,7 +248,7 @@ struct Color {
         return (static_cast<uint32_t>(a) << 24) |
                (static_cast<uint32_t>(b) << 16) |
                (static_cast<uint32_t>(g) << 8) |
-               static_cast<uint32_t>(r);
+               (static_cast<uint32_t>(r));
     }
     
     // Operations
@@ -277,6 +278,7 @@ struct Color {
     static constexpr Color white() { return {255, 255, 255, 255}; }
     static constexpr Color black() { return {0, 0, 0, 255}; }
     static constexpr Color transparent() { return {0, 0, 0, 0}; }
+    static constexpr Color none() { return {0, 0, 0, 0}; }
     static constexpr Color red() { return {255, 0, 0, 255}; }
     static constexpr Color green() { return {0, 255, 0, 255}; }
     static constexpr Color blue() { return {0, 0, 255, 255}; }
@@ -294,27 +296,27 @@ using WidgetId = uint64_t;
 constexpr WidgetId INVALID_WIDGET_ID = 0;
 
 // Generate ID from string (compile-time if possible)
-constexpr WidgetId hashString(const char* str) {
-    WidgetId hash = 14695981039346656037ULL;
-    while (*str) {
-        hash ^= static_cast<WidgetId>(*str++);
-        hash *= 1099511628211ULL;
+constexpr WidgetId hashString(std::string_view str) {
+    WidgetId hash = 2166136261u;
+    for (char c : str) {
+        hash ^= static_cast<WidgetId>(c);
+        hash *= 16777619u;
     }
     return hash;
 }
 
-inline WidgetId hashString(const std::string& str) {
-    return hashString(str.c_str());
+/**
+ * @brief User-defined literal for compile-time string hashing.
+ * 
+ * Usage: 0x1234_id or "my_widget"_id
+ */
+constexpr WidgetId operator""_id(const char* str, size_t len) {
+    return hashString(std::string_view(str, len));
 }
 
 // Combine IDs (for hierarchical widgets)
 constexpr WidgetId combineIds(WidgetId parent, WidgetId child) {
     return parent ^ (child * 1099511628211ULL);
-}
-
-// User-defined literal for compile-time ID generation
-inline constexpr WidgetId operator""_id(const char* str, size_t len) {
-    return hashString(str);
 }
 
 //=============================================================================

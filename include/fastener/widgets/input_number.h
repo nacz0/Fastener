@@ -3,6 +3,7 @@
 #include "fastener/core/types.h"
 #include "fastener/ui/style.h"
 #include <string>
+#include <string_view>
 
 namespace fst {
 
@@ -30,17 +31,13 @@ struct InputNumberOptions {
  * @param options Styling and behavior options
  * @return true if the value was changed this frame
  */
-[[nodiscard]] bool InputNumber(const char* label, float& value, float minVal, float maxVal,
-                 const InputNumberOptions& options = {});
-[[nodiscard]] bool InputNumber(const std::string& label, float& value, float minVal, float maxVal,
+[[nodiscard]] bool InputNumber(std::string_view label, float& value, float minVal, float maxVal,
                  const InputNumberOptions& options = {});
 
 /**
  * @brief Integer variant of InputNumber.
  */
-[[nodiscard]] bool InputNumberInt(const char* label, int& value, int minVal, int maxVal,
-                    const InputNumberOptions& options = {});
-[[nodiscard]] bool InputNumberInt(const std::string& label, int& value, int minVal, int maxVal,
+[[nodiscard]] bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
                     const InputNumberOptions& options = {});
 
 } // namespace fst

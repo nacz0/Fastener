@@ -2,6 +2,7 @@
 
 #include "fastener/core/types.h"
 #include <vector>
+#include <string_view>
 
 namespace fst {
 
@@ -56,22 +57,26 @@ public:
     void setLayer(Layer layer);
     Layer currentLayer() const;
     
+    // Color Stack
+    void pushColor(Color color);
+    void popColor();
+    Color currentColor() const;
+    
     // Primitives
-    void addRect(const Rect& rect, Color color, float rounding = 0.0f);
-    void addRectFilled(const Rect& rect, Color color, float rounding = 0.0f);
+    void addRect(const Rect& rect, Color color = Color::none(), float rounding = 0.0f);
+    void addRectFilled(const Rect& rect, Color color = Color::none(), float rounding = 0.0f);
     void addRectFilledMultiColor(const Rect& rect, Color topLeft, Color topRight, 
                                   Color bottomRight, Color bottomLeft);
     
-    void addLine(const Vec2& p1, const Vec2& p2, Color color, float thickness = 1.0f);
-    void addCircle(const Vec2& center, float radius, Color color, int segments = 0);
-    void addCircleFilled(const Vec2& center, float radius, Color color, int segments = 0);
+    void addLine(const Vec2& p1, const Vec2& p2, Color color = Color::none(), float thickness = 1.0f);
+    void addCircle(const Vec2& center, float radius, Color color = Color::none(), int segments = 0);
+    void addCircleFilled(const Vec2& center, float radius, Color color = Color::none(), int segments = 0);
     
-    void addTriangle(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color);
-    void addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color);
+    void addTriangle(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none());
+    void addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none());
     
     // Text
-    void addText(const Font* font, const Vec2& pos, const std::string& text, Color color);
-    void addText(const Font* font, const Vec2& pos, const char* text, const char* textEnd, Color color);
+    void addText(const Font* font, const Vec2& pos, std::string_view text, Color color = Color::none());
     
     // Images
     void addImage(const Texture* texture, const Rect& rect, Color tint = Color::white());
@@ -94,12 +99,16 @@ public:
     // Current texture (for batching)
     void setTexture(uint32_t textureId);
     
+    // Color resolution helper
+    Color resolveColor(Color color) const;
+    
 private:
     struct LayerData {
         std::vector<DrawVertex> vertices;
         std::vector<uint32_t> indices;
         std::vector<DrawCommand> commands;
         std::vector<Rect> clipRectStack;
+        std::vector<Color> colorStack;
         uint32_t currentTexture = 0;
     };
 

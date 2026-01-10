@@ -27,9 +27,9 @@ struct RadioButtonOptions {
  * @param options Styling and behavior options
  * @return true if this radio button was selected this frame
  */
-bool RadioButton(const char* label, int& selectedIndex, int index, 
+[[nodiscard]] bool RadioButton(const char* label, int& selectedIndex, int index, 
                  const RadioButtonOptions& options = {});
-bool RadioButton(const std::string& label, int& selectedIndex, int index,
+[[nodiscard]] bool RadioButton(const std::string& label, int& selectedIndex, int index,
                  const RadioButtonOptions& options = {});
 
 } // namespace fst

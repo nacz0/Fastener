@@ -24,10 +24,10 @@ struct SelectableOptions {
  * @param options Styling options
  * @return true if clicked/toggled this frame
  */
-bool Selectable(const std::string& label, bool& selected, 
+[[nodiscard]] bool Selectable(const std::string& label, bool& selected, 
                 const SelectableOptions& options = {});
 
-bool Selectable(const char* label, bool& selected, 
+[[nodiscard]] bool Selectable(const char* label, bool& selected, 
                 const SelectableOptions& options = {});
 
 /**
@@ -38,7 +38,7 @@ bool Selectable(const char* label, bool& selected,
  * @param options Styling options
  * @return true if clicked this frame
  */
-bool Selectable(const std::string& label, bool selected = false, 
+[[nodiscard]] bool Selectable(const std::string& label, bool selected = false, 
                 const SelectableOptions& options = {});
 
 /**
@@ -50,7 +50,7 @@ bool Selectable(const std::string& label, bool selected = false,
  * @param options Styling options
  * @return true if clicked/toggled this frame
  */
-bool SelectableWithIcon(const std::string& icon, const std::string& label, 
+[[nodiscard]] bool SelectableWithIcon(const std::string& icon, const std::string& label, 
                         bool& selected, const SelectableOptions& options = {});
 
 } // namespace fst

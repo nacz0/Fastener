@@ -30,17 +30,17 @@ struct InputNumberOptions {
  * @param options Styling and behavior options
  * @return true if the value was changed this frame
  */
-bool InputNumber(const char* label, float& value, float minVal, float maxVal,
+[[nodiscard]] bool InputNumber(const char* label, float& value, float minVal, float maxVal,
                  const InputNumberOptions& options = {});
-bool InputNumber(const std::string& label, float& value, float minVal, float maxVal,
+[[nodiscard]] bool InputNumber(const std::string& label, float& value, float minVal, float maxVal,
                  const InputNumberOptions& options = {});
 
 /**
  * @brief Integer variant of InputNumber.
  */
-bool InputNumberInt(const char* label, int& value, int minVal, int maxVal,
+[[nodiscard]] bool InputNumberInt(const char* label, int& value, int minVal, int maxVal,
                     const InputNumberOptions& options = {});
-bool InputNumberInt(const std::string& label, int& value, int minVal, int maxVal,
+[[nodiscard]] bool InputNumberInt(const std::string& label, int& value, int minVal, int maxVal,
                     const InputNumberOptions& options = {});
 
 } // namespace fst

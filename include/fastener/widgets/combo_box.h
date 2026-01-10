@@ -13,11 +13,11 @@ struct ComboBoxOptions {
     float dropdownMaxHeight = 200.0f;
 };
 
-bool ComboBox(const std::string& label, int& selectedIndex, 
+[[nodiscard]] bool ComboBox(const std::string& label, int& selectedIndex, 
               const std::vector<std::string>& items,
               const ComboBoxOptions& options = {});
 
-bool ComboBox(const char* label, int& selectedIndex, 
+[[nodiscard]] bool ComboBox(const char* label, int& selectedIndex, 
               const std::vector<std::string>& items,
               const ComboBoxOptions& options = {});
 

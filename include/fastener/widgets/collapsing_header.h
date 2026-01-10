@@ -26,9 +26,9 @@ struct CollapsingHeaderOptions {
  * @param options Styling and behavior options
  * @return true if the header is currently open (for conditional child rendering)
  */
-bool CollapsingHeader(const char* label, bool& isOpen, 
+[[nodiscard]] bool CollapsingHeader(const char* label, bool& isOpen, 
                       const CollapsingHeaderOptions& options = {});
-bool CollapsingHeader(const std::string& label, bool& isOpen,
+[[nodiscard]] bool CollapsingHeader(const std::string& label, bool& isOpen,
                       const CollapsingHeaderOptions& options = {});
 
 } // namespace fst

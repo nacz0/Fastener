@@ -30,7 +30,7 @@ struct CheckboxOptions {
     bool disabled = false;
 };
 
-bool Checkbox(const std::string& label, bool& checked, const CheckboxOptions& options = {});
-bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options = {});
+[[nodiscard]] bool Checkbox(const std::string& label, bool& checked, const CheckboxOptions& options = {});
+[[nodiscard]] bool Checkbox(const char* label, bool& checked, const CheckboxOptions& options = {});
 
 } // namespace fst

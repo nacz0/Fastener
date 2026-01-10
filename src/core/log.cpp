@@ -5,6 +5,7 @@
 
 #include "fastener/core/log.h"
 #include <cstdio>
+#include <cstdarg>
 #include <cstring>
 
 namespace fst {
@@ -70,6 +71,26 @@ void logMessage(LogLevel level, const char* file, int line, const char* message)
         g_logHandler(level, file, line, message);
     } else {
         defaultLogHandler(level, file, line, message);
+    }
+}
+
+void logMessageF(LogLevel level, const char* file, int line, const char* fmt, ...) {
+    // Filter by minimum level
+    if (static_cast<int>(level) < static_cast<int>(g_minLogLevel)) {
+        return;
+    }
+    
+    // Format the message
+    char buffer[1024];
+    va_list args;
+    va_start(args, fmt);
+    std::vsnprintf(buffer, sizeof(buffer), fmt, args);
+    va_end(args);
+    
+    if (g_logHandler) {
+        g_logHandler(level, file, line, buffer);
+    } else {
+        defaultLogHandler(level, file, line, buffer);
     }
 }
 

@@ -35,11 +35,11 @@ struct TextInputOptions {
     int maxLength = 0;         // 0 = no limit
 };
 
-bool TextInput(const std::string& id, std::string& value, const TextInputOptions& options = {});
-bool TextInput(const char* id, std::string& value, const TextInputOptions& options = {});
+[[nodiscard]] bool TextInput(const std::string& id, std::string& value, const TextInputOptions& options = {});
+[[nodiscard]] bool TextInput(const char* id, std::string& value, const TextInputOptions& options = {});
 
 // With label
-bool TextInputWithLabel(const std::string& label, std::string& value, 
+[[nodiscard]] bool TextInputWithLabel(const std::string& label, std::string& value, 
                         const TextInputOptions& options = {});
 
 } // namespace fst

@@ -33,13 +33,13 @@ struct SliderOptions {
     bool disabled = false;
 };
 
-bool Slider(const std::string& label, float& value, float min, float max, 
+[[nodiscard]] bool Slider(const std::string& label, float& value, float min, float max, 
             const SliderOptions& options = {});
-bool Slider(const char* label, float& value, float min, float max,
+[[nodiscard]] bool Slider(const char* label, float& value, float min, float max,
             const SliderOptions& options = {});
 
 // Integer slider
-bool SliderInt(const std::string& label, int& value, int min, int max,
+[[nodiscard]] bool SliderInt(const std::string& label, int& value, int min, int max,
                const SliderOptions& options = {});
 
 } // namespace fst

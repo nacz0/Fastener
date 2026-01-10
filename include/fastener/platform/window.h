@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <string>
+#include <vector>
 
 namespace fst {
 
@@ -114,11 +115,17 @@ public:
     using CloseCallback = std::function<void(const WindowCloseEvent&)>;
     using FocusCallback = std::function<void(const WindowFocusEvent&)>;
     using RefreshCallback = std::function<void()>;
+    using FileDropCallback = std::function<void(const std::vector<std::string>& paths)>;
     
     void setResizeCallback(ResizeCallback callback);
     void setCloseCallback(CloseCallback callback);
     void setFocusCallback(FocusCallback callback);
     void setRefreshCallback(RefreshCallback callback);
+    void setFileDropCallback(FileDropCallback callback);
+    
+    // File drop query (alternative to callback)
+    const std::vector<std::string>& droppedFiles() const;
+    void clearDroppedFiles();
     
     // Input access
     InputState& input();

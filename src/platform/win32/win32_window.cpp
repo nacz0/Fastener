@@ -16,6 +16,7 @@
 #include "fastener/platform/window.h"
 #include <windows.h>
 #include <dwmapi.h>
+#include <shellapi.h>
 #include <gl/GL.h>
 #include <unordered_map>
 
@@ -151,6 +152,10 @@ struct Window::Impl {
     Window::CloseCallback closeCallback;
     Window::FocusCallback focusCallback;
     Window::RefreshCallback refreshCallback;
+    Window::FileDropCallback fileDropCallback;
+    
+    // Dropped files
+    std::vector<std::string> droppedFiles;
     
     // Timer status
     bool isModalLoop = false;
@@ -447,6 +452,34 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             }
             // Let default processing happen too or validate rect
             break;
+        
+        case WM_DROPFILES: {
+            HDROP hDrop = (HDROP)wParam;
+            UINT count = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
+            
+            impl->droppedFiles.clear();
+            impl->droppedFiles.reserve(count);
+            
+            for (UINT i = 0; i < count; ++i) {
+                UINT len = DragQueryFileW(hDrop, i, nullptr, 0) + 1;
+                std::wstring wpath(len, 0);
+                DragQueryFileW(hDrop, i, wpath.data(), len);
+                
+                // Convert to UTF-8
+                int utf8Len = WideCharToMultiByte(CP_UTF8, 0, wpath.c_str(), -1, nullptr, 0, nullptr, nullptr);
+                std::string path(utf8Len - 1, 0);
+                WideCharToMultiByte(CP_UTF8, 0, wpath.c_str(), -1, path.data(), utf8Len, nullptr, nullptr);
+                
+                impl->droppedFiles.push_back(path);
+            }
+            
+            DragFinish(hDrop);
+            
+            if (impl->fileDropCallback && !impl->droppedFiles.empty()) {
+                impl->fileDropCallback(impl->droppedFiles);
+            }
+            return 0;
+        }
     }
     
     return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -534,6 +567,9 @@ bool Window::create(const WindowConfig& config) {
     }
     
     g_windowMap[m_impl->hwnd] = m_impl.get();
+    
+    // Enable file drag and drop
+    DragAcceptFiles(m_impl->hwnd, TRUE);
     
     m_impl->hdc = GetDC(m_impl->hwnd);
     
@@ -779,6 +815,18 @@ void Window::setFocusCallback(FocusCallback callback) {
 
 void Window::setRefreshCallback(RefreshCallback callback) {
     m_impl->refreshCallback = std::move(callback);
+}
+
+void Window::setFileDropCallback(FileDropCallback callback) {
+    m_impl->fileDropCallback = std::move(callback);
+}
+
+const std::vector<std::string>& Window::droppedFiles() const {
+    return m_impl->droppedFiles;
+}
+
+void Window::clearDroppedFiles() {
+    m_impl->droppedFiles.clear();
 }
 
 InputState& Window::input() {

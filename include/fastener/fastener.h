@@ -54,6 +54,9 @@
 #include "fastener/widgets/dockable_window.h"
 #include "fastener/widgets/dock_preview.h"
 
+// Drag and Drop
+#include "fastener/ui/drag_drop.h"
+
 namespace fst {
     // Version info
     constexpr int VERSION_MAJOR = 0;

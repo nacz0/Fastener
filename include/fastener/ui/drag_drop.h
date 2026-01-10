@@ -5,6 +5,32 @@
 #include <vector>
 #include <functional>
 
+/**
+ * @file drag_drop.h  
+ * @brief Drag and drop system for transferring data between widgets
+ * 
+ * @ai_hint 
+ * SOURCE PATTERN (call after rendering the draggable widget):
+ *   if (fst::BeginDragDropSource()) {
+ *       int itemIndex = 42;
+ *       fst::SetDragDropPayload("MY_TYPE", &itemIndex, sizeof(int));
+ *       fst::SetDragDropDisplayText("Dragging item 42");
+ *       fst::EndDragDropSource();
+ *   }
+ * 
+ * TARGET PATTERN (call after rendering the drop-target widget):
+ *   if (fst::BeginDragDropTarget()) {
+ *       if (const auto* payload = fst::AcceptDragDropPayload("MY_TYPE")) {
+ *           int droppedIndex = payload->getData<int>();
+ *           handleDrop(droppedIndex);
+ *       }
+ *       fst::EndDragDropTarget();
+ *   }
+ * 
+ * IMPORTANT: Type strings must match exactly between source and target.
+ *            Payload is delivered on mouse release over valid target.
+ */
+
 namespace fst {
 
 //=============================================================================

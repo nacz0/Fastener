@@ -6,6 +6,32 @@
 #include <string>
 #include <functional>
 
+/**
+ * @file panel.h
+ * @brief Container widget with background, title, and layout management
+ * 
+ * @ai_hint Use the Panel() MACRO for RAII-style scoping (recommended).
+ *          The macro expands to an if-statement, so use braces:
+ *            Panel("id") { Button("OK"); }
+ *          
+ *          For more control, use BeginPanel()/EndPanel() pair.
+ *          Panel automatically sets up a new Layout context for children.
+ *          Returns false (skips content) if panel is collapsed.
+ * 
+ * @example
+ *   // RAII style (recommended):
+ *   Panel("settings", {.title = "Settings"}) {
+ *       fst::Checkbox("Dark Mode", darkMode);
+ *       fst::Slider("Font Size", fontSize, 8, 24);
+ *   }
+ *   
+ *   // Begin/End style:
+ *   if (fst::BeginPanel("options", {.collapsible = true})) {
+ *       fst::Button("Save");
+ *   }
+ *   fst::EndPanel(); // Always call, even if BeginPanel returned false
+ */
+
 namespace fst {
 
 //=============================================================================

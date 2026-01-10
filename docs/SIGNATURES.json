@@ -1,0 +1,254 @@
+{
+    "$comment": "Fastener Widget Signatures - Machine-parseable API reference for AI agents",
+    "version": "1.0.0",
+    "namespace": "fst",
+    "widgets": [
+        {
+            "name": "Button",
+            "header": "fastener/widgets/button.h",
+            "signatures": [
+                "bool Button(const std::string& label, const ButtonOptions& options = {})",
+                "bool ButtonPrimary(const std::string& label)"
+            ],
+            "returns": "true on click",
+            "options": {
+                "style": "Style - layout/visual overrides",
+                "primary": "bool - use accent color",
+                "disabled": "bool - prevent interaction"
+            }
+        },
+        {
+            "name": "Checkbox",
+            "header": "fastener/widgets/checkbox.h",
+            "signatures": [
+                "bool Checkbox(const std::string& label, bool& checked, const CheckboxOptions& options = {})"
+            ],
+            "returns": "true when toggled",
+            "options": {
+                "style": "Style",
+                "disabled": "bool"
+            }
+        },
+        {
+            "name": "Slider",
+            "header": "fastener/widgets/slider.h",
+            "signatures": [
+                "bool Slider(const std::string& label, float& value, float min, float max, const SliderOptions& options = {})",
+                "bool SliderInt(const std::string& label, int& value, int min, int max, const SliderOptions& options = {})"
+            ],
+            "returns": "true when value changed",
+            "options": {
+                "style": "Style",
+                "showValue": "bool - display current value",
+                "decimals": "int - decimal places",
+                "disabled": "bool"
+            }
+        },
+        {
+            "name": "TextInput",
+            "header": "fastener/widgets/text_input.h",
+            "signatures": [
+                "bool TextInput(const std::string& id, std::string& value, const TextInputOptions& options = {})",
+                "bool TextInputWithLabel(const std::string& label, std::string& value, const TextInputOptions& options = {})"
+            ],
+            "returns": "true when content changed",
+            "options": {
+                "style": "Style",
+                "placeholder": "string",
+                "password": "bool - mask input",
+                "readonly": "bool",
+                "multiline": "bool",
+                "maxLength": "int - 0 = no limit"
+            }
+        },
+        {
+            "name": "Label",
+            "header": "fastener/widgets/label.h",
+            "signatures": [
+                "void Label(const std::string& text, const LabelOptions& options = {})",
+                "void LabelHeading(const std::string& text)",
+                "void LabelSecondary(const std::string& text)"
+            ],
+            "returns": "void"
+        },
+        {
+            "name": "Panel",
+            "header": "fastener/widgets/panel.h",
+            "signatures": [
+                "bool BeginPanel(const std::string& id, const PanelOptions& options = {})",
+                "void EndPanel()"
+            ],
+            "returns": "true if panel is visible (not collapsed)",
+            "options": {
+                "style": "Style",
+                "title": "string",
+                "collapsible": "bool",
+                "scrollable": "bool",
+                "direction": "LayoutDirection - Vertical/Horizontal",
+                "spacing": "float - 0 = theme default"
+            },
+            "macro": "Panel(\"id\", opts) { ... } - RAII scope guard"
+        },
+        {
+            "name": "ComboBox",
+            "header": "fastener/widgets/combo_box.h",
+            "signatures": [
+                "bool ComboBox(const std::string& label, int& selectedIndex, const std::vector<std::string>& options)"
+            ],
+            "returns": "true when selection changed"
+        },
+        {
+            "name": "ProgressBar",
+            "header": "fastener/widgets/progress_bar.h",
+            "signatures": [
+                "void ProgressBar(float value, const ProgressBarOptions& options = {})"
+            ],
+            "returns": "void",
+            "notes": "value is 0.0-1.0, use options.indeterminate for animated loading"
+        },
+        {
+            "name": "Tooltip",
+            "header": "fastener/widgets/tooltip.h",
+            "signatures": [
+                "void Tooltip(const std::string& text, const TooltipOptions& options = {})"
+            ],
+            "returns": "void",
+            "notes": "Call AFTER the widget it should attach to"
+        },
+        {
+            "name": "Splitter",
+            "header": "fastener/widgets/splitter.h",
+            "signatures": [
+                "bool Splitter(const std::string& id, float& position, const Rect& bounds, const SplitterOptions& options = {})"
+            ],
+            "returns": "true when position changed"
+        },
+        {
+            "name": "TreeView",
+            "header": "fastener/widgets/tree_view.h",
+            "signatures": [
+                "void tree.render(const std::string& id, const Rect& bounds, const TreeViewOptions& options = {}, TreeViewEvents events = {})"
+            ],
+            "returns": "void",
+            "notes": "Class-based: create fst::TreeView, populate with root()->addChild(), then render()"
+        },
+        {
+            "name": "TabControl",
+            "header": "fastener/widgets/tab_control.h",
+            "signatures": [
+                "Rect tabs.render(const std::string& id, const Rect& bounds, const TabControlOptions& options = {}, TabControlEvents events = {})"
+            ],
+            "returns": "Rect - content area below tabs",
+            "notes": "Class-based: create fst::TabControl, addTab(), then render()"
+        },
+        {
+            "name": "TextEditor",
+            "header": "fastener/widgets/text_editor.h",
+            "signatures": [
+                "void editor.render(const Rect& bounds, const TextEditorOptions& options = {})"
+            ],
+            "returns": "void",
+            "notes": "Class-based: setText(), getText(), render()"
+        },
+        {
+            "name": "ColorPicker",
+            "header": "fastener/widgets/color_picker.h",
+            "signatures": [
+                "bool ColorPicker(const std::string& id, Color& color, const ColorPickerOptions& options = {})"
+            ],
+            "returns": "true when color changed"
+        },
+        {
+            "name": "Selectable",
+            "header": "fastener/widgets/selectable.h",
+            "signatures": [
+                "bool Selectable(const std::string& label, bool selected, const SelectableOptions& options = {})"
+            ],
+            "returns": "true when clicked"
+        },
+        {
+            "name": "RadioButton",
+            "header": "fastener/widgets/radio_button.h",
+            "signatures": [
+                "bool RadioButton(const std::string& label, int& currentValue, int buttonValue, const RadioButtonOptions& options = {})"
+            ],
+            "returns": "true when selected"
+        },
+        {
+            "name": "CollapsingHeader",
+            "header": "fastener/widgets/collapsing_header.h",
+            "signatures": [
+                "bool CollapsingHeader(const std::string& label, bool& isOpen, const CollapsingHeaderOptions& options = {})"
+            ],
+            "returns": "true when header state changes"
+        },
+        {
+            "name": "Separator",
+            "header": "fastener/widgets/separator.h",
+            "signatures": [
+                "void Separator(const SeparatorOptions& options = {})"
+            ],
+            "returns": "void"
+        },
+        {
+            "name": "InputNumber",
+            "header": "fastener/widgets/input_number.h",
+            "signatures": [
+                "bool InputFloat(const std::string& label, float& value, const InputNumberOptions& options = {})",
+                "bool InputInt(const std::string& label, int& value, const InputNumberOptions& options = {})"
+            ],
+            "returns": "true when value changed"
+        },
+        {
+            "name": "Listbox",
+            "header": "fastener/widgets/listbox.h",
+            "signatures": [
+                "bool Listbox(const std::string& id, int& selectedIndex, const std::vector<std::string>& items, const ListboxOptions& options = {})"
+            ],
+            "returns": "true when selection changed"
+        },
+        {
+            "name": "Menu",
+            "header": "fastener/widgets/menu.h",
+            "signatures": [
+                "void menuBar.render(const Rect& bounds)",
+                "void menuBar.renderPopups()"
+            ],
+            "returns": "void",
+            "notes": "Class-based: create fst::MenuBar, addMenu() with MenuItems"
+        }
+    ],
+    "dragDrop": {
+        "header": "fastener/ui/drag_drop.h",
+        "sourceFlow": [
+            "BeginDragDropSource(flags) - call after source widget",
+            "SetDragDropPayload(type, data, size) - set typed data",
+            "SetDragDropDisplayText(text) - optional preview text",
+            "EndDragDropSource()"
+        ],
+        "targetFlow": [
+            "BeginDragDropTarget() OR BeginDragDropTarget(bounds)",
+            "AcceptDragDropPayload(type, flags) - returns DragPayload* or nullptr",
+            "EndDragDropTarget()"
+        ],
+        "utilities": [
+            "IsDragDropActive() - check if drag in progress",
+            "GetDragDropPayload() - peek current payload",
+            "CancelDragDrop() - abort operation"
+        ]
+    },
+    "layout": {
+        "functions": [
+            "BeginHorizontal() / EndHorizontal()",
+            "BeginVertical() / EndVertical()",
+            "Spacing(float pixels)",
+            "Padding(float pixels)"
+        ]
+    },
+    "coreTypes": {
+        "Vec2": "struct { float x, y; } with operators",
+        "Rect": "struct { Vec2 pos, size; } with contains(), intersects(), shrunk(), expanded()",
+        "Color": "struct { uint8_t r,g,b,a; } with fromHex(), fromHSL(), lighter(), darker()",
+        "WidgetId": "uint64_t hash for widget identification"
+    }
+}

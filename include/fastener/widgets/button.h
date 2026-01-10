@@ -4,6 +4,20 @@
 #include "fastener/ui/style.h"
 #include <string>
 
+/**
+ * @file button.h
+ * @brief Standard clickable button widget
+ * 
+ * @ai_hint Primary interactive widget. Returns true ONLY on the frame clicked.
+ *          Use ButtonPrimary() for accent-colored actions (submit, save).
+ *          For disabled state: ButtonOptions{.disabled = true}.
+ *          Button uses bounds from the current Layout context.
+ * 
+ * @example
+ *   if (fst::Button("Save")) { saveDocument(); }
+ *   if (fst::ButtonPrimary("Submit")) { submitForm(); }
+ */
+
 namespace fst {
 
 //=============================================================================

@@ -4,6 +4,23 @@
 #include "fastener/ui/style.h"
 #include <string>
 
+/**
+ * @file text_input.h
+ * @brief Single-line text entry widget
+ * 
+ * @ai_hint First parameter is an ID (for focus tracking), NOT a label.
+ *          Use TextInputWithLabel if you want a visible label.
+ *          Returns true when content changes (typing, paste, delete).
+ *          Focus is gained on click, lost on click-away or Tab.
+ * 
+ * @example
+ *   static std::string username;
+ *   fst::TextInput("user_input", username, {.placeholder = "Username..."});
+ *   
+ *   // With visible label:
+ *   fst::TextInputWithLabel("Email", email);
+ */
+
 namespace fst {
 
 //=============================================================================

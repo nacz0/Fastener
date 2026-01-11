@@ -6,6 +6,8 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // Tooltip Options
 //=============================================================================
@@ -24,17 +26,16 @@ struct HelpMarkerOptions {
 // Tooltip Functions
 //=============================================================================
 
-// Show tooltip for the last widget if hovered
-// Call immediately after a widget (Button, Checkbox, etc.)
+/// Explicit DI versions
+void Tooltip(Context& ctx, const char* text, const TooltipOptions& options = {});
+void ShowTooltip(Context& ctx, const char* text, Vec2 position, const TooltipOptions& options = {});
+bool HelpMarker(Context& ctx, const char* text, const HelpMarkerOptions& options = {});
+
+/// Uses context stack
 void Tooltip(const char* text, const TooltipOptions& options = {});
 void Tooltip(const std::string& text, const TooltipOptions& options = {});
-
-// Manually show tooltip at specific position
 void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options = {});
 void ShowTooltip(const std::string& text, Vec2 position, const TooltipOptions& options = {});
-
-// Small "?" icon that shows tooltip on hover
-// Very useful for explaining options in dense UIs
 bool HelpMarker(const char* text, const HelpMarkerOptions& options = {});
 bool HelpMarker(const std::string& text, const HelpMarkerOptions& options = {});
 
@@ -52,16 +53,11 @@ struct TooltipState {
 };
 
 TooltipState& getTooltipState();
-
-// Called by widgets to register hover tracking
 void registerHoveredWidget(WidgetId id, const Rect& bounds);
-
-// Called at end of frame to render active tooltip
 void renderActiveTooltip();
-
-// Reset tooltip state (call at frame start)
 void resetTooltipState();
 
 } // namespace internal
 
 } // namespace fst
+

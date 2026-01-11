@@ -116,7 +116,7 @@ void Table::renderHeader() {
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -266,7 +266,7 @@ bool Table::row(const std::vector<std::string>& cells, bool selected) {
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -374,7 +374,7 @@ void Table::end() {
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     InputState& input = wc.ctx->input();
 
     // Clamp scroll offset
@@ -472,7 +472,7 @@ void TableHeader(int sortColumn, bool sortAscending) {
     state.sortAscending = sortAscending;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -548,7 +548,7 @@ bool TableRow(const std::vector<std::string>& cells, bool selected) {
 
     TableState& state = *s_currentTable;
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -644,7 +644,7 @@ void EndTable() {
 
     TableState& state = *s_currentTable;
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     InputState& input = wc.ctx->input();
 
     float totalHeight = state.currentRow * state.rowHeight;

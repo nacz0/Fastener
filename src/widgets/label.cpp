@@ -29,7 +29,7 @@ void Label(std::string_view text, const LabelOptions& options) {
     if (!wc.valid() || !wc.font) return;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Determine text color

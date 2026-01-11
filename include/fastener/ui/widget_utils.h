@@ -9,7 +9,7 @@ namespace fst {
 
 // Forward declarations
 class Context;
-class DrawList;
+class IDrawList;
 class Font;
 struct Theme;
 class LayoutContext;
@@ -27,7 +27,7 @@ class LayoutContext;
 struct WidgetContext {
     Context* ctx;
     const Theme* theme;
-    DrawList* dl;
+    IDrawList* dl;
     Font* font;
     
     /** @brief Check if context is valid. */

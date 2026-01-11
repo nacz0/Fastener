@@ -148,7 +148,7 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
     Context* ctx = Context::current();
     if (!ctx) return bounds;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     
@@ -240,7 +240,7 @@ void TabControl::drawTab(int index, const Rect& tabRect,
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     

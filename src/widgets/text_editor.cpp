@@ -70,7 +70,7 @@ void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
     Context* ctx = Context::current();
     if (!ctx) return;
 
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     if (!font) return;

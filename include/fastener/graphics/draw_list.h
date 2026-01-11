@@ -1,8 +1,7 @@
 #pragma once
 
-#include "fastener/core/types.h"
+#include "fastener/graphics/IDrawList.h"
 #include <vector>
-#include <string_view>
 
 namespace fst {
 
@@ -32,7 +31,7 @@ struct DrawCommand {
 //=============================================================================
 // Draw List - Collects draw commands for rendering
 //=============================================================================
-class DrawList {
+class DrawList : public IDrawList {
 public:
     DrawList();
     ~DrawList();
@@ -41,52 +40,45 @@ public:
     void clear();
     
     // Clipping
-    void pushClipRect(const Rect& rect);
+    void pushClipRect(const Rect& rect) override;
     void pushClipRectFullScreen(const Vec2& screenSize);
-    void popClipRect();
-    Rect currentClipRect() const;
+    void popClipRect() override;
+    Rect currentClipRect() const override;
     
     // Layers
-    enum class Layer {
-        Default,    // Docked windows, background
-        Floating,   // Floating windows
-        Overlay,    // Tooltips, drag previews, menus
-        Count
-    };
-    
-    void setLayer(Layer layer);
-    Layer currentLayer() const;
+    void setLayer(DrawLayer layer) override;
+    DrawLayer currentLayer() const override;
     
     // Color Stack
-    void pushColor(Color color);
-    void popColor();
-    Color currentColor() const;
+    void pushColor(Color color) override;
+    void popColor() override;
+    Color currentColor() const override;
     
     // Primitives
-    void addRect(const Rect& rect, Color color = Color::none(), float rounding = 0.0f);
-    void addRectFilled(const Rect& rect, Color color = Color::none(), float rounding = 0.0f);
+    void addRect(const Rect& rect, Color color = Color::none(), float rounding = 0.0f) override;
+    void addRectFilled(const Rect& rect, Color color = Color::none(), float rounding = 0.0f) override;
     void addRectFilledMultiColor(const Rect& rect, Color topLeft, Color topRight, 
-                                  Color bottomRight, Color bottomLeft);
+                                  Color bottomRight, Color bottomLeft) override;
     
-    void addLine(const Vec2& p1, const Vec2& p2, Color color = Color::none(), float thickness = 1.0f);
-    void addCircle(const Vec2& center, float radius, Color color = Color::none(), int segments = 0);
-    void addCircleFilled(const Vec2& center, float radius, Color color = Color::none(), int segments = 0);
+    void addLine(const Vec2& p1, const Vec2& p2, Color color = Color::none(), float thickness = 1.0f) override;
+    void addCircle(const Vec2& center, float radius, Color color = Color::none(), int segments = 0) override;
+    void addCircleFilled(const Vec2& center, float radius, Color color = Color::none(), int segments = 0) override;
     
-    void addTriangle(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none());
-    void addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none());
+    void addTriangle(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none()) override;
+    void addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none()) override;
     
     // Text
-    void addText(const Font* font, const Vec2& pos, std::string_view text, Color color = Color::none());
+    void addText(const Font* font, const Vec2& pos, std::string_view text, Color color = Color::none()) override;
     
     // Images
-    void addImage(const Texture* texture, const Rect& rect, Color tint = Color::white());
+    void addImage(const Texture* texture, const Rect& rect, Color tint = Color::white()) override;
     void addImage(const Texture* texture, const Rect& rect, const Vec2& uv0, const Vec2& uv1, 
-                  Color tint = Color::white());
+                  Color tint = Color::white()) override;
     void addImageRounded(const Texture* texture, const Rect& rect, float rounding, 
-                         Color tint = Color::white());
+                         Color tint = Color::white()) override;
     
     // Shadow (soft rectangle)
-    void addShadow(const Rect& rect, Color color, float size, float rounding = 0.0f);
+    void addShadow(const Rect& rect, Color color, float size, float rounding = 0.0f) override;
     
     // Final merged data for rendering (merged by mergeLayers())
     const std::vector<DrawVertex>& vertices() const { return m_mergedVertices; }
@@ -97,10 +89,10 @@ public:
     void mergeLayers();
     
     // Current texture (for batching)
-    void setTexture(uint32_t textureId);
+    void setTexture(uint32_t textureId) override;
     
     // Color resolution helper
-    Color resolveColor(Color color) const;
+    Color resolveColor(Color color) const override;
     
 private:
     struct LayerData {
@@ -112,8 +104,8 @@ private:
         uint32_t currentTexture = 0;
     };
 
-    LayerData m_layers[static_cast<int>(Layer::Count)];
-    Layer m_currentLayer = Layer::Default;
+    LayerData m_layers[static_cast<int>(DrawLayer::Count)];
+    DrawLayer m_currentLayer = DrawLayer::Default;
 
     // Merged results for the renderer
     std::vector<DrawVertex> m_mergedVertices;

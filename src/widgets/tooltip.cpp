@@ -124,7 +124,7 @@ void Tooltip(const char* text, const TooltipOptions& options) {
         if (!ctx) return;
         
         const Theme& theme = ctx->theme();
-        DrawList& dl = ctx->drawList();
+        IDrawList& dl = *ctx->activeDrawList();
         Font* font = ctx->font();
         if (!font) return;
         
@@ -207,7 +207,7 @@ void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options)
         if (!ctx) return;
         
         const Theme& theme = ctx->theme();
-        DrawList& dl = ctx->drawList();
+        IDrawList& dl = *ctx->activeDrawList();
         Font* font = ctx->font();
         if (!font) return;
         
@@ -256,7 +256,7 @@ bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
     if (!ctx) return false;
     
     const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     Font* font = ctx->font();
     
     // Size of help marker circle

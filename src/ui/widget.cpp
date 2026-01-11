@@ -17,7 +17,7 @@ WidgetContext getWidgetContext() {
     wc.ctx = Context::current();
     if (wc.ctx) {
         wc.theme = &wc.ctx->theme();
-        wc.dl = &wc.ctx->drawList();
+        wc.dl = wc.ctx->activeDrawList();
         wc.font = wc.ctx->font();
     }
     return wc;
@@ -119,6 +119,10 @@ WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool 
     
     result.focused = ctx->getFocusedWidget() == id;
     
+    // Store this widget's info for drag-drop source identification
+    ctx->setLastWidgetId(id);
+    ctx->setLastWidgetBounds(bounds);
+    
     return result;
 }
 
@@ -126,7 +130,7 @@ void drawWidgetBackground(const Rect& bounds, const Style& style, const WidgetSt
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     
     // Draw shadow
@@ -158,7 +162,7 @@ void drawWidgetBorder(const Rect& bounds, const Style& style, const WidgetState&
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     
     if (style.borderWidth <= 0) return;

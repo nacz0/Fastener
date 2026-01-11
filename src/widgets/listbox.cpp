@@ -39,7 +39,7 @@ bool Listbox(std::string_view label, int& selectedIndex,
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -222,7 +222,7 @@ bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 

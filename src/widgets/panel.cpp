@@ -60,7 +60,7 @@ bool BeginPanel(const std::string& id, const PanelOptions& options) {
     if (!wc.valid()) return false;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     
     // Push panel ID onto stack
     wc.ctx->pushId(id.c_str());

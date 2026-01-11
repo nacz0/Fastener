@@ -39,7 +39,7 @@ void ScrollArea::render(const std::string& id, const Rect& bounds,
 
     ctx->pushId(id.c_str());
 
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
 
     // Background & Border

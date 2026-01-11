@@ -36,7 +36,7 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
 
     // Generate unique ID
     WidgetId id = wc.ctx->makeId(id_str);

@@ -34,7 +34,7 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     if (!ctx) return false;
 
     const Theme& theme = ctx->theme();
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     Font* font = ctx->font();
     
     // Generate base ID for the widget group

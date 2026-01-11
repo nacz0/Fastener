@@ -31,7 +31,7 @@ void Spinner(const char* id, const SpinnerOptions& options) {
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     
     float size = options.size;
     float thickness = options.thickness;
@@ -83,7 +83,7 @@ void SpinnerWithLabel(const std::string& id, const std::string& label,
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
     float size = options.size;
@@ -132,7 +132,7 @@ void LoadingDots(const std::string& id, const SpinnerOptions& options) {
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
 
     float dotSize = options.size * 0.25f;
     float spacing = dotSize * 1.5f;

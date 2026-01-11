@@ -28,7 +28,7 @@ void RenderDockPreview() {
     auto& dl = ctx->drawList();
     const auto& theme = ctx->theme();
     
-    dl.setLayer(DrawList::Layer::Overlay);
+    dl.setLayer(DrawLayer::Overlay);
     
     // Calculate preview rect
     DockPreviewState preview = CalculateDockPreview(hoveredNode, 
@@ -46,7 +46,7 @@ void RenderDockPreview() {
     // Draw target indicators (the 5-way cross)
     RenderDockTargetIndicators(hoveredNode, dragState.mousePos);
     
-    dl.setLayer(DrawList::Layer::Default);
+    dl.setLayer(DrawLayer::Default);
 }
 
 //=============================================================================

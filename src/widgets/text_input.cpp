@@ -34,7 +34,7 @@ bool TextInput(std::string_view id, std::string& value, const TextInputOptions& 
     if (!wc.valid()) return false;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID

@@ -33,7 +33,7 @@ bool CollapsingHeader(std::string_view label, bool& isOpen,
     if (!wc.valid()) return isOpen;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID

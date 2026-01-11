@@ -45,7 +45,7 @@ void ProgressBar(std::string_view label, float progress, const ProgressBarOption
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
     // Calculate dimensions

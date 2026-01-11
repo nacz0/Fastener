@@ -31,7 +31,7 @@ bool Button(std::string_view label, const ButtonOptions& options) {
     if (!wc.valid()) return false;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique widget ID from label

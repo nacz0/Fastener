@@ -106,7 +106,7 @@ bool TextArea(const char* id, std::string& value, const TextAreaOptions& options
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -374,7 +374,7 @@ bool TextAreaWithLabel(const std::string& label, std::string& value,
     if (!wc.valid()) return TextArea(label, value, options);
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
     // Draw label

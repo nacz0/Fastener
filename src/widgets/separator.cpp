@@ -28,7 +28,7 @@ void Separator(const SeparatorOptions& options) {
     if (!wc.valid()) return;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     
     // Determine separator color
     Color sepColor = options.color.a > 0 ? options.color : theme.colors.border;
@@ -65,7 +65,7 @@ void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options)
     if (!wc.valid()) return;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
     // Use explicit height if provided, otherwise default

@@ -39,7 +39,7 @@ bool InputNumber(std::string_view label, float& value, float minVal, float maxVa
     if (!wc.valid()) return false;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Calculate dimensions

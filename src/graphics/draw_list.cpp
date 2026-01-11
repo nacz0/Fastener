@@ -8,17 +8,17 @@
 namespace fst {
 
 DrawList::DrawList() {
-    for (int i = 0; i < static_cast<int>(Layer::Count); ++i) {
-        m_layers[i].vertices.reserve(constants::DEFAULT_VERTEX_RESERVE / static_cast<int>(Layer::Count));
-        m_layers[i].indices.reserve(constants::DEFAULT_INDEX_RESERVE / static_cast<int>(Layer::Count));
-        m_layers[i].commands.reserve(constants::DEFAULT_COMMAND_RESERVE / static_cast<int>(Layer::Count));
+    for (int i = 0; i < static_cast<int>(DrawLayer::Count); ++i) {
+        m_layers[i].vertices.reserve(constants::DEFAULT_VERTEX_RESERVE / static_cast<int>(DrawLayer::Count));
+        m_layers[i].indices.reserve(constants::DEFAULT_INDEX_RESERVE / static_cast<int>(DrawLayer::Count));
+        m_layers[i].commands.reserve(constants::DEFAULT_COMMAND_RESERVE / static_cast<int>(DrawLayer::Count));
     }
 }
 
 DrawList::~DrawList() = default;
 
 void DrawList::clear() {
-    for (int i = 0; i < static_cast<int>(Layer::Count); ++i) {
+    for (int i = 0; i < static_cast<int>(DrawLayer::Count); ++i) {
         m_layers[i].vertices.clear();
         m_layers[i].indices.clear();
         m_layers[i].commands.clear();
@@ -26,17 +26,17 @@ void DrawList::clear() {
         m_layers[i].colorStack.clear();
         m_layers[i].currentTexture = 0;
     }
-    m_currentLayer = Layer::Default;
+    m_currentLayer = DrawLayer::Default;
     m_mergedVertices.clear();
     m_mergedIndices.clear();
     m_mergedCommands.clear();
 }
 
-void DrawList::setLayer(Layer layer) {
+void DrawList::setLayer(DrawLayer layer) {
     m_currentLayer = layer;
 }
 
-DrawList::Layer DrawList::currentLayer() const {
+DrawLayer DrawList::currentLayer() const {
     return m_currentLayer;
 }
 
@@ -48,7 +48,7 @@ void DrawList::mergeLayers() {
     uint32_t vertexOffset = 0;
     uint32_t indexOffset = 0;
 
-    for (int i = 0; i < static_cast<int>(Layer::Count); ++i) {
+    for (int i = 0; i < static_cast<int>(DrawLayer::Count); ++i) {
         auto& layer = m_layers[i];
         if (layer.commands.empty()) continue;
 

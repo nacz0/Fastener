@@ -32,7 +32,7 @@ bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& opti
     if (!wc.valid()) return false;
     
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID

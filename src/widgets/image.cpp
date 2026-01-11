@@ -45,7 +45,7 @@ void Image(Texture* texture, Vec2 size, const ImageOptions& options) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return;
     
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     
     // Use explicit size or style size
     float width = options.style.width > 0 ? options.style.width : size.x;

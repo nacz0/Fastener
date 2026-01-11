@@ -21,6 +21,7 @@ struct DockableWindowState {
     Rect floatingBounds;
     bool isDragging = false;
     Vec2 dragOffset;
+    DrawLayer prevLayer = DrawLayer::Default;
 };
 
 // Simple window state storage
@@ -106,12 +107,13 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
     const float titleBarHeight = 28.0f;
     
     // Switch to appropriate draw layer
+    state.prevLayer = dl.currentLayer();
     if (beingDragged) {
-        dl.setLayer(DrawList::Layer::Overlay);
+        dl.setLayer(DrawLayer::Overlay);
     } else if (!docked) {
-        dl.setLayer(DrawList::Layer::Floating);
+        dl.setLayer(DrawLayer::Floating);
     } else {
-        dl.setLayer(DrawList::Layer::Default);
+        dl.setLayer(DrawLayer::Default);
     }
     
     if (beingDragged) {
@@ -231,7 +233,8 @@ void EndDockableWindow() {
     dl.popClipRect();
     
     // Reset layer
-    dl.setLayer(DrawList::Layer::Default);
+    auto& state = getWindowState(s_windowStack.back());
+    dl.setLayer(state.prevLayer);
     
     // Pop ID
     ctx->popId();

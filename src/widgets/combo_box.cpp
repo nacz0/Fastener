@@ -50,7 +50,7 @@ bool ComboBox(std::string_view label, int& selectedIndex,
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     InputState& input = wc.ctx->input();
 
@@ -181,7 +181,7 @@ bool ComboBox(std::string_view label, int& selectedIndex,
             // Re-acquire context helpers since we are in a callback
             Context* ctx = Context::current();
             if (!ctx) return;
-            DrawList& dl = ctx->drawList();
+            IDrawList& dl = *ctx->activeDrawList();
             Font* font = ctx->font();
             InputState& input = ctx->input();
             const Theme& theme = ctx->theme();

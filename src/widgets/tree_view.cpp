@@ -95,7 +95,7 @@ void TreeView::render(std::string_view id, const Rect& bounds,
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     
     // Generate ID
@@ -170,7 +170,7 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     Context* ctx = Context::current();
     if (!ctx) return y;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     
@@ -266,7 +266,7 @@ void TreeView::drawExpandArrow(const Vec2& pos, bool expanded, Color color) {
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     float size = 4.0f;
     
     if (expanded) {
@@ -288,7 +288,7 @@ void TreeView::drawIcon(const Vec2& pos, bool isFolder, bool isExpanded, Color c
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     
     if (isFolder) {
         // Draw folder icon

@@ -45,7 +45,7 @@ float MenuBar::render(const Rect& bounds) {
     Context* ctx = Context::current();
     if (!ctx) return 0;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     
@@ -137,7 +137,7 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     
@@ -278,7 +278,7 @@ void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items,
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     
@@ -384,7 +384,7 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     Context* ctx = Context::current();
     if (!ctx) return 0;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     
@@ -534,7 +534,7 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
     Context* ctx = Context::current();
     if (!ctx) return;
     
-    DrawList& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const Theme& theme = ctx->theme();
     Font* font = ctx->font();
     

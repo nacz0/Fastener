@@ -23,7 +23,7 @@ bool Selectable(std::string_view label, bool& selected, const SelectableOptions&
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
     WidgetId id = wc.ctx->makeId(label);
@@ -86,7 +86,7 @@ bool SelectableWithIcon(std::string_view icon, std::string_view label,
     if (!wc.valid()) return false;
 
     const Theme& theme = *wc.theme;
-    DrawList& dl = *wc.dl;
+    IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
     std::string combinedId(icon);

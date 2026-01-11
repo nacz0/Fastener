@@ -6,9 +6,8 @@
 
 namespace fst {
 
-/**
- * @brief Options for customizing Spinner appearance.
- */
+class Context;
+
 struct SpinnerOptions {
     Style style;
     float size = 24.0f;         ///< Diameter of the spinner
@@ -17,31 +16,18 @@ struct SpinnerOptions {
     Color color = Color(0, 0, 0, 0);  ///< 0 = use theme primary color
 };
 
-/**
- * @brief Renders an animated loading spinner.
- * 
- * @param id Unique identifier for the spinner
- * @param options Spinner styling options
- */
+/// Explicit DI versions
+void Spinner(Context& ctx, const std::string& id, const SpinnerOptions& options = {});
+void SpinnerWithLabel(Context& ctx, const std::string& id, const std::string& label, 
+                      const SpinnerOptions& options = {});
+void LoadingDots(Context& ctx, const std::string& id, const SpinnerOptions& options = {});
+
+/// Uses context stack
 void Spinner(const std::string& id, const SpinnerOptions& options = {});
 void Spinner(const char* id, const SpinnerOptions& options = {});
-
-/**
- * @brief Renders a spinner with a label.
- * 
- * @param id Unique identifier
- * @param label Text to display next to spinner
- * @param options Spinner styling options
- */
 void SpinnerWithLabel(const std::string& id, const std::string& label, 
                       const SpinnerOptions& options = {});
-
-/**
- * @brief Dots-style loading indicator (alternative to spinner).
- * 
- * @param id Unique identifier
- * @param options Styling options (size controls dot size)
- */
 void LoadingDots(const std::string& id, const SpinnerOptions& options = {});
 
 } // namespace fst
+

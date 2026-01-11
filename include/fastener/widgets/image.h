@@ -6,34 +6,25 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // Image
 //=============================================================================
 
-/**
- * @brief Options for Image widget styling.
- */
 struct ImageOptions {
     Style style;
     Color tint = Color(255, 255, 255, 255);  // White = no tint
     float borderRadius = 0.0f;
 };
 
-/**
- * @brief Renders an image from a texture.
- * 
- * @param texture Pointer to the texture to display
- * @param options Styling options including tint and border radius
- */
-void Image(Texture* texture, const ImageOptions& options = {});
+/// Explicit DI versions
+void Image(Context& ctx, Texture* texture, const ImageOptions& options = {});
+void Image(Context& ctx, Texture* texture, Vec2 size, const ImageOptions& options = {});
 
-/**
- * @brief Renders an image with explicit size.
- * 
- * @param texture Pointer to the texture to display
- * @param size Explicit size for the image
- * @param options Styling options
- */
+/// Uses context stack
+void Image(Texture* texture, const ImageOptions& options = {});
 void Image(Texture* texture, Vec2 size, const ImageOptions& options = {});
 
 } // namespace fst
+

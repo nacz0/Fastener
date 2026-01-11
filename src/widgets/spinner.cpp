@@ -23,12 +23,11 @@ static constexpr float PI = 3.14159265358979323846f;
 static constexpr float TWO_PI = PI * 2.0f;
 
 //=============================================================================
-// Spinner Implementation
+// Spinner Implementation (Explicit DI)
 //=============================================================================
 
-void Spinner(const char* id, const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+void Spinner(Context& ctx, const std::string& id, const SpinnerOptions& options) {
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -42,18 +41,16 @@ void Spinner(const char* id, const SpinnerOptions& options) {
     float radius = (size - thickness) * 0.5f;
 
     // Get animation time
-    float time = wc.ctx->time() * options.speed * 2.0f;
+    float time = ctx.time() * options.speed * 2.0f;
 
     // Choose color
     Color spinColor = options.color.a > 0 ? options.color : theme.colors.primary;
 
     // Draw spinning arc
-    // We draw a partial circle that rotates and changes arc length
     float startAngle = time;
-    float arcLength = 0.8f + 0.4f * std::sin(time * 1.2f); // Varies between 0.4 and 1.2 radians
+    float arcLength = 0.8f + 0.4f * std::sin(time * 1.2f);
     arcLength = std::clamp(arcLength, 0.3f, PI * 1.5f);
     
-    // Number of segments for smooth arc
     int segments = std::max(8, (int)(arcLength * radius * 0.5f));
     float angleStep = arcLength / (float)segments;
 
@@ -64,23 +61,16 @@ void Spinner(const char* id, const SpinnerOptions& options) {
         Vec2 p1(center.x + std::cos(angle1) * radius, center.y + std::sin(angle1) * radius);
         Vec2 p2(center.x + std::cos(angle2) * radius, center.y + std::sin(angle2) * radius);
 
-        // Fade from full opacity at start to lower at end
         float alpha = 1.0f - (float)i / (float)segments * 0.7f;
         Color segColor = spinColor.withAlpha((uint8_t)(spinColor.a * alpha));
 
         dl.addLine(p1, p2, segColor, thickness);
     }
-
 }
 
-void Spinner(const std::string& id, const SpinnerOptions& options) {
-    Spinner(id.c_str(), options);
-}
-
-void SpinnerWithLabel(const std::string& id, const std::string& label, 
+void SpinnerWithLabel(Context& ctx, const std::string& id, const std::string& label, 
                       const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -93,14 +83,9 @@ void SpinnerWithLabel(const std::string& id, const std::string& label,
 
     Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
 
-    // Draw spinner
-    SpinnerOptions spinOpts = options;
-    spinOpts.style.width = size;
-    spinOpts.style.height = size;
-    
     Vec2 center(bounds.x() + size * 0.5f, bounds.center().y);
     float radius = (size - options.thickness) * 0.5f;
-    float time = wc.ctx->time() * options.speed * 2.0f;
+    float time = ctx.time() * options.speed * 2.0f;
     Color spinColor = options.color.a > 0 ? options.color : theme.colors.primary;
 
     float startAngle = time;
@@ -127,9 +112,8 @@ void SpinnerWithLabel(const std::string& id, const std::string& label,
     }
 }
 
-void LoadingDots(const std::string& id, const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+void LoadingDots(Context& ctx, const std::string& id, const SpinnerOptions& options) {
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -141,7 +125,7 @@ void LoadingDots(const std::string& id, const SpinnerOptions& options) {
 
     Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
     
-    float time = wc.ctx->time() * options.speed * 3.0f;
+    float time = ctx.time() * options.speed * 3.0f;
     Color baseColor = options.color.a > 0 ? options.color : theme.colors.primary;
 
     for (int i = 0; i < 3; ++i) {
@@ -158,4 +142,34 @@ void LoadingDots(const std::string& id, const SpinnerOptions& options) {
     }
 }
 
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+void Spinner(const char* id, const SpinnerOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Spinner(*wc.ctx, std::string(id), options);
+}
+
+void Spinner(const std::string& id, const SpinnerOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Spinner(*wc.ctx, id, options);
+}
+
+void SpinnerWithLabel(const std::string& id, const std::string& label, 
+                      const SpinnerOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    SpinnerWithLabel(*wc.ctx, id, label, options);
+}
+
+void LoadingDots(const std::string& id, const SpinnerOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    LoadingDots(*wc.ctx, id, options);
+}
+
 } // namespace fst
+

@@ -7,32 +7,25 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // Separator
 //=============================================================================
 
-/**
- * @brief Options for Separator widget styling.
- */
 struct SeparatorOptions {
     Style style;
     Color color;              // Default: from theme
     float thickness = 1.0f;
 };
 
-/**
- * @brief Renders a horizontal separator line.
- * 
- * @param options Styling options
- */
-void Separator(const SeparatorOptions& options = {});
+/// Explicit DI versions
+void Separator(Context& ctx, const SeparatorOptions& options = {});
+void SeparatorWithLabel(Context& ctx, std::string_view label, const SeparatorOptions& options = {});
 
-/**
- * @brief Renders a separator with centered text label.
- * 
- * @param label Text to display centered on the separator
- * @param options Styling options
- */
+/// Uses context stack
+void Separator(const SeparatorOptions& options = {});
 void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options = {});
 
 } // namespace fst
+

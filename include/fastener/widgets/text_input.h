@@ -24,6 +24,8 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // TextInput
 //=============================================================================
@@ -36,10 +38,15 @@ struct TextInputOptions {
     int maxLength = 0;         // 0 = no limit
 };
 
-[[nodiscard]] bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options = {});
+/// Explicit DI versions
+[[nodiscard]] bool TextInput(Context& ctx, std::string_view id, std::string& value, const TextInputOptions& options = {});
+[[nodiscard]] bool TextInputWithLabel(Context& ctx, std::string_view label, std::string& value, 
+                        const TextInputOptions& options = {});
 
-// With label
+/// Uses context stack
+[[nodiscard]] bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options = {});
 [[nodiscard]] bool TextInputWithLabel(std::string_view label, std::string& value, 
                         const TextInputOptions& options = {});
 
 } // namespace fst
+

@@ -14,18 +14,11 @@
 namespace fst {
 
 //=============================================================================
-// Separator Implementation
+// Separator Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders a horizontal separator line.
- * 
- * @param options Styling options
- */
-void Separator(const SeparatorOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+void Separator(Context& ctx, const SeparatorOptions& options) {
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -36,7 +29,7 @@ void Separator(const SeparatorOptions& options) {
     // Calculate dimensions - separator takes full available width
     float width = options.style.width;
     if (width <= 0) {
-        width = wc.ctx->layout().allocateRemaining().width();
+        width = ctx.layout().allocateRemaining().width();
     }
     float totalHeight = options.thickness + theme.metrics.paddingSmall * 2;
     
@@ -54,15 +47,8 @@ void Separator(const SeparatorOptions& options) {
     dl.addRectFilled(lineRect, sepColor);
 }
 
-/**
- * @brief Renders a separator with centered text label.
- * 
- * @param label Text to display centered on the separator
- * @param options Styling options
- */
-void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+void SeparatorWithLabel(Context& ctx, std::string_view label, const SeparatorOptions& options) {
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -106,4 +92,21 @@ void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options)
     }
 }
 
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+void Separator(const SeparatorOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Separator(*wc.ctx, options);
+}
+
+void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    SeparatorWithLabel(*wc.ctx, label, options);
+}
+
 } // namespace fst
+

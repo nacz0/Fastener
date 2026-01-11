@@ -15,30 +15,19 @@
 namespace fst {
 
 //=============================================================================
-// RadioButton Implementation
+// RadioButton Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders a radio button for mutually exclusive selection.
- * 
- * @param label Text displayed next to the radio button
- * @param selectedIndex Reference to the currently selected index
- * @param index The index value this radio button represents
- * @param options Styling and behavior options
- * @return true if this radio button was selected this frame
- */
-bool RadioButton(std::string_view label, int& selectedIndex, int index,
+bool RadioButton(Context& ctx, std::string_view label, int& selectedIndex, int index,
                  const RadioButtonOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     
     // Calculate dimensions
     float circleSize = theme.metrics.checkboxSize;
@@ -117,4 +106,16 @@ bool RadioButton(std::string_view label, int& selectedIndex, int index,
     return changed;
 }
 
+//=============================================================================
+// Backward-compatible wrapper
+//=============================================================================
+
+bool RadioButton(std::string_view label, int& selectedIndex, int index,
+                 const RadioButtonOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return RadioButton(*wc.ctx, label, selectedIndex, index, options);
+}
+
 } // namespace fst
+

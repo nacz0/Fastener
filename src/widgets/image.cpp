@@ -13,16 +13,10 @@
 namespace fst {
 
 //=============================================================================
-// Image Implementation
+// Image Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders an image from a texture.
- * 
- * @param texture Pointer to the texture to display
- * @param options Styling options including tint and border radius
- */
-void Image(Texture* texture, const ImageOptions& options) {
+void Image(Context& ctx, Texture* texture, const ImageOptions& options) {
     if (!texture && options.style.width <= 0 && options.style.height <= 0) return;
     
     Vec2 size(0, 0);
@@ -30,20 +24,11 @@ void Image(Texture* texture, const ImageOptions& options) {
         size = Vec2(static_cast<float>(texture->width()), 
                     static_cast<float>(texture->height()));
     }
-    Image(texture, size, options);
+    Image(ctx, texture, size, options);
 }
 
-/**
- * @brief Renders an image with explicit size.
- * 
- * @param texture Pointer to the texture to display
- * @param size Explicit size for the image
- * @param options Styling options
- */
-void Image(Texture* texture, Vec2 size, const ImageOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+void Image(Context& ctx, Texture* texture, Vec2 size, const ImageOptions& options) {
+    auto wc = WidgetContext::make(ctx);
     
     IDrawList& dl = *wc.dl;
     
@@ -56,21 +41,30 @@ void Image(Texture* texture, Vec2 size, const ImageOptions& options) {
     
     // Draw image with optional tint
     if (texture) {
-        // UV coordinates for full texture
         Vec2 uv0(0.0f, 0.0f);
         Vec2 uv1(1.0f, 1.0f);
-        
-        if (options.borderRadius > 0.0f) {
-            // For rounded images, we'd need clipping - for now draw normally
-            dl.addImage(texture, bounds, uv0, uv1, options.tint);
-        } else {
-            dl.addImage(texture, bounds, uv0, uv1, options.tint);
-        }
+        dl.addImage(texture, bounds, uv0, uv1, options.tint);
     } else {
-        // Draw placeholder rectangle if no texture
         const Theme& theme = *wc.theme;
         dl.addRectFilled(bounds, theme.colors.secondary, options.borderRadius);
     }
 }
 
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+void Image(Texture* texture, const ImageOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Image(*wc.ctx, texture, options);
+}
+
+void Image(Texture* texture, Vec2 size, const ImageOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Image(*wc.ctx, texture, size, options);
+}
+
 } // namespace fst
+

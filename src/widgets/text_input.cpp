@@ -17,28 +17,18 @@
 namespace fst {
 
 //=============================================================================
-// TextInput Implementation
+// TextInput Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders a single-line text input field.
- * 
- * @param id Unique identifier string for the widget
- * @param value Reference to the text string (modified on input)
- * @param options TextInput styling and behavior options
- * @return true if the text value was changed this frame
- */
-bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+bool TextInput(Context& ctx, std::string_view id, std::string& value, const TextInputOptions& options) {
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID
-    WidgetId widgetId = wc.ctx->makeId(id);
+    WidgetId widgetId = ctx.makeId(id);
     
     // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 200.0f;
@@ -55,7 +45,7 @@ bool TextInput(std::string_view id, std::string& value, const TextInputOptions& 
     
     // Handle text input when focused
     if (state.focused && !options.readonly) {
-        const std::string& textInput = wc.ctx->input().textInput();
+        const std::string& textInput = ctx.input().textInput();
         if (!textInput.empty()) {
             if (options.maxLength == 0 || 
                 value.length() + textInput.length() <= static_cast<size_t>(options.maxLength)) {
@@ -65,7 +55,7 @@ bool TextInput(std::string_view id, std::string& value, const TextInputOptions& 
         }
         
         // Handle backspace (UTF-8 aware)
-        if (wc.ctx->input().isKeyPressed(Key::Backspace) && !value.empty()) {
+        if (ctx.input().isKeyPressed(Key::Backspace) && !value.empty()) {
             size_t len = value.length();
             // Skip continuation bytes (10xxxxxx pattern)
             while (len > 0 && (value[len - 1] & 0xC0) == 0x80) {
@@ -130,7 +120,7 @@ bool TextInput(std::string_view id, std::string& value, const TextInputOptions& 
         
         // Draw blinking cursor when focused and editable
         if (state.focused && !options.readonly) {
-            float cursorAlpha = (std::fmod(wc.ctx->time() * 2.0f, 2.0f) < 1.0f) ? 1.0f : 0.0f;
+            float cursorAlpha = (std::fmod(ctx.time() * 2.0f, 2.0f) < 1.0f) ? 1.0f : 0.0f;
             if (cursorAlpha > 0.5f) {
                 Vec2 textSize = font->measureText(displayText);
                 float cursorX = textRect.x() + textSize.x;
@@ -145,12 +135,27 @@ bool TextInput(std::string_view id, std::string& value, const TextInputOptions& 
     return changed;
 }
 
-/**
- * @brief TextInput with integrated label.
- */
+bool TextInputWithLabel(Context& ctx, std::string_view label, std::string& value, 
+                        const TextInputOptions& options) {
+    return TextInput(ctx, label, value, options);
+}
+
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return TextInput(*wc.ctx, id, value, options);
+}
+
 bool TextInputWithLabel(std::string_view label, std::string& value, 
                         const TextInputOptions& options) {
-    return TextInput(label, value, options);
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return TextInputWithLabel(*wc.ctx, label, value, options);
 }
 
 } // namespace fst
+

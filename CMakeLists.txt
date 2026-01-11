@@ -80,6 +80,7 @@ if(FST_BUILD_TESTS)
         tests/test_input.cpp
         tests/test_docking.cpp
         tests/test_widget_rendering.cpp
+        tests/test_context_di.cpp
     )
     target_link_libraries(fastener_tests PRIVATE fastener GTest::gtest_main GTest::gmock)
     include(GoogleTest)

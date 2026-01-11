@@ -14,6 +14,7 @@ namespace fst {
 // Forward declarations
 class Renderer;
 class DrawList;
+class IDrawList;
 class Theme;
 class Font;
 class LayoutContext;
@@ -24,7 +25,7 @@ class DockContext;
 //=============================================================================
 class Context {
 public:
-    Context();
+    Context(bool initializeRenderer = true);
     ~Context();
     
     // Non-copyable
@@ -51,6 +52,7 @@ public:
     
     // Drawing
     DrawList& drawList();
+    IDrawList* activeDrawList();  ///< Returns test DrawList if set, otherwise normal drawList
     Renderer& renderer();
     LayoutContext& layout();
     IPlatformWindow& window() const;
@@ -92,6 +94,8 @@ public:
     // Occlusion handling
     void addFloatingWindowRect(const Rect& rect);
     bool isOccluded(const Vec2& pos) const;
+    const std::vector<Rect>& currentFloatingRects() const;
+    const std::vector<Rect>& prevFloatingRects() const;
     
     // ID stack (for hierarchical widgets)
     void pushId(WidgetId id);
@@ -116,6 +120,11 @@ public:
         bool contextMenuActive = false;
     };
     MenuState& menuState();
+    
+    // Testing support
+    /** @brief Set a mock DrawList for testing (pass nullptr to reset). */
+    static void setTestDrawList(IDrawList* testDl);
+    static IDrawList* testDrawList();
     
 private:
     struct Impl;

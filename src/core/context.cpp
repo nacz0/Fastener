@@ -15,6 +15,7 @@
 namespace fst {
 
 Context* Context::s_current = nullptr;
+static IDrawList* s_testDrawList = nullptr;
 
 struct Context::Impl {
     // Components
@@ -65,10 +66,14 @@ struct Context::Impl {
     // Floating window occlusion
     std::vector<Rect> currentFloatingRects;
     std::vector<Rect> prevFloatingRects;
+    bool rendererInitialized = false;
 };
 
-Context::Context() : m_impl(std::make_unique<Impl>()) {
-    m_impl->renderer.init();
+Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
+    if (initializeRenderer) {
+        m_impl->renderer.init();
+        m_impl->rendererInitialized = true;
+    }
 }
 
 Context::~Context() {
@@ -81,6 +86,7 @@ void Context::beginFrame(IPlatformWindow& window) {
     s_current = this;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
+    m_impl->inputState->beginFrame();
     m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
     
     // Calculate delta time
@@ -97,12 +103,14 @@ void Context::beginFrame(IPlatformWindow& window) {
     m_impl->drawList.clear();
     
     // Begin rendering
-    Vec2 fbSize = window.framebufferSize();
-    m_impl->renderer.beginFrame(
-        static_cast<int>(fbSize.x), 
-        static_cast<int>(fbSize.y), 
-        window.dpiScale()
-    );
+    if (m_impl->rendererInitialized) {
+        Vec2 fbSize = window.framebufferSize();
+        m_impl->renderer.beginFrame(
+            static_cast<int>(fbSize.x), 
+            static_cast<int>(fbSize.y), 
+            window.dpiScale()
+        );
+    }
     
     // Push fullscreen clip rect
     m_impl->drawList.pushClipRectFullScreen(window.size());
@@ -141,13 +149,15 @@ void Context::endFrame() {
     }
     m_impl->postRenderCommands.clear();
 
+    // Cleanup drag and drop state if needed (and render preview)
+    EndDragDropFrame();
+    
     // Render
     m_impl->drawList.mergeLayers();
-    m_impl->renderer.render(m_impl->drawList);
-    m_impl->renderer.endFrame();
-    
-    // Cleanup drag and drop state if needed
-    EndDragDropFrame();
+    if (m_impl->rendererInitialized) {
+        m_impl->renderer.render(m_impl->drawList);
+        m_impl->renderer.endFrame();
+    }
     
     s_current = nullptr;
 }
@@ -197,6 +207,10 @@ const InputState& Context::input() const {
 
 DrawList& Context::drawList() {
     return m_impl->drawList;
+}
+
+IDrawList* Context::activeDrawList() {
+    return s_testDrawList ? s_testDrawList : &m_impl->drawList;
 }
 
 
@@ -286,9 +300,8 @@ void Context::addFloatingWindowRect(const Rect& rect) {
 
 bool Context::isOccluded(const Vec2& pos) const {
     // Only block if we are in the default layer (background)
-    // Floating windows themselves shouldn't be blocked by other floating windows via this mechanism
-    // (that requires proper z-ordering which is more complex)
-    if (m_impl->drawList.currentLayer() != DrawList::Layer::Default) {
+    IDrawList* dl = s_testDrawList ? s_testDrawList : &m_impl->drawList;
+    if (dl->currentLayer() != DrawLayer::Default) {
         return false;
     }
     
@@ -299,6 +312,9 @@ bool Context::isOccluded(const Vec2& pos) const {
     }
     return false;
 }
+
+const std::vector<Rect>& Context::currentFloatingRects() const { return m_impl->currentFloatingRects; }
+const std::vector<Rect>& Context::prevFloatingRects() const { return m_impl->prevFloatingRects; }
 
 void Context::pushId(WidgetId id) {
     WidgetId combined = combineIds(m_impl->idStack.back(), id);
@@ -341,6 +357,14 @@ void Context::deferRender(std::function<void()> cmd) {
 
 Context::MenuState& Context::menuState() {
     return m_impl->menuState;
+}
+
+void Context::setTestDrawList(IDrawList* testDl) {
+    s_testDrawList = testDl;
+}
+
+IDrawList* Context::testDrawList() {
+    return s_testDrawList;
 }
 
 } // namespace fst

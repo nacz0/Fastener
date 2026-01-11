@@ -18,31 +18,15 @@
 namespace fst {
 
 //=============================================================================
-// ProgressBar Implementation
+// ProgressBar Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders a progress bar without label.
- * @param progress Progress value from 0.0 to 1.0
- * @param options ProgressBar styling options
- */
-void ProgressBar(float progress, const ProgressBarOptions& options) {
-    ProgressBar(std::string_view{}, progress, options);
+void ProgressBar(Context& ctx, float progress, const ProgressBarOptions& options) {
+    ProgressBar(ctx, std::string_view{}, progress, options);
 }
 
-/**
- * @brief Renders a progress bar with optional label.
- * 
- * Supports both determinate (fixed progress) and indeterminate (animated) modes.
- * 
- * @param label Text displayed before the progress bar
- * @param progress Progress value from 0.0 to 1.0 (ignored in indeterminate mode)
- * @param options ProgressBar styling and behavior options
- */
-void ProgressBar(std::string_view label, float progress, const ProgressBarOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
+void ProgressBar(Context& ctx, std::string_view label, float progress, const ProgressBarOptions& options) {
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -80,7 +64,7 @@ void ProgressBar(std::string_view label, float progress, const ProgressBarOption
 
     if (options.indeterminate) {
         // Animated indeterminate mode
-        float time = wc.ctx->time();
+        float time = ctx.time();
         float barWidth = trackBounds.width() * 0.3f;
         float barLeft = progress_utils::indeterminateBarPosition(
             time, 0.7f, trackBounds.x(), trackBounds.width(), barWidth);
@@ -126,4 +110,21 @@ void ProgressBar(std::string_view label, float progress, const ProgressBarOption
     }
 }
 
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+void ProgressBar(float progress, const ProgressBarOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    ProgressBar(*wc.ctx, progress, options);
+}
+
+void ProgressBar(std::string_view label, float progress, const ProgressBarOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    ProgressBar(*wc.ctx, label, progress, options);
+}
+
 } // namespace fst
+

@@ -20,6 +20,8 @@
 
 namespace fst {
 
+class Context;  // Forward declaration
+
 //=============================================================================
 // Button
 //=============================================================================
@@ -30,9 +32,14 @@ struct ButtonOptions {
     std::string icon;          // Optional icon (future)
 };
 
+/// Explicit DI version - preferred for new code
+[[nodiscard]] bool Button(Context& ctx, std::string_view label, const ButtonOptions& options = {});
+
+/// Uses context stack (deprecated pattern)
 [[nodiscard]] bool Button(std::string_view label, const ButtonOptions& options = {});
 
 // Convenience overloads
 [[nodiscard]] bool ButtonPrimary(std::string_view label);
 
 } // namespace fst
+

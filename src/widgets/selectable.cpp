@@ -15,18 +15,17 @@
 namespace fst {
 
 //=============================================================================
-// Selectable Implementation
+// Selectable Implementation (Explicit DI)
 //=============================================================================
 
-bool Selectable(std::string_view label, bool& selected, const SelectableOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+bool Selectable(Context& ctx, std::string_view label, bool& selected, const SelectableOptions& options) {
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
 
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
 
     // Calculate dimensions
     float textWidth = font ? font->measureText(label).x : 100.0f;
@@ -80,10 +79,9 @@ bool Selectable(std::string_view label, bool& selected, const SelectableOptions&
 }
 
 
-bool SelectableWithIcon(std::string_view icon, std::string_view label, 
+bool SelectableWithIcon(Context& ctx, std::string_view icon, std::string_view label, 
                         bool& selected, const SelectableOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -91,7 +89,7 @@ bool SelectableWithIcon(std::string_view icon, std::string_view label,
 
     std::string combinedId(icon);
     combinedId += label;
-    WidgetId id = wc.ctx->makeId(combinedId);
+    WidgetId id = ctx.makeId(combinedId);
 
     float iconWidth = font ? font->measureText(icon).x : 16.0f;
     float textWidth = font ? font->measureText(label).x : 100.0f;
@@ -140,4 +138,22 @@ bool SelectableWithIcon(std::string_view icon, std::string_view label,
     return clicked;
 }
 
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+bool Selectable(std::string_view label, bool& selected, const SelectableOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return Selectable(*wc.ctx, label, selected, options);
+}
+
+bool SelectableWithIcon(std::string_view icon, std::string_view label, 
+                        bool& selected, const SelectableOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return SelectableWithIcon(*wc.ctx, icon, label, selected, options);
+}
+
 } // namespace fst
+

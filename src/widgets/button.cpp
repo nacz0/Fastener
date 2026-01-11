@@ -15,27 +15,18 @@
 namespace fst {
 
 //=============================================================================
-// Button Implementation
+// Button Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders an interactive button widget.
- * 
- * @param label Text displayed on the button (also used for ID generation)
- * @param options Button styling and behavior options
- * @return true if the button was clicked this frame
- */
-bool Button(std::string_view label, const ButtonOptions& options) {
-    // Get widget context (Context, Theme, DrawList, Font)
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+bool Button(Context& ctx, std::string_view label, const ButtonOptions& options) {
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique widget ID from label
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     
     // Calculate button dimensions
     Vec2 textSize = font ? font->measureText(label) : Vec2(100, 20);
@@ -97,9 +88,16 @@ bool Button(std::string_view label, const ButtonOptions& options) {
     return interaction.clicked && !options.disabled;
 }
 
-/**
- * @brief Convenience function for primary-styled button.
- */
+//=============================================================================
+// Backward-compatible wrapper (uses context stack)
+//=============================================================================
+
+bool Button(std::string_view label, const ButtonOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return Button(*wc.ctx, label, options);
+}
+
 bool ButtonPrimary(std::string_view label) {
     ButtonOptions options;
     options.primary = true;
@@ -107,3 +105,4 @@ bool ButtonPrimary(std::string_view label) {
 }
 
 } // namespace fst
+

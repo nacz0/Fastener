@@ -14,19 +14,12 @@
 namespace fst {
 
 //=============================================================================
-// Label Implementation
+// Label Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders static text label.
- * 
- * @param text Text content to display
- * @param options Label styling options (color, size, position)
- */
-void Label(std::string_view text, const LabelOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid() || !wc.font) return;
+void Label(Context& ctx, std::string_view text, const LabelOptions& options) {
+    auto wc = WidgetContext::make(ctx);
+    if (!wc.font) return;
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -50,12 +43,19 @@ void Label(std::string_view text, const LabelOptions& options) {
 }
 
 //=============================================================================
+// Backward-compatible wrapper
+//=============================================================================
+
+void Label(std::string_view text, const LabelOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Label(*wc.ctx, text, options);
+}
+
+//=============================================================================
 // Label Variants
 //=============================================================================
 
-/**
- * @brief Renders text with secondary/muted styling.
- */
 void LabelSecondary(std::string_view text) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return;
@@ -65,11 +65,9 @@ void LabelSecondary(std::string_view text) {
     Label(text, options);
 }
 
-/**
- * @brief Renders text as a heading (larger/emphasized).
- */
 void LabelHeading(std::string_view text) {
     Label(text);
 }
 
 } // namespace fst
+

@@ -15,28 +15,18 @@
 namespace fst {
 
 //=============================================================================
-// Checkbox Implementation
+// Checkbox Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders an interactive checkbox with optional label.
- * 
- * @param label Text displayed next to the checkbox
- * @param checked Reference to boolean state (toggled on click)
- * @param options Checkbox styling and behavior options
- * @return true if the checkbox state was changed this frame
- */
-bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+bool Checkbox(Context& ctx, std::string_view label, bool& checked, const CheckboxOptions& options) {
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     
     // Calculate dimensions
     float boxSize = theme.metrics.checkboxSize;
@@ -118,4 +108,15 @@ bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& opti
     return changed;
 }
 
+//=============================================================================
+// Backward-compatible wrapper
+//=============================================================================
+
+bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return Checkbox(*wc.ctx, label, checked, options);
+}
+
 } // namespace fst
+

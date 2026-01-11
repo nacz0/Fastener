@@ -8,6 +8,8 @@
 
 namespace fst {
 
+class Context;  // Forward declaration
+
 //=============================================================================
 // Label
 //=============================================================================
@@ -18,6 +20,10 @@ struct LabelOptions {
     Alignment align = Alignment::Start;
 };
 
+/// Explicit DI version
+void Label(Context& ctx, std::string_view text, const LabelOptions& options = {});
+
+/// Uses context stack
 void Label(std::string_view text, const LabelOptions& options = {});
 
 // Convenience overloads
@@ -25,3 +31,4 @@ void LabelSecondary(std::string_view text);
 void LabelHeading(std::string_view text);
 
 } // namespace fst
+

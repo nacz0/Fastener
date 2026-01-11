@@ -24,6 +24,8 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // Slider
 //=============================================================================
@@ -34,30 +36,19 @@ struct SliderOptions {
     bool disabled = false;
 };
 
-/**
- * @brief Renders a horizontal slider for adjusting a float value.
- * 
- * @param label Label displayed to the left of the slider
- * @param value Reference to the float value being adjusted
- * @param minVal Minimum allowed value
- * @param maxVal Maximum allowed value
- * @param options Slider styling and behavior options
- * @return true if the value was changed this frame
- */
+/// Explicit DI versions
+[[nodiscard]] bool Slider(Context& ctx, std::string_view label, float& value, float minVal, float maxVal, 
+            const SliderOptions& options = {});
+
+[[nodiscard]] bool SliderInt(Context& ctx, std::string_view label, int& value, int min, int max,
+               const SliderOptions& options = {});
+
+/// Uses context stack
 [[nodiscard]] bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
             const SliderOptions& options = {});
 
-/**
- * @brief Renders a horizontal slider for adjusting an integer value.
- * 
- * @param label Label displayed to the left of the slider
- * @param value Reference to the integer value being adjusted
- * @param min Minimum allowed value
- * @param max Maximum allowed value
- * @param options Slider styling and behavior options
- * @return true if the value was changed this frame
- */
 [[nodiscard]] bool SliderInt(std::string_view label, int& value, int min, int max,
                const SliderOptions& options = {});
 
 } // namespace fst
+

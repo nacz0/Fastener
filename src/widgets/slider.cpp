@@ -19,31 +19,19 @@
 namespace fst {
 
 //=============================================================================
-// Slider Implementation
+// Slider Implementation (Explicit DI)
 //=============================================================================
 
-/**
- * @brief Renders a horizontal slider for float value input.
- * 
- * @param label Label displayed before the slider
- * @param value Reference to the float value (modified on drag)
- * @param minVal Minimum allowed value
- * @param maxVal Maximum allowed value
- * @param options Slider styling and behavior options
- * @return true if the value was changed this frame
- */
-bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
+bool Slider(Context& ctx, std::string_view label, float& value, float minVal, float maxVal, 
             const SliderOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     
     // Calculate dimensions
     float sliderWidth = options.style.width > 0 ? options.style.width : 200.0f;
@@ -83,7 +71,7 @@ bool Slider(std::string_view label, float& value, float minVal, float maxVal,
     
     // Handle dragging to update value
     if ((interaction.clicked || interaction.dragging) && !options.disabled) {
-        float mouseX = wc.ctx->input().mousePos().x;
+        float mouseX = ctx.input().mousePos().x;
         float newValue = slider_utils::valueFromMousePosition(
             mouseX, trackBounds.left(), trackBounds.width(), minVal, maxVal);
         
@@ -163,21 +151,14 @@ bool Slider(std::string_view label, float& value, float minVal, float maxVal,
     return changed;
 }
 
-//=============================================================================
-// Slider Overloads
-//=============================================================================
-
-/**
- * @brief Integer slider variant.
- */
-bool SliderInt(std::string_view label, int& value, int min, int max,
+bool SliderInt(Context& ctx, std::string_view label, int& value, int min, int max,
                const SliderOptions& options) {
     float floatValue = static_cast<float>(value);
     
     SliderOptions intOptions = options;
     intOptions.decimals = 0;
     
-    bool changed = Slider(label, floatValue, static_cast<float>(min), 
+    bool changed = Slider(ctx, label, floatValue, static_cast<float>(min), 
                           static_cast<float>(max), intOptions);
     
     if (changed) {
@@ -187,4 +168,23 @@ bool SliderInt(std::string_view label, int& value, int min, int max,
     return changed;
 }
 
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
+            const SliderOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return Slider(*wc.ctx, label, value, minVal, maxVal, options);
+}
+
+bool SliderInt(std::string_view label, int& value, int min, int max,
+               const SliderOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return SliderInt(*wc.ctx, label, value, min, max, options);
+}
+
 } // namespace fst
+

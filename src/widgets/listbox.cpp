@@ -32,18 +32,17 @@ static std::unordered_map<WidgetId, ListboxState> s_listboxStates;
 // Listbox Implementation
 //=============================================================================
 
-bool Listbox(std::string_view label, int& selectedIndex, 
+bool Listbox(Context& ctx, std::string_view label, int& selectedIndex, 
              const std::vector<std::string>& items,
              const ListboxOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
-    InputState& input = wc.ctx->input();
+    InputState& input = ctx.input();
 
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     ListboxState& state = s_listboxStates[id];
 
     // Calculate dimensions
@@ -89,7 +88,7 @@ bool Listbox(std::string_view label, int& selectedIndex,
     if (needsScrollbar && !options.disabled) {
         Rect track(boxBounds.right() - scrollbarWidth, boxBounds.y(), scrollbarWidth, boxBounds.height());
         std::string scrollerLabel = std::string(label) + "_scroller";
-        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
+        WidgetId scrollbarId = ctx.makeId(scrollerLabel);
         
         // Handle scrollbar dragging
         WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
@@ -107,7 +106,7 @@ bool Listbox(std::string_view label, int& selectedIndex,
     }
 
     // Handle mouse wheel scroll
-    if (boxBounds.contains(input.mousePos()) && !options.disabled && !wc.ctx->isOccluded(input.mousePos())) {
+    if (boxBounds.contains(input.mousePos()) && !options.disabled && !ctx.isOccluded(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * itemHeight;
         state.scrollOffset = std::clamp(state.scrollOffset, 0.0f, maxScroll);
     }
@@ -129,7 +128,7 @@ bool Listbox(std::string_view label, int& selectedIndex,
         bool isHovered = itemRect.contains(input.mousePos()) && 
                          contentArea.contains(input.mousePos()) && 
                          !options.disabled && 
-                         !wc.ctx->isOccluded(input.mousePos());
+                         !ctx.isOccluded(input.mousePos());
         if (isHovered) {
             state.hoveredIndex = i;
         }
@@ -181,7 +180,7 @@ bool Listbox(std::string_view label, int& selectedIndex,
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
         
         std::string scrollerLabel = std::string(label) + "_scroller";
-        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
+        WidgetId scrollbarId = ctx.makeId(scrollerLabel);
         WidgetState scrollState = getWidgetState(scrollbarId);
         
         Color thumbColor = (scrollState.hovered || scrollState.active)
@@ -215,18 +214,17 @@ bool Listbox(std::string_view label, int& selectedIndex,
     return changed;
 }
 
-bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
+bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& selectedIndices,
                   const std::vector<std::string>& items,
                   const ListboxOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
-    InputState& input = wc.ctx->input();
+    InputState& input = ctx.input();
 
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     ListboxState& state = s_listboxStates[id];
 
     float width = options.style.width > 0 ? options.style.width : 200.0f;
@@ -268,7 +266,7 @@ bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
     if (needsScrollbar && !options.disabled) {
         Rect track(boxBounds.right() - scrollbarWidth, boxBounds.y(), scrollbarWidth, boxBounds.height());
         std::string scrollerLabel = std::string(label) + "_scroller";
-        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
+        WidgetId scrollbarId = ctx.makeId(scrollerLabel);
         
         WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
         
@@ -284,7 +282,7 @@ bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
         }
     }
 
-    if (boxBounds.contains(input.mousePos()) && !options.disabled && !wc.ctx->isOccluded(input.mousePos())) {
+    if (boxBounds.contains(input.mousePos()) && !options.disabled && !ctx.isOccluded(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * itemHeight;
         state.scrollOffset = std::clamp(state.scrollOffset, 0.0f, maxScroll);
     }
@@ -306,7 +304,7 @@ bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
         bool isHovered = itemRect.contains(input.mousePos()) && 
                          contentArea.contains(input.mousePos()) && 
                          !options.disabled && 
-                         !wc.ctx->isOccluded(input.mousePos());
+                         !ctx.isOccluded(input.mousePos());
         bool selected = isSelected(i);
 
         if (isHovered && input.isMousePressed(MouseButton::Left)) {
@@ -364,7 +362,7 @@ bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
         
         std::string scrollerLabel = std::string(label) + "_scroller";
-        WidgetId scrollbarId = wc.ctx->makeId(scrollerLabel);
+        WidgetId scrollbarId = ctx.makeId(scrollerLabel);
         WidgetState scrollState = getWidgetState(scrollbarId);
 
         Color thumbColor = (scrollState.hovered || scrollState.active)
@@ -374,6 +372,26 @@ bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
     }
 
     return changed;
+}
+
+//=============================================================================
+// Backward-compatible wrappers
+//=============================================================================
+
+bool Listbox(std::string_view label, int& selectedIndex, 
+             const std::vector<std::string>& items,
+             const ListboxOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return Listbox(*wc.ctx, label, selectedIndex, items, options);
+}
+
+bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
+                  const std::vector<std::string>& items,
+                  const ListboxOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return ListboxMulti(*wc.ctx, label, selectedIndices, items, options);
 }
 
 } // namespace fst

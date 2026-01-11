@@ -56,17 +56,14 @@ TooltipState& getTooltipState() {
     return s_tooltipState;
 }
 
-void registerHoveredWidget(WidgetId id, const Rect& bounds) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
+void registerHoveredWidget(Context& ctx, WidgetId id, const Rect& bounds) {
     TooltipState& state = s_tooltipState;
     
     if (state.hoveredWidget != id) {
         // New widget being hovered
         state.hoveredWidget = id;
         state.hoveredBounds = bounds;
-        state.hoverStartTime = ctx->time();
+        state.hoverStartTime = ctx.time();
         state.isShowing = false;
         state.showAlpha = 0.0f;
     }
@@ -87,12 +84,9 @@ void renderActiveTooltip() {
 // Tooltip Implementation
 //=============================================================================
 
-void Tooltip(const char* text, const TooltipOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
+void Tooltip(Context& ctx, const char* text, const TooltipOptions& options) {
     // Check if last widget was hovered
-    WidgetId hoveredId = ctx->getHoveredWidget();
+    WidgetId hoveredId = ctx.getHoveredWidget();
     if (hoveredId == INVALID_WIDGET_ID) return;
     
     internal::TooltipState& state = internal::s_tooltipState;
@@ -100,13 +94,13 @@ void Tooltip(const char* text, const TooltipOptions& options) {
     // Track this hover
     if (state.hoveredWidget != hoveredId) {
         state.hoveredWidget = hoveredId;
-        state.hoverStartTime = ctx->time();
+        state.hoverStartTime = ctx.time();
         state.isShowing = false;
         state.showAlpha = 0.0f;
     }
     
     // Check delay
-    float hoverDuration = ctx->time() - state.hoverStartTime;
+    float hoverDuration = ctx.time() - state.hoverStartTime;
     if (hoverDuration < options.delay) return;
     
     // Calculate fade alpha
@@ -115,17 +109,14 @@ void Tooltip(const char* text, const TooltipOptions& options) {
     state.isShowing = true;
     
     // Calculate position (near mouse, but within window bounds)
-    Vec2 mousePos = ctx->input().mousePos();
+    Vec2 mousePos = ctx.input().mousePos();
     
     // Defer rendering so tooltip appears above everything
     std::string textStr = text;
-    ctx->deferRender([textStr, mousePos, options, alpha = state.showAlpha]() {
-        Context* ctx = Context::current();
-        if (!ctx) return;
-        
-        const Theme& theme = ctx->theme();
-        IDrawList& dl = *ctx->activeDrawList();
-        Font* font = ctx->font();
+    ctx.deferRender([textStr, mousePos, options, alpha = state.showAlpha, &ctx]() {
+        const Theme& theme = ctx.theme();
+        IDrawList& dl = *ctx.activeDrawList();
+        Font* font = ctx.font();
         if (!font) return;
         
         // Wrap text
@@ -149,7 +140,7 @@ void Tooltip(const char* text, const TooltipOptions& options) {
         Vec2 tooltipPos(mousePos.x + offsetX, mousePos.y + offsetY);
         
         // Keep within window bounds
-        IPlatformWindow& window = ctx->window();
+        IPlatformWindow& window = ctx.window();
         float windowW = static_cast<float>(window.width());
         float windowH = static_cast<float>(window.height());
         
@@ -192,23 +183,23 @@ void Tooltip(const char* text, const TooltipOptions& options) {
     });
 }
 
+void Tooltip(const char* text, const TooltipOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    Tooltip(*wc.ctx, text, options);
+}
+
 void Tooltip(const std::string& text, const TooltipOptions& options) {
     Tooltip(text.c_str(), options);
 }
 
-void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
+void ShowTooltip(Context& ctx, const char* text, Vec2 position, const TooltipOptions& options) {
     // Directly show tooltip at position (no delay)
     std::string textStr = text;
-    ctx->deferRender([textStr, position, options]() {
-        Context* ctx = Context::current();
-        if (!ctx) return;
-        
-        const Theme& theme = ctx->theme();
-        IDrawList& dl = *ctx->activeDrawList();
-        Font* font = ctx->font();
+    ctx.deferRender([textStr, position, options, &ctx]() {
+        const Theme& theme = ctx.theme();
+        IDrawList& dl = *ctx.activeDrawList();
+        Font* font = ctx.font();
         if (!font) return;
         
         // Wrap text
@@ -243,6 +234,12 @@ void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options)
     });
 }
 
+void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    ShowTooltip(*wc.ctx, text, position, options);
+}
+
 void ShowTooltip(const std::string& text, Vec2 position, const TooltipOptions& options) {
     ShowTooltip(text.c_str(), position, options);
 }
@@ -251,13 +248,10 @@ void ShowTooltip(const std::string& text, Vec2 position, const TooltipOptions& o
 // HelpMarker Implementation
 //=============================================================================
 
-bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
-    
-    const Theme& theme = ctx->theme();
-    IDrawList& dl = *ctx->activeDrawList();
-    Font* font = ctx->font();
+bool HelpMarker(Context& ctx, const char* text, const HelpMarkerOptions& options) {
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
     
     // Size of help marker circle
     float size = theme.metrics.fontSizeSmall + theme.metrics.paddingSmall * 2;
@@ -271,7 +265,7 @@ bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
     Rect bounds(x, y, size, size);
     
     // Generate unique ID
-    WidgetId id = ctx->makeId(text);
+    WidgetId id = ctx.makeId(text);
     
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
@@ -297,10 +291,16 @@ bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
     
     // Show tooltip if hovered
     if (state.hovered) {
-        Tooltip(text, options.tooltipOptions);
+        Tooltip(ctx, text, options.tooltipOptions);
     }
     
     return interaction.clicked;
+}
+
+bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return HelpMarker(*wc.ctx, text, options);
 }
 
 bool HelpMarker(const std::string& text, const HelpMarkerOptions& options) {

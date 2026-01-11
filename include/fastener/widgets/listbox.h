@@ -8,6 +8,8 @@
 
 namespace fst {
 
+class Context;
+
 /**
  * @brief Options for customizing Listbox appearance and behavior.
  */
@@ -28,6 +30,12 @@ struct ListboxOptions {
  * @param options Listbox styling and behavior options
  * @return true if the selection was changed this frame
  */
+/// Explicit DI version
+bool Listbox(Context& ctx, std::string_view label, int& selectedIndex, 
+             const std::vector<std::string>& items,
+             const ListboxOptions& options = {});
+
+/// Uses context stack
 bool Listbox(std::string_view label, int& selectedIndex, 
              const std::vector<std::string>& items,
              const ListboxOptions& options = {});
@@ -41,6 +49,12 @@ bool Listbox(std::string_view label, int& selectedIndex,
  * @param options Listbox styling and behavior options
  * @return true if the selection was changed this frame
  */
+/// Explicit DI version
+bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& selectedIndices,
+                  const std::vector<std::string>& items,
+                  const ListboxOptions& options = {});
+
+/// Uses context stack
 bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
                   const std::vector<std::string>& items,
                   const ListboxOptions& options = {});

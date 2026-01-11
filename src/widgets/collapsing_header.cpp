@@ -26,18 +26,16 @@ namespace fst {
  * @param options Styling and behavior options
  * @return true if the header is currently open (for conditional child rendering)
  */
-bool CollapsingHeader(std::string_view label, bool& isOpen,
+bool CollapsingHeader(Context& ctx, std::string_view label, bool& isOpen,
                       const CollapsingHeaderOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return isOpen;
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
     
     // Generate unique ID
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     
     // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 0; // 0 = auto-expand
@@ -102,6 +100,17 @@ bool CollapsingHeader(std::string_view label, bool& isOpen,
     }
     
     return isOpen;
+}
+
+//=============================================================================
+// Backward-compatible wrapper
+//=============================================================================
+
+bool CollapsingHeader(std::string_view label, bool& isOpen,
+                      const CollapsingHeaderOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return isOpen;
+    return CollapsingHeader(*wc.ctx, label, isOpen, options);
 }
 
 } // namespace fst

@@ -28,11 +28,24 @@ static int s_panelDepth = 0;
 /**
  * @brief RAII helper for automatic BeginPanel/EndPanel pairing.
  */
+PanelScope::PanelScope(Context& ctx, const std::string& id, const PanelOptions& options) 
+    : m_visible(true), m_needsEnd(true) 
+{
+    m_visible = BeginPanel(ctx, id, options);
+    m_needsEnd = true;
+}
+
 PanelScope::PanelScope(const std::string& id, const PanelOptions& options) 
     : m_visible(true), m_needsEnd(true) 
 {
-    m_visible = BeginPanel(id, options);
-    m_needsEnd = true;
+    auto wc = getWidgetContext();
+    if (wc.valid()) {
+        m_visible = BeginPanel(*wc.ctx, id, options);
+        m_needsEnd = true;
+    } else {
+        m_visible = false;
+        m_needsEnd = false;
+    }
 }
 
 PanelScope::~PanelScope() {
@@ -50,21 +63,20 @@ PanelScope::~PanelScope() {
  * 
  * Must be paired with EndPanel(). Use PanelScope for automatic cleanup.
  * 
+ * @param ctx Explicit UI context
  * @param id Unique identifier string for the panel
  * @param options Panel styling and layout options
  * @return true (always visible, can be used for conditional content)
  */
-bool BeginPanel(const std::string& id, const PanelOptions& options) {
+bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options) {
     // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     
     // Push panel ID onto stack
-    wc.ctx->pushId(id.c_str());
-    WidgetId widgetId = wc.ctx->currentId();
+    ctx.pushId(id.c_str());
     
     // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 300.0f;
@@ -132,16 +144,25 @@ bool BeginPanel(const std::string& id, const PanelOptions& options) {
     // Set up clipping and layout for child widgets
     dl.pushClipRect(contentRect);
     
-    wc.ctx->layout().beginContainer(contentRect, options.direction);
+    ctx.layout().beginContainer(contentRect, options.direction);
     if (options.spacing > 0) {
-        wc.ctx->layout().setSpacing(options.spacing);
+        ctx.layout().setSpacing(options.spacing);
     } else {
-        wc.ctx->layout().setSpacing(theme.metrics.paddingSmall);
+        ctx.layout().setSpacing(theme.metrics.paddingSmall);
     }
     
     s_panelDepth++;
     
     return true;
+}
+
+/**
+ * @brief Legacy wrapper using context stack.
+ */
+bool BeginPanel(const std::string& id, const PanelOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return BeginPanel(*wc.ctx, id, options);
 }
 
 /**

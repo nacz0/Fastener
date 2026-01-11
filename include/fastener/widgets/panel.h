@@ -34,6 +34,8 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // Panel
 //=============================================================================
@@ -49,6 +51,10 @@ struct PanelOptions {
 // Panel scope guard
 class PanelScope {
 public:
+    /// RAII constructor with explicit context
+    PanelScope(Context& ctx, const std::string& id, const PanelOptions& options = {});
+    
+    /// RAII constructor using context stack
     PanelScope(const std::string& id, const PanelOptions& options = {});
     ~PanelScope();
     
@@ -68,6 +74,7 @@ private:
 #define Panel(id, ...) if (fst::PanelScope _panel_##__LINE__{id, ##__VA_ARGS__})
 
 // Begin/End style (alternative)
+bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options = {});
 bool BeginPanel(const std::string& id, const PanelOptions& options = {});
 void EndPanel();
 

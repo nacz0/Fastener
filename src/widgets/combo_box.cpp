@@ -42,19 +42,17 @@ static std::unordered_map<WidgetId, ComboBoxState> s_comboStates;
  * @param options ComboBox styling and behavior options
  * @return true if the selection was changed this frame
  */
-bool ComboBox(std::string_view label, int& selectedIndex, 
+bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex, 
               const std::vector<std::string>& items,
               const ComboBoxOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
 
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
     Font* font = wc.font;
-    InputState& input = wc.ctx->input();
+    InputState& input = ctx.input();
 
-    WidgetId id = wc.ctx->makeId(label);
+    WidgetId id = ctx.makeId(label);
     ComboBoxState& state = s_comboStates[id];
 
     float width = options.style.width > 0 ? options.style.width : 150.0f;
@@ -177,19 +175,17 @@ bool ComboBox(std::string_view label, int& selectedIndex,
         std::vector<std::string> safeItems = items;
         int selectedIndexCopy = selectedIndex;
         
-        wc.ctx->deferRender([=, &state]() mutable {
-            // Re-acquire context helpers since we are in a callback
-            Context* ctx = Context::current();
-            if (!ctx) return;
-            IDrawList& dl = *ctx->activeDrawList();
-            Font* font = ctx->font();
-            InputState& input = ctx->input();
-            const Theme& theme = ctx->theme();
+        ctx.deferRender([=, &ctx, &state]() mutable {
+            // Use captured context instead of Context::current()
+            IDrawList& dl = *ctx.activeDrawList();
+            Font* font = ctx.font();
+            InputState& input = ctx.input();
+            const Theme& theme = ctx.theme();
 
             float itemHeight = font ? font->lineHeight() + theme.metrics.paddingSmall * 2 : 24.0f;
             float dropdownHeight = std::min(options.dropdownMaxHeight, itemHeight * (float)safeItems.size());
             Rect dropdownBounds(boxBounds.x(), boxBounds.bottom() + 2, boxBounds.width(), dropdownHeight);
-            ctx->addFloatingWindowRect(Rect(boxBounds.x(), boxBounds.bottom(), boxBounds.width(), dropdownHeight + 2));
+            ctx.addFloatingWindowRect(Rect(boxBounds.x(), boxBounds.bottom(), boxBounds.width(), dropdownHeight + 2));
 
             // Dropdown background with shadow
             dl.addShadow(dropdownBounds, theme.colors.shadow, 8.0f, radius);
@@ -234,6 +230,18 @@ bool ComboBox(std::string_view label, int& selectedIndex,
     }
 
     return changed;
+}
+
+//=============================================================================
+// Backward-compatible wrapper
+//=============================================================================
+
+bool ComboBox(std::string_view label, int& selectedIndex,
+              const std::vector<std::string>& items,
+              const ComboBoxOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return ComboBox(*wc.ctx, label, selectedIndex, items, options);
 }
 
 } // namespace fst

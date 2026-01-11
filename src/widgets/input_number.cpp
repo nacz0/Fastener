@@ -25,6 +25,7 @@ namespace fst {
 /**
  * @brief Renders a numeric input with +/- buttons.
  * 
+ * @param ctx Explicit UI context
  * @param label Label displayed before the input
  * @param value Reference to the float value (modified on button click)
  * @param minVal Minimum allowed value
@@ -32,11 +33,10 @@ namespace fst {
  * @param options Styling and behavior options
  * @return true if the value was changed this frame
  */
-bool InputNumber(std::string_view label, float& value, float minVal, float maxVal,
+bool InputNumber(Context& ctx, std::string_view label, float& value, float minVal, float maxVal,
                  const InputNumberOptions& options) {
     // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    auto wc = WidgetContext::make(ctx);
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
@@ -68,10 +68,10 @@ bool InputNumber(std::string_view label, float& value, float minVal, float maxVa
                         buttonWidth, height);
     
     // Generate unique IDs for sub-widgets
-    wc.ctx->pushId(label);
-    WidgetId minusId = wc.ctx->makeId("minus");
-    WidgetId plusId = wc.ctx->makeId("plus");
-    wc.ctx->popId();
+    ctx.pushId(label);
+    WidgetId minusId = ctx.makeId("minus");
+    WidgetId plusId = ctx.makeId("plus");
+    ctx.popId();
     
     bool changed = false;
     
@@ -162,9 +162,19 @@ bool InputNumber(std::string_view label, float& value, float minVal, float maxVa
 }
 
 /**
+ * @brief Legacy wrapper using context stack.
+ */
+bool InputNumber(std::string_view label, float& value, float minVal, float maxVal,
+                 const InputNumberOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return InputNumber(*wc.ctx, label, value, minVal, maxVal, options);
+}
+
+/**
  * @brief Integer variant of InputNumber.
  */
-bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
+bool InputNumberInt(Context& ctx, std::string_view label, int& value, int minVal, int maxVal,
                     const InputNumberOptions& options) {
     float floatValue = static_cast<float>(value);
     
@@ -172,7 +182,7 @@ bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
     intOptions.decimals = 0;
     if (intOptions.step < 1.0f) intOptions.step = 1.0f;
     
-    bool changed = InputNumber(label, floatValue, 
+    bool changed = InputNumber(ctx, label, floatValue, 
                                static_cast<float>(minVal), 
                                static_cast<float>(maxVal), 
                                intOptions);
@@ -182,6 +192,16 @@ bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
     }
     
     return changed;
+}
+
+/**
+ * @brief Legacy wrapper using context stack.
+ */
+bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
+                    const InputNumberOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return InputNumberInt(*wc.ctx, label, value, minVal, maxVal, options);
 }
 
 } // namespace fst

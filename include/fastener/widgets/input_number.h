@@ -7,6 +7,8 @@
 
 namespace fst {
 
+class Context;
+
 //=============================================================================
 // InputNumber
 //=============================================================================
@@ -31,12 +33,22 @@ struct InputNumberOptions {
  * @param options Styling and behavior options
  * @return true if the value was changed this frame
  */
+/// Explicit DI version
+[[nodiscard]] bool InputNumber(Context& ctx, std::string_view label, float& value, float minVal, float maxVal,
+                  const InputNumberOptions& options = {});
+
+/// Uses context stack
 [[nodiscard]] bool InputNumber(std::string_view label, float& value, float minVal, float maxVal,
-                 const InputNumberOptions& options = {});
+                  const InputNumberOptions& options = {});
 
 /**
  * @brief Integer variant of InputNumber.
  */
+/// Explicit DI version
+[[nodiscard]] bool InputNumberInt(Context& ctx, std::string_view label, int& value, int minVal, int maxVal,
+                    const InputNumberOptions& options = {});
+
+/// Uses context stack
 [[nodiscard]] bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
                     const InputNumberOptions& options = {});
 

@@ -6,6 +6,9 @@
 
 namespace fst {
 
+class Context;
+
+
 //=============================================================================
 // Splitter
 //=============================================================================
@@ -27,10 +30,15 @@ struct SplitterOptions {
  * @param options Splitter configuration
  * @return true if the splitPosition was changed
  */
+bool Splitter(Context& ctx, const std::string& id, float& splitPosition, const Rect& bounds, 
+             const SplitterOptions& options = {});
 bool Splitter(const std::string& id, float& splitPosition, const Rect& bounds, 
              const SplitterOptions& options = {});
 
+bool Splitter(Context& ctx, const char* id, float& splitPosition, const Rect& bounds,
+             const SplitterOptions& options = {});
 bool Splitter(const char* id, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options = {});
+
 
 } // namespace fst

@@ -82,7 +82,7 @@ TEST_F(LayoutTest, NestedContainers) {
     lc.endContainer();
 }
 
-TEST_F(LayoutTest, AllocateRemaining) {
+TEST_F(LayoutTest, TestAllocateRemaining) {
     LayoutContext lc;
     Rect root(10, 20, 100, 200);
     lc.beginContainer(root, LayoutDirection::Vertical);

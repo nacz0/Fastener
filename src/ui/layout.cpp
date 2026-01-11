@@ -182,49 +182,61 @@ const LayoutContext::ContainerState& LayoutContext::current() const {
 // Global Layout Helpers
 //=============================================================================
 
-void BeginHorizontal(float spacing) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    LayoutContext& lc = ctx->layout();
+void BeginHorizontal(Context& ctx, float spacing) {
+    LayoutContext& lc = ctx.layout();
     lc.beginContainer(lc.allocateRemaining(), LayoutDirection::Horizontal);
+
     
     if (spacing >= 0) {
         lc.setSpacing(spacing);
     } else {
-        lc.setSpacing(ctx->theme().metrics.paddingSmall);
+        lc.setSpacing(ctx.theme().metrics.paddingSmall);
     }
+}
+
+void BeginHorizontal(float spacing) {
+    Context* ctx = Context::current();
+    if (ctx) BeginHorizontal(*ctx, spacing);
+}
+
+void EndHorizontal(Context& ctx) {
+    ctx.layout().endContainer();
 }
 
 void EndHorizontal() {
     Context* ctx = Context::current();
-    if (ctx) ctx->layout().endContainer();
+    if (ctx) EndHorizontal(*ctx);
 }
 
-void BeginVertical(float spacing) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    LayoutContext& lc = ctx->layout();
+void BeginVertical(Context& ctx, float spacing) {
+    LayoutContext& lc = ctx.layout();
     lc.beginContainer(lc.allocateRemaining(), LayoutDirection::Vertical);
+
     
     if (spacing >= 0) {
         lc.setSpacing(spacing);
     } else {
-        lc.setSpacing(ctx->theme().metrics.paddingSmall);
+        lc.setSpacing(ctx.theme().metrics.paddingSmall);
     }
+}
+
+void BeginVertical(float spacing) {
+    Context* ctx = Context::current();
+    if (ctx) BeginVertical(*ctx, spacing);
+}
+
+void EndVertical(Context& ctx) {
+    ctx.layout().endContainer();
 }
 
 void EndVertical() {
     Context* ctx = Context::current();
-    if (ctx) ctx->layout().endContainer();
+    if (ctx) EndVertical(*ctx);
 }
 
-void Spacing(float size) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    LayoutContext& lc = ctx->layout();
+
+void Spacing(Context& ctx, float size) {
+    LayoutContext& lc = ctx.layout();
     if (lc.currentDirection() == LayoutDirection::Horizontal) {
         lc.allocate(size, 0);
     } else {
@@ -232,23 +244,49 @@ void Spacing(float size) {
     }
 }
 
+void Spacing(float size) {
+    Context* ctx = Context::current();
+    if (ctx) Spacing(*ctx, size);
+}
+
+void Padding(Context& ctx, float top, float right, float bottom, float left) {
+    ctx.layout().setPadding(top, right, bottom, left);
+}
+
 void Padding(float top, float right, float bottom, float left) {
     Context* ctx = Context::current();
-    if (ctx) ctx->layout().setPadding(top, right, bottom, left);
+    if (ctx) Padding(*ctx, top, right, bottom, left);
+}
+
+void Padding(Context& ctx, float uniform) {
+    Padding(ctx, uniform, uniform, uniform, uniform);
 }
 
 void Padding(float uniform) {
-    Padding(uniform, uniform, uniform, uniform);
+    Context* ctx = Context::current();
+    if (ctx) Padding(*ctx, uniform);
+}
+
+Rect Allocate(Context& ctx, float width, float height, float flexGrow) {
+    return ctx.layout().allocate(width, height, flexGrow);
 }
 
 Rect Allocate(float width, float height, float flexGrow) {
     Context* ctx = Context::current();
-    return ctx ? ctx->layout().allocate(width, height, flexGrow) : Rect();
+    return ctx ? Allocate(*ctx, width, height, flexGrow) : Rect();
 }
 
-Rect AllocateRemaining() {
-    Context* ctx = Context::current();
-    return ctx ? ctx->layout().allocateRemaining() : Rect();
+Rect AllocateRemainingSpace(Context& ctx) {
+    return ctx.layout().allocateRemaining();
 }
+
+Rect AllocateRemainingSpace() {
+    Context* ctx = Context::current();
+    return ctx ? AllocateRemainingSpace(*ctx) : Rect();
+}
+
+
+
+
 
 } // namespace fst

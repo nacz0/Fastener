@@ -6,6 +6,9 @@
 
 namespace fst {
 
+class Context;
+
+
 //=============================================================================
 // DockableWindowOptions - Configuration for dockable windows
 //=============================================================================
@@ -33,21 +36,26 @@ struct DockableWindowOptions {
  * @param options Configuration options
  * @return true if the window content should be rendered
  */
+bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWindowOptions& options = {});
 bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& options = {});
 
 /**
  * Ends a dockable window.
  * Must be called after BeginDockableWindow returns true.
  */
+void EndDockableWindow(Context& ctx);
 void EndDockableWindow();
+
 
 //=============================================================================
 // DockableWindowScope - RAII wrapper for if() usage pattern
 //=============================================================================
 class DockableWindowScope {
 public:
+    DockableWindowScope(Context& ctx, const std::string& id, const DockableWindowOptions& options = {});
     DockableWindowScope(const std::string& id, const DockableWindowOptions& options = {});
     ~DockableWindowScope();
+
     
     // Conversion to bool for if() usage
     operator bool() const { return m_visible; }

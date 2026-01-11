@@ -5,7 +5,9 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
+
 
 namespace fst {
 
@@ -13,16 +15,12 @@ namespace fst {
 // DockSpace Widget
 //=============================================================================
 
-DockNode::Id DockSpace(const std::string& id, const Rect& bounds, 
+DockNode::Id DockSpace(Context& ctx, const std::string& id, const Rect& bounds, 
                        const DockSpaceOptions& options) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return DockNode::INVALID_ID;
-    }
-    
-    auto& docking = ctx->docking();
-    auto& dl = ctx->drawList();
-    const auto& theme = ctx->theme();
+    auto& docking = ctx.docking();
+    auto& dl = ctx.drawList();
+    const auto& theme = ctx.theme();
+
     
     // Create or get the dock space
     auto nodeId = docking.createDockSpace(id, bounds);
@@ -45,38 +43,49 @@ DockNode::Id DockSpace(const std::string& id, const Rect& bounds,
     }
     
     // Render splitters
-    RenderDockSplitters(root);
+    RenderDockSplitters(ctx, root);
+
     
     // Render tab bars for nodes with multiple windows
-    root->forEachLeaf([](DockNode* leaf) {
+    root->forEachLeaf([&ctx](DockNode* leaf) {
         if (leaf->dockedWindows.size() > 1 || !leaf->flags.noTabBar) {
-            RenderDockTabBar(leaf);
+            RenderDockTabBar(ctx, leaf);
         }
     });
     
     return nodeId;
 }
 
-DockNode::Id DockSpaceOverViewport(const DockSpaceOptions& options) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return DockNode::INVALID_ID;
-    }
-    
-    auto& window = ctx->window();
+DockNode::Id DockSpace(const std::string& id, const Rect& bounds, 
+                       const DockSpaceOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return DockNode::INVALID_ID;
+    return DockSpace(*wc.ctx, id, bounds, options);
+}
+
+DockNode::Id DockSpaceOverViewport(Context& ctx, const DockSpaceOptions& options) {
+    auto& window = ctx.window();
     Rect viewportBounds(0, 0, window.width(), window.height());
     
-    return DockSpace("##MainDockSpace", viewportBounds, options);
+    return DockSpace(ctx, "##MainDockSpace", viewportBounds, options);
 }
+
+DockNode::Id DockSpaceOverViewport(const DockSpaceOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return DockNode::INVALID_ID;
+    return DockSpaceOverViewport(*wc.ctx, options);
+}
+
 
 //=============================================================================
 // Splitter Rendering and Interaction
 //=============================================================================
 
-void RenderDockSplitters(DockNode* rootNode) {
+void RenderDockSplitters(Context& ctx, DockNode* rootNode) {
     if (!rootNode) return;
     
-    rootNode->forEachNode([](DockNode* node) {
+    rootNode->forEachNode([&ctx](DockNode* node) {
+
         if (!node->isSplitNode()) return;
         
         const float splitterSize = 4.0f;
@@ -105,18 +114,22 @@ void RenderDockSplitters(DockNode* rootNode) {
             isVertical = false;
         }
         
-        HandleDockSplitter(node, splitterRect, isVertical);
+        HandleDockSplitter(ctx, node, splitterRect, isVertical);
     });
 }
 
-bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertical) {
-    auto* ctx = Context::current();
-    if (!ctx) return false;
-    
-    auto& input = ctx->input();
-    auto& dl = ctx->drawList();
-    const auto& theme = ctx->theme();
-    auto& window = ctx->window();
+void RenderDockSplitters(DockNode* rootNode) {
+    auto wc = getWidgetContext();
+    if (wc.valid()) RenderDockSplitters(*wc.ctx, rootNode);
+}
+
+
+bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, bool isVertical) {
+    auto& input = ctx.input();
+    auto& dl = ctx.drawList();
+    const auto& theme = ctx.theme();
+    auto& window = ctx.window();
+
     
     // Create unique ID for this splitter
     WidgetId splitterId = combineIds(hashString("##DockSplitter"), node->id);
@@ -130,15 +143,16 @@ bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertica
     // Start drag on mouse press
     if (isHovered && input.isMousePressed(MouseButton::Left)) {
         s_activeSplitter = splitterId;
-        ctx->setActiveWidget(splitterId);
+        ctx.setActiveWidget(splitterId);
     }
     
     // Handle dragging
-    if (s_activeSplitter == splitterId && ctx->getActiveWidget() == splitterId) {
+    if (s_activeSplitter == splitterId && ctx.getActiveWidget() == splitterId) {
         if (input.isMouseReleased(MouseButton::Left)) {
             s_activeSplitter = INVALID_WIDGET_ID;
-            ctx->clearActiveWidget();
+            ctx.clearActiveWidget();
         } else if (input.isMouseDown(MouseButton::Left)) {
+
             isDragging = true;
             
             // Update split ratio based on mouse position
@@ -168,19 +182,24 @@ bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertica
     return isDragging;
 }
 
+bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertical) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return HandleDockSplitter(*wc.ctx, node, splitterRect, isVertical);
+}
+
+
 //=============================================================================
 // Tab Bar Rendering
 //=============================================================================
 
-void RenderDockTabBar(DockNode* node) {
+void RenderDockTabBar(Context& ctx, DockNode* node) {
     if (!node || node->dockedWindows.empty()) return;
     
-    auto* ctx = Context::current();
-    if (!ctx) return;
-    
-    auto& dl = ctx->drawList();
-    auto& input = ctx->input();
-    const auto& theme = ctx->theme();
+    auto& dl = ctx.drawList();
+    auto& input = ctx.input();
+    const auto& theme = ctx.theme();
+
     
     // Tab bar dimensions
     const float tabHeight = 24.0f;
@@ -226,7 +245,7 @@ void RenderDockTabBar(DockNode* node) {
             s_dragStartPos = input.mousePos();
             s_dragTabIndex = i;
             s_dragNode = node;
-            ctx->setActiveWidget(tabId);
+            ctx.setActiveWidget(tabId);
         }
         
         // Handle dragging for tab undocking
@@ -235,28 +254,30 @@ void RenderDockTabBar(DockNode* node) {
                 s_activeDockTab = INVALID_WIDGET_ID;
                 s_dragNode = nullptr;
                 s_dragTabIndex = -1;
-                ctx->clearActiveWidget();
+                ctx.clearActiveWidget();
             } else if (input.isMouseDown(MouseButton::Left)) {
                 float dragDistSq = (input.mousePos() - s_dragStartPos).lengthSquared();
                 if (dragDistSq > 25.0f) { // 5 pixel threshold
                     // Start dragging the window out of the dock
-                    ctx->docking().beginDrag(node->dockedWindows[i], input.mousePos());
+                    ctx.docking().beginDrag(node->dockedWindows[i], input.mousePos());
                     s_activeDockTab = INVALID_WIDGET_ID;
                     s_dragNode = nullptr;
                     s_dragTabIndex = -1;
-                    ctx->clearActiveWidget();
+                    ctx.clearActiveWidget();
                 }
             }
         }
+
         
         // Tab color
         Color tabColor = isSelected ? theme.colors.panelBackground : 
                         (isHovered ? theme.colors.buttonHover : theme.colors.panelBackground.darker(0.05f));
         
         // Ghost if being dragged
-        if (ctx->docking().dragState().active && ctx->docking().dragState().windowId == node->dockedWindows[i]) {
+        if (ctx.docking().dragState().active && ctx.docking().dragState().windowId == node->dockedWindows[i]) {
             tabColor = tabColor.withAlpha(0.5f);
         }
+
 
         // Draw tab
         dl.addRectFilled(tabRect, tabColor, 4.0f);
@@ -267,12 +288,13 @@ void RenderDockTabBar(DockNode* node) {
         }
         
         // Draw tab label
-        std::string title = ctx->docking().getWindowTitle(node->dockedWindows[i]);
-        if (ctx->font()) {
-            Vec2 textSize = ctx->font()->measureText(title);
+        std::string title = ctx.docking().getWindowTitle(node->dockedWindows[i]);
+        if (ctx.font()) {
+            Vec2 textSize = ctx.font()->measureText(title);
             Vec2 textPos = tabRect.center() - textSize * 0.5f;
-            dl.addText(ctx->font(), textPos, title, isSelected ? theme.colors.text : theme.colors.textSecondary);
+            dl.addText(ctx.font(), textPos, title, isSelected ? theme.colors.text : theme.colors.textSecondary);
         }
+
         
         tabX += tabWidth;
     }
@@ -285,5 +307,11 @@ void RenderDockTabBar(DockNode* node) {
         1.0f
     );
 }
+
+void RenderDockTabBar(DockNode* node) {
+    auto wc = getWidgetContext();
+    if (wc.valid()) RenderDockTabBar(*wc.ctx, node);
+}
+
 
 } // namespace fst

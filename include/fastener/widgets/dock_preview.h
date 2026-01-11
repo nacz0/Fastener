@@ -5,6 +5,9 @@
 
 namespace fst {
 
+class Context;
+
+
 //=============================================================================
 // DockPreviewState - State for dock preview overlay
 //=============================================================================
@@ -23,7 +26,9 @@ struct DockPreviewState {
  * Renders the dock preview overlay during window dragging.
  * Called automatically by DockContext::endFrame().
  */
+void RenderDockPreview(Context& ctx);
 void RenderDockPreview();
+
 
 /**
  * Calculates the dock preview state for a target node.
@@ -38,7 +43,9 @@ DockPreviewState CalculateDockPreview(const DockNode* targetNode,
  * Renders dock target indicators (the zones where you can drop a window).
  * Shows directional indicators (left/right/top/bottom/center).
  */
+void RenderDockTargetIndicators(Context& ctx, DockNode* targetNode, const Vec2& mousePos);
 void RenderDockTargetIndicators(DockNode* targetNode, const Vec2& mousePos);
+
 
 /**
  * Gets the dock direction based on mouse position over a node.

@@ -9,7 +9,9 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/layout.h"
+
 #include "fastener/widgets/label.h"
 #include "fastener/widgets/text_input.h"
 #include <cstdio>
@@ -29,17 +31,15 @@ namespace fst {
  * @param options ColorPicker styling options
  * @return true if the color was changed this frame
  */
-bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
-
-    const Theme& theme = ctx->theme();
-    IDrawList& dl = *ctx->activeDrawList();
-    Font* font = ctx->font();
+bool ColorPicker(Context& ctx, const char* label, Color& color, const ColorPickerOptions& options) {
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
     
     // Generate base ID for the widget group
-    ctx->pushId(label);
-    WidgetId baseId = ctx->currentId();
+    ctx.pushId(label);
+    WidgetId baseId = ctx.currentId();
+
 
     // Prepare HSV values for interaction
     float h, s, v;
@@ -56,41 +56,44 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     if (options.style.x < 0.0f && options.style.y < 0.0f) {
         // Calculate total height: Label + SV Square + Hue Bar + (Hex Input)
         float totalHeight = svSize;
-        if (label && label[0] != '\0') totalHeight += ctx->font()->lineHeight() + theme.metrics.paddingSmall;
+        if (label && label[0] != '\0') totalHeight += ctx.font()->lineHeight() + theme.metrics.paddingSmall;
         if (options.showHex) totalHeight += theme.metrics.inputHeight + theme.metrics.paddingSmall;
         // Padding for internal layout
         totalHeight += 20; 
 
-        bounds = ctx->layout().allocate(width, totalHeight, options.style.flexGrow);
+        bounds = ctx.layout().allocate(width, totalHeight, options.style.flexGrow);
         
         // Start explicit vertical layout within these bounds
-        ctx->layout().beginContainer(bounds, LayoutDirection::Vertical);
-        ctx->layout().setSpacing(10);
+        ctx.layout().beginContainer(bounds, LayoutDirection::Vertical);
+        ctx.layout().setSpacing(10);
     } else {
         // Absolute positioning fall-back
-        BeginVertical(10);
+        BeginVertical(ctx, 10);
     }
+
     
     if (label && label[0] != '\0') {
-        Label(label);
+        Label(ctx, label);
     }
 
     bool changed = false;
     
     // Grid: [ SV Square ] [ Hue Bar ]
-    BeginHorizontal(10);
+    BeginHorizontal(ctx, 10);
     
     // 1. SV Square
-    Rect svRect = Allocate(svSize, svSize);
-    WidgetId svId = ctx->makeId("sv_square");
+    Rect svRect = Allocate(ctx, svSize, svSize);
+    WidgetId svId = ctx.makeId("sv_square");
+
     WidgetInteraction svInteract = handleWidgetInteraction(svId, svRect);
     
     if (svInteract.dragging) {
-        Vec2 mousePos = ctx->input().mousePos();
+        Vec2 mousePos = ctx.input().mousePos();
         s = std::clamp((mousePos.x - svRect.x()) / svRect.width(), 0.0f, 1.0f);
         v = 1.0f - std::clamp((mousePos.y - svRect.y()) / svRect.height(), 0.0f, 1.0f);
         changed = true;
     }
+
 
     // Draw SV Square
     Color pureHue = Color::fromHSV(h, 1.0f, 1.0f);
@@ -112,15 +115,16 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     dl.addCircle(svCursor, 4.0f, Color::white(), 16);
 
     // 2. Hue Bar
-    Rect hueRect = Allocate(hueBarWidth, svSize);
-    WidgetId hueId = ctx->makeId("hue_bar");
+    Rect hueRect = Allocate(ctx, hueBarWidth, svSize);
+    WidgetId hueId = ctx.makeId("hue_bar");
     WidgetInteraction hueInteract = handleWidgetInteraction(hueId, hueRect);
 
     if (hueInteract.dragging) {
-        Vec2 mousePos = ctx->input().mousePos();
+        Vec2 mousePos = ctx.input().mousePos();
         h = std::clamp((mousePos.y - hueRect.y()) / hueRect.height(), 0.0f, 1.0f);
         changed = true;
     }
+
 
     // Draw Hue Bar (Spectrum)
     // We draw it in segments since it's a multi-point gradient
@@ -142,7 +146,8 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     dl.addRectFilled(Rect(hueRect.x() - 1, hueY - 2, hueRect.width() + 2, 4), Color::white());
     dl.addRect(Rect(hueRect.x() - 1, hueY - 2, hueRect.width() + 2, 4), Color::black());
 
-    EndHorizontal();
+    EndHorizontal(ctx);
+
 
     // 3. Optional hex/numeric display
     if (options.showHex) {
@@ -151,7 +156,8 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
         std::string hexStr = hex;
         fst::TextInputOptions hexOpts;
         hexOpts.style = Style().withWidth(100);
-        if (TextInput("hex", hexStr, hexOpts)) {
+        if (TextInput(ctx, "hex", hexStr, hexOpts)) {
+
             // Hex parsing (simple)
             if (hexStr.length() >= 7 && hexStr[0] == '#') {
                 uint32_t val;
@@ -164,11 +170,12 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     }
 
     if (options.style.x < 0.0f && options.style.y < 0.0f) {
-        ctx->layout().endContainer(); 
+        ctx.layout().endContainer(); 
     } else {
-        EndVertical();
+        EndVertical(ctx);
     }
-    ctx->popId();
+    ctx.popId();
+
 
     if (changed) {
         color = Color::fromHSV(h, s, v, color.af());
@@ -177,8 +184,19 @@ bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& opti
     return changed;
 }
 
+bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return ColorPicker(*wc.ctx, label, color, options);
+}
+
+bool ColorPicker(Context& ctx, const std::string& label, Color& color, const ColorPickerOptions& options) {
+    return ColorPicker(ctx, label.c_str(), color, options);
+}
+
 bool ColorPicker(const std::string& label, Color& color, const ColorPickerOptions& options) {
     return ColorPicker(label.c_str(), color, options);
 }
+
 
 } // namespace fst

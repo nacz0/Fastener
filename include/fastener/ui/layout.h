@@ -6,6 +6,9 @@
 
 namespace fst {
 
+class Context;
+
+
 //=============================================================================
 // Layout Direction
 //=============================================================================
@@ -106,17 +109,31 @@ private:
 //=============================================================================
 // Global Layout Helpers
 //=============================================================================
+void BeginHorizontal(Context& ctx, float spacing = -1.0f);
 void BeginHorizontal(float spacing = -1.0f);
+void EndHorizontal(Context& ctx);
 void EndHorizontal();
 
+void BeginVertical(Context& ctx, float spacing = -1.0f);
 void BeginVertical(float spacing = -1.0f);
+void EndVertical(Context& ctx);
 void EndVertical();
 
+
+void Spacing(Context& ctx, float size);
 void Spacing(float size);
+void Padding(Context& ctx, float top, float right, float bottom, float left);
 void Padding(float top, float right, float bottom, float left);
+void Padding(Context& ctx, float uniform);
 void Padding(float uniform);
 
+Rect Allocate(Context& ctx, float width, float height, float flexGrow = 0.0f);
 Rect Allocate(float width, float height, float flexGrow = 0.0f);
-Rect AllocateRemaining();
+Rect AllocateRemainingSpace(Context& ctx);
+Rect AllocateRemainingSpace();
+
+
+
+
 
 } // namespace fst

@@ -6,6 +6,9 @@
 
 namespace fst {
 
+class Context;
+
+
 //=============================================================================
 // ColorPicker
 //=============================================================================
@@ -16,7 +19,11 @@ struct ColorPickerOptions {
     bool showHex = true;
 };
 
+bool ColorPicker(Context& ctx, const char* label, Color& color, const ColorPickerOptions& options = {});
 bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& options = {});
+
+bool ColorPicker(Context& ctx, const std::string& label, Color& color, const ColorPickerOptions& options = {});
 bool ColorPicker(const std::string& label, Color& color, const ColorPickerOptions& options = {});
+
 
 } // namespace fst

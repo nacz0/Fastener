@@ -6,7 +6,9 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
+
 #include <unordered_map>
 
 namespace fst {
@@ -41,20 +43,16 @@ static std::vector<WidgetId> s_windowStack;
 // BeginDockableWindow
 //=============================================================================
 
-bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& options) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return false;
-    }
-    
+bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWindowOptions& options) {
     // Calculate final widget ID without pushing to stack yet
-    WidgetId widgetId = ctx->makeId(id.c_str());
-    auto& docking = ctx->docking();
-    auto& dl = ctx->drawList();
-    auto& input = ctx->input();
-    auto& layout = ctx->layout();
-    const auto& theme = ctx->theme();
-    auto& window = ctx->window();
+    WidgetId widgetId = ctx.makeId(id.c_str());
+    auto& docking = ctx.docking();
+    auto& dl = ctx.drawList();
+    auto& input = ctx.input();
+    auto& layout = ctx.layout();
+    const auto& theme = ctx.theme();
+    auto& window = ctx.window();
+
     
     // Get or create window state
     auto& state = getWindowState(widgetId);
@@ -101,7 +99,8 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
     
     // Push to window stack and ID stack
     s_windowStack.push_back(widgetId);
-    ctx->pushId(id.c_str());
+    ctx.pushId(id.c_str());
+
     
     Rect contentBounds;
     const float titleBarHeight = 28.0f;
@@ -145,7 +144,7 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
         if (state.isDragging) {
             if (input.isMouseReleased(MouseButton::Left)) {
                 state.isDragging = false;
-                ctx->clearActiveWidget();
+                ctx.clearActiveWidget();
                 
                 if (options.allowDocking) {
                     docking.endDrag(true);
@@ -180,20 +179,20 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
         dl.addRectFilled(titleBarRect, theme.colors.panelBackground.darker(0.1f), 8.0f);
         
         // Draw title
-        if (ctx->font()) {
+        if (ctx.font()) {
             Vec2 titlePos(titleBarRect.x() + 8.0f, 
                          titleBarRect.y() + (titleBarHeight - 14.0f) * 0.5f);
-            dl.addText(ctx->font(), titlePos, state.title, theme.colors.text);
+            dl.addText(ctx.font(), titlePos, state.title, theme.colors.text);
         }
         
         // Handle dragging via title bar
         if (!state.isDragging && !beingDragged) {
-            bool titleHovered = titleBarRect.contains(input.mousePos()) && !ctx->isOccluded(input.mousePos());
+            bool titleHovered = titleBarRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos());
             if (titleHovered && input.isMousePressed(MouseButton::Left)) {
                 state.isDragging = true;
                 state.dragOffset = input.mousePos() - contentBounds.pos;
-                ctx->setActiveWidget(widgetId);
-                ctx->input().consumeMouse();
+                ctx.setActiveWidget(widgetId);
+                ctx.input().consumeMouse();
             }
         }
 
@@ -205,8 +204,10 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
                             contentBounds.width(), contentBounds.height() - titleBarHeight);
 
         // Register occlusion
-        ctx->addFloatingWindowRect(state.floatingBounds);
+        ctx.addFloatingWindowRect(state.floatingBounds);
     }
+
+
     
     // Begin layout for window content
     dl.pushClipRect(contentBounds);
@@ -215,18 +216,25 @@ bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& opt
     return true;
 }
 
+bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return BeginDockableWindow(*wc.ctx, id, options);
+}
+
+
 //=============================================================================
 // EndDockableWindow
 //=============================================================================
 
-void EndDockableWindow() {
-    auto* ctx = Context::current();
-    if (!ctx || s_windowStack.empty()) {
+void EndDockableWindow(Context& ctx) {
+    if (s_windowStack.empty()) {
         return;
     }
     
-    auto& layout = ctx->layout();
-    auto& dl = ctx->drawList();
+    auto& layout = ctx.layout();
+    auto& dl = ctx.drawList();
+
     
     // End layout
     layout.endContainer();
@@ -237,20 +245,33 @@ void EndDockableWindow() {
     dl.setLayer(state.prevLayer);
     
     // Pop ID
-    ctx->popId();
+    ctx.popId();
     
     // Pop from stack
     s_windowStack.pop_back();
 }
 
+void EndDockableWindow() {
+    auto wc = getWidgetContext();
+    if (wc.valid()) EndDockableWindow(*wc.ctx);
+}
+
+
 //=============================================================================
 // DockableWindowScope
 //=============================================================================
 
-DockableWindowScope::DockableWindowScope(const std::string& id, 
+DockableWindowScope::DockableWindowScope(Context& ctx, const std::string& id, 
                                          const DockableWindowOptions& options)
-    : m_visible(BeginDockableWindow(id, options)) {
+    : m_visible(BeginDockableWindow(ctx, id, options)) {
 }
+
+DockableWindowScope::DockableWindowScope(const std::string& id, 
+                                         const DockableWindowOptions& options) {
+    auto wc = getWidgetContext();
+    m_visible = wc.valid() ? BeginDockableWindow(*wc.ctx, id, options) : false;
+}
+
 
 DockableWindowScope::~DockableWindowScope() {
     if (m_visible) {

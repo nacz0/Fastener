@@ -3,6 +3,8 @@
 #include "fastener/ui/dock_context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/widget_utils.h"
+
 
 namespace fst {
 
@@ -10,12 +12,10 @@ namespace fst {
 // Dock Preview Rendering
 //=============================================================================
 
-void RenderDockPreview() {
-    auto* ctx = Context::current();
-    if (!ctx) return;
-    
-    auto& docking = ctx->docking();
+void RenderDockPreview(Context& ctx) {
+    auto& docking = ctx.docking();
     auto& dragState = docking.dragState();
+
     
     if (!dragState.active || dragState.hoveredNodeId == DockNode::INVALID_ID || 
         dragState.hoveredDirection == DockDirection::None) {
@@ -25,8 +25,9 @@ void RenderDockPreview() {
     DockNode* hoveredNode = docking.getDockNode(dragState.hoveredNodeId);
     if (!hoveredNode) return;
     
-    auto& dl = ctx->drawList();
-    const auto& theme = ctx->theme();
+    auto& dl = ctx.drawList();
+    const auto& theme = ctx.theme();
+
     
     dl.setLayer(DrawLayer::Overlay);
     
@@ -44,10 +45,16 @@ void RenderDockPreview() {
     }
 
     // Draw target indicators (the 5-way cross)
-    RenderDockTargetIndicators(hoveredNode, dragState.mousePos);
+    RenderDockTargetIndicators(ctx, hoveredNode, dragState.mousePos);
     
     dl.setLayer(DrawLayer::Default);
 }
+
+void RenderDockPreview() {
+    auto wc = getWidgetContext();
+    if (wc.valid()) RenderDockPreview(*wc.ctx);
+}
+
 
 //=============================================================================
 // Preview Calculation
@@ -61,10 +68,12 @@ DockPreviewState CalculateDockPreview(const DockNode* targetNode,
         return state;
     }
     
-    auto* ctx = Context::current();
-    if (!ctx) return state;
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return state;
     
-    const auto& theme = ctx->theme();
+    const auto& theme = *wc.theme;
+
+
     
     DockDirection direction = GetDockDirectionFromMouse(targetNode, mousePos);
     
@@ -84,14 +93,12 @@ DockPreviewState CalculateDockPreview(const DockNode* targetNode,
 // Dock Target Indicators
 //=============================================================================
 
-void RenderDockTargetIndicators(DockNode* targetNode, const Vec2& mousePos) {
+void RenderDockTargetIndicators(Context& ctx, DockNode* targetNode, const Vec2& mousePos) {
     if (!targetNode) return;
     
-    auto* ctx = Context::current();
-    if (!ctx) return;
-    
-    auto& dl = ctx->drawList();
-    const auto& theme = ctx->theme();
+    auto& dl = ctx.drawList();
+    const auto& theme = ctx.theme();
+
     
     const Rect& bounds = targetNode->bounds;
     const float indicatorSize = 40.0f;
@@ -185,6 +192,12 @@ void RenderDockTargetIndicators(DockNode* targetNode, const Vec2& mousePos) {
         }
     }
 }
+
+void RenderDockTargetIndicators(DockNode* targetNode, const Vec2& mousePos) {
+    auto wc = getWidgetContext();
+    if (wc.valid()) RenderDockTargetIndicators(*wc.ctx, targetNode, mousePos);
+}
+
 
 //=============================================================================
 // Direction Detection

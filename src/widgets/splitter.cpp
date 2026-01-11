@@ -29,17 +29,14 @@ namespace fst {
  * @param options Splitter styling and behavior options
  * @return true if the split position was changed this frame
  */
-bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
+bool Splitter(Context& ctx, const char* id_str, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options) {
-    // Get widget context
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
 
     // Generate unique ID
-    WidgetId id = wc.ctx->makeId(id_str);
+    WidgetId id = ctx.makeId(id_str);
+
 
     // Calculate splitter visual bounds based on direction
     Rect splitterBounds;
@@ -72,15 +69,17 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
         Cursor cursor = (options.direction == Direction::Vertical) 
             ? Cursor::ResizeH 
             : Cursor::ResizeV;
-        wc.ctx->window().setCursor(cursor);
+        ctx.window().setCursor(cursor);
     }
+
 
     bool changed = false;
 
     // Handle drag to update split position
     if (state.active && !options.disabled) {
-        Vec2 mousePos = wc.ctx->input().mousePos();
+        Vec2 mousePos = ctx.input().mousePos();
         float newPos = splitPosition;
+
 
         if (options.direction == Direction::Vertical) {
             newPos = mousePos.x - bounds.x();
@@ -138,9 +137,22 @@ bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
 /**
  * @brief String overload for Splitter.
  */
+bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
+             const SplitterOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return Splitter(*wc.ctx, id_str, splitPosition, bounds, options);
+}
+
+bool Splitter(Context& ctx, const std::string& id, float& splitPosition, const Rect& bounds,
+             const SplitterOptions& options) {
+    return Splitter(ctx, id.c_str(), splitPosition, bounds, options);
+}
+
 bool Splitter(const std::string& id, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options) {
     return Splitter(id.c_str(), splitPosition, bounds, options);
 }
+
 
 } // namespace fst

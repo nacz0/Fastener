@@ -5,6 +5,8 @@
 #include <string>
 
 namespace fst {
+class Context;
+
 
 /**
  * @brief Options for customizing TextArea appearance and behavior.
@@ -31,11 +33,16 @@ struct TextAreaOptions {
  * @param options TextArea styling and behavior options
  * @return true if the text value was changed this frame
  */
+bool TextArea(Context& ctx, const std::string& id, std::string& value, 
+              const TextAreaOptions& options = {});
 bool TextArea(const std::string& id, std::string& value, 
               const TextAreaOptions& options = {});
 
+bool TextArea(Context& ctx, const char* id, std::string& value, 
+              const TextAreaOptions& options = {});
 bool TextArea(const char* id, std::string& value, 
               const TextAreaOptions& options = {});
+
 
 /**
  * @brief TextArea with integrated label above.
@@ -45,7 +52,10 @@ bool TextArea(const char* id, std::string& value,
  * @param options TextArea styling and behavior options
  * @return true if the text value was changed this frame
  */
+bool TextAreaWithLabel(Context& ctx, const std::string& label, std::string& value,
+                       const TextAreaOptions& options = {});
 bool TextAreaWithLabel(const std::string& label, std::string& value,
                        const TextAreaOptions& options = {});
+
 
 } // namespace fst

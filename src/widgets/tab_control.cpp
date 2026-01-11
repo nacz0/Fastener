@@ -9,7 +9,9 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
+
 #include <algorithm>
 #include <cmath>
 
@@ -101,13 +103,13 @@ TabItem* TabControl::selectedTab() {
     return getTab(m_selectedIndex);
 }
 
-std::vector<float> TabControl::calculateTabWidths(float availableWidth, 
+std::vector<float> TabControl::calculateTabWidths(Context& ctx, float availableWidth, 
                                                    const TabControlOptions& options) const {
     std::vector<float> widths;
     if (m_tabs.empty()) return widths;
     
-    Context* ctx = Context::current();
-    Font* font = ctx ? ctx->font() : nullptr;
+    Font* font = ctx.font();
+
     
     // Calculate ideal width for each tab
     float totalIdeal = 0;
@@ -142,17 +144,15 @@ std::vector<float> TabControl::calculateTabWidths(float availableWidth,
     return widths;
 }
 
-Rect TabControl::render(const std::string& id, const Rect& bounds,
+Rect TabControl::render(Context& ctx, const std::string& id, const Rect& bounds,
                         const TabControlOptions& options,
                         const TabControlEvents& events) {
-    Context* ctx = Context::current();
-    if (!ctx) return bounds;
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
     
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
-    
-    ctx->pushId(id.c_str());
+    ctx.pushId(id.c_str());
+
     
     // Tab bar area
     float tabBarHeight = options.tabHeight;
@@ -169,7 +169,8 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
         availableWidth -= 32.0f;
     }
     
-    std::vector<float> tabWidths = calculateTabWidths(availableWidth, options);
+    std::vector<float> tabWidths = calculateTabWidths(ctx, availableWidth, options);
+
     
     // Reset hover states
     m_hoveredTab = -1;
@@ -184,8 +185,9 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
         
         // Skip if completely outside view
         if (tabRect.right() > tabBarRect.x() && tabRect.left() < tabBarRect.right()) {
-            drawTab(i, tabRect, options, events);
+            drawTab(ctx, i, tabRect, options, events);
         }
+
         
         x += tabWidth;
     }
@@ -195,7 +197,8 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
         float addX = tabBarRect.right() - 32.0f;
         Rect addRect(addX, tabBarRect.y(), 32.0f, tabBarHeight);
         
-        bool addHovered = addRect.contains(ctx->input().mousePos());
+        bool addHovered = addRect.contains(ctx.input().mousePos());
+
         if (addHovered) {
             dl.addRectFilled(addRect, theme.colors.buttonHover);
         }
@@ -207,7 +210,8 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
         dl.addLine(Vec2(center.x - size, center.y), Vec2(center.x + size, center.y), iconColor, 2.0f);
         dl.addLine(Vec2(center.x, center.y - size), Vec2(center.x, center.y + size), iconColor, 2.0f);
         
-        if (addHovered && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (addHovered && ctx.input().isMousePressed(MouseButton::Left)) {
+
             if (events.onAdd) {
                 events.onAdd();
             }
@@ -219,8 +223,9 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
                      theme.colors.border);
     
     // Handle scroll with mouse wheel
-    if (tabBarRect.contains(ctx->input().mousePos())) {
-        float scroll = ctx->input().scrollDelta().y;
+    if (tabBarRect.contains(ctx.input().mousePos())) {
+        float scroll = ctx.input().scrollDelta().y;
+
         m_scrollOffset -= scroll * 30.0f;
         
         float totalWidth = 0;
@@ -229,24 +234,32 @@ Rect TabControl::render(const std::string& id, const Rect& bounds,
         m_scrollOffset = std::clamp(m_scrollOffset, 0.0f, maxScroll);
     }
     
-    ctx->popId();
+    ctx.popId();
     
     return contentRect;
 }
 
-void TabControl::drawTab(int index, const Rect& tabRect,
+Rect TabControl::render(const std::string& id, const Rect& bounds,
+                        const TabControlOptions& options,
+                        const TabControlEvents& events) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return bounds;
+    return render(*wc.ctx, id, bounds, options, events);
+}
+
+
+void TabControl::drawTab(Context& ctx, int index, const Rect& tabRect,
                          const TabControlOptions& options,
                          const TabControlEvents& events) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
     
     const TabItem& tab = m_tabs[index];
     bool isSelected = (index == m_selectedIndex);
-    bool isHovered = tabRect.contains(ctx->input().mousePos()) && !fst::IsMouseOverAnyMenu();
+    bool isHovered = tabRect.contains(ctx.input().mousePos()) && !fst::IsMouseOverAnyMenu(ctx);
+
     
     if (isHovered) {
         m_hoveredTab = index;
@@ -309,7 +322,8 @@ void TabControl::drawTab(int index, const Rect& tabRect,
                        tabRect.center().y - closeSize / 2,
                        closeSize, closeSize);
         
-        bool closeHovered = closeRect.contains(ctx->input().mousePos());
+        bool closeHovered = closeRect.contains(ctx.input().mousePos());
+
         if (closeHovered) {
             m_hoveredClose = index;
             dl.addRectFilled(closeRect, theme.colors.buttonHover, 2.0f);
@@ -323,7 +337,8 @@ void TabControl::drawTab(int index, const Rect& tabRect,
         dl.addLine(Vec2(center.x + xs, center.y - xs), Vec2(center.x - xs, center.y + xs), xColor, 1.5f);
         
         // Close click
-        if (closeHovered && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (closeHovered && ctx.input().isMousePressed(MouseButton::Left)) {
+
             if (events.onClose) {
                 events.onClose(index, tab);
             }
@@ -331,7 +346,8 @@ void TabControl::drawTab(int index, const Rect& tabRect,
     }
     
     // Tab click (select)
-    if (isHovered && m_hoveredClose != index && ctx->input().isMousePressed(MouseButton::Left)) {
+    if (isHovered && m_hoveredClose != index && ctx.input().isMousePressed(MouseButton::Left)) {
+
         if (index != m_selectedIndex) {
             m_selectedIndex = index;
             if (events.onSelect) {
@@ -341,7 +357,8 @@ void TabControl::drawTab(int index, const Rect& tabRect,
     }
     
     // Right click (context menu)
-    if (isHovered && ctx->input().isMousePressed(MouseButton::Right)) {
+    if (isHovered && ctx.input().isMousePressed(MouseButton::Right)) {
+
         if (events.onContextMenu) {
             events.onContextMenu(index, tab);
         }

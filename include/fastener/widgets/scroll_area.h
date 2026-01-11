@@ -6,6 +6,8 @@
 #include <string>
 
 namespace fst {
+class Context;
+
 
 struct ScrollAreaOptions {
     Style style;
@@ -33,9 +35,13 @@ public:
     // Main render function
     // contentRenderer is called with the available viewport bounds and current scroll offset
     // It should render content using the provided scroll offset to adjust positions
+    void render(Context& ctx, const std::string& id, const Rect& bounds, 
+                std::function<void(const Rect& viewport)> contentRenderer,
+                const ScrollAreaOptions& options = {});
     void render(const std::string& id, const Rect& bounds, 
                 std::function<void(const Rect& viewport)> contentRenderer,
                 const ScrollAreaOptions& options = {});
+
 
 private:
     Vec2 m_contentSize = {0, 0};
@@ -47,8 +53,9 @@ private:
     float m_dragStartPos = 0.0f;
     float m_dragStartOffset = 0.0f;
 
-    void handleInteraction(const std::string& id, const Rect& bounds, const Rect& viewport, const ScrollAreaOptions& options);
+    void handleInteraction(Context& ctx, const std::string& id, const Rect& bounds, const Rect& viewport, const ScrollAreaOptions& options);
     void clampScroll(const Rect& viewport);
+
 };
 
 } // namespace fst

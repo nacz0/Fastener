@@ -9,7 +9,9 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/widget.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
+
 #include <cmath>
 #include <algorithm>
 
@@ -89,17 +91,14 @@ void TreeView::expandTo(TreeNode* node) {
     if (changed) m_layoutDirty = true;
 }
 
-void TreeView::render(std::string_view id, const Rect& bounds,
+void TreeView::render(Context& ctx, std::string_view id, const Rect& bounds,
                       const TreeViewOptions& options,
                       const TreeViewEvents& events) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
     
     // Generate ID
-    ctx->pushId(id);
+    ctx.pushId(id);
     
     // Update layout if dirty
     if (m_layoutDirty) {
@@ -116,8 +115,8 @@ void TreeView::render(std::string_view id, const Rect& bounds,
     
     // Handle scrolling
     m_contentHeight = m_flatNodes.size() * options.rowHeight;
-    if (bounds.contains(ctx->input().mousePos())) {
-        Vec2 scroll = ctx->input().scrollDelta();
+    if (bounds.contains(ctx.input().mousePos())) {
+        Vec2 scroll = ctx.input().scrollDelta();
         m_scrollY -= scroll.y * options.rowHeight * 3;
         m_scrollY = std::max(0.0f, std::min(m_scrollY, std::max(0.0f, m_contentHeight - contentBounds.height())));
     }
@@ -135,12 +134,21 @@ void TreeView::render(std::string_view id, const Rect& bounds,
         if (y + options.rowHeight < contentBounds.y()) continue;
         if (y > contentBounds.bottom()) break;
         
-        renderNode(m_flatNodes[i], contentBounds, y, options, events);
+        renderNode(ctx, m_flatNodes[i], contentBounds, y, options, events);
     }
     
     dl.popClipRect();
-    ctx->popId();
+    ctx.popId();
 }
+
+void TreeView::render(std::string_view id, const Rect& bounds,
+                      const TreeViewOptions& options,
+                      const TreeViewEvents& events) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    render(*wc.ctx, id, bounds, options, events);
+}
+
 
 void TreeView::updateLayout() {
     m_flatNodes.clear();
@@ -164,15 +172,13 @@ void TreeView::updateLayout() {
     m_layoutDirty = false;
 }
 
-float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
+float TreeView::renderNode(Context& ctx, TreeNode* node, const Rect& bounds, float y,
                            const TreeViewOptions& options,
                            const TreeViewEvents& events) {
-    Context* ctx = Context::current();
-    if (!ctx) return y;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
     
     int depth = node->depth() - 1;  // -1 because root is hidden
     float indent = depth * options.indentWidth;
@@ -181,19 +187,21 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     Rect actualRow(bounds.x() + indent, y, bounds.width() - indent, options.rowHeight);
     
     // Hit testing
-    bool isHovered = rowBounds.contains(ctx->input().mousePos()) && !fst::IsMouseOverAnyMenu();
+    bool isHovered = rowBounds.contains(ctx.input().mousePos()) && !fst::IsMouseOverAnyMenu(ctx);
+
     if (isHovered) {
         m_hoveredNode = node;
     }
     
     // Handle interaction
-    WidgetId nodeId = ctx->makeId(std::string_view(node->id));
+    WidgetId nodeId = ctx.makeId(std::string_view(node->id));
     
-    if (isHovered && ctx->input().isMousePressed(MouseButton::Left)) {
+    if (isHovered && ctx.input().isMousePressed(MouseButton::Left)) {
         // Check if clicked on expand arrow
         float arrowX = bounds.x() + indent;
         float arrowWidth = 16.0f;
-        Vec2 mousePos = ctx->input().mousePos();
+        Vec2 mousePos = ctx.input().mousePos();
+
         
         if (!node->isLeaf && node->hasChildren() && 
             mousePos.x >= arrowX && mousePos.x < arrowX + arrowWidth) {
@@ -214,7 +222,8 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
         }
     }
     
-    if (isHovered && ctx->input().isMouseDoubleClicked(MouseButton::Left)) {
+    if (isHovered && ctx.input().isMouseDoubleClicked(MouseButton::Left)) {
+
         if (events.onDoubleClick) {
             events.onDoubleClick(node);
         }
@@ -225,7 +234,8 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
         }
     }
     
-    if (isHovered && ctx->input().isMousePressed(MouseButton::Right)) {
+    if (isHovered && ctx.input().isMousePressed(MouseButton::Right)) {
+
         if (events.onContextMenu) {
             events.onContextMenu(node);
         }
@@ -242,17 +252,19 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     
     // Draw expand arrow
     if (!node->isLeaf && node->hasChildren()) {
-        drawExpandArrow(Vec2(x + 8, y + options.rowHeight / 2), node->isExpanded,
+        drawExpandArrow(ctx, Vec2(x + 8, y + options.rowHeight / 2), node->isExpanded,
                         node->isSelected ? theme.colors.selectionText : theme.colors.text);
     }
+
     x += 16.0f;
     
     // Draw icon
     if (options.showIcons) {
-        drawIcon(Vec2(x + 8, y + options.rowHeight / 2), !node->isLeaf, node->isExpanded,
+        drawIcon(ctx, Vec2(x + 8, y + options.rowHeight / 2), !node->isLeaf, node->isExpanded,
                  node->isSelected ? theme.colors.selectionText : theme.colors.textSecondary);
         x += 20.0f;
     }
+
     
     Color textColor = node->isSelected ? theme.colors.selectionText : theme.colors.text;
     Vec2 textPos(x + 4, y + (options.rowHeight - font->lineHeight()) / 2);
@@ -262,11 +274,9 @@ float TreeView::renderNode(TreeNode* node, const Rect& bounds, float y,
     return y;
 }
 
-void TreeView::drawExpandArrow(const Vec2& pos, bool expanded, Color color) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
+void TreeView::drawExpandArrow(Context& ctx, const Vec2& pos, bool expanded, Color color) {
+    IDrawList& dl = *ctx.activeDrawList();
+
     float size = 4.0f;
     
     if (expanded) {
@@ -284,11 +294,9 @@ void TreeView::drawExpandArrow(const Vec2& pos, bool expanded, Color color) {
     }
 }
 
-void TreeView::drawIcon(const Vec2& pos, bool isFolder, bool isExpanded, Color color) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
+void TreeView::drawIcon(Context& ctx, const Vec2& pos, bool isFolder, bool isExpanded, Color color) {
+    IDrawList& dl = *ctx.activeDrawList();
+
     
     if (isFolder) {
         // Draw folder icon
@@ -319,7 +327,7 @@ void TreeView::drawIcon(const Vec2& pos, bool isFolder, bool isExpanded, Color c
     }
 }
 
-void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
+void TreeViewSimple(Context& ctx, std::string_view id, TreeNode* root, const Rect& bounds,
                     std::function<void(TreeNode*)> onSelect,
                     const TreeViewOptions& options) {
     static std::unordered_map<std::string, TreeView> treeViews;
@@ -334,7 +342,16 @@ void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
     TreeViewEvents events;
     events.onSelect = onSelect;
     
-    tv.render(std::string_view(id), bounds, options, events);
+    tv.render(ctx, std::string_view(id), bounds, options, events);
 }
+
+void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
+                    std::function<void(TreeNode*)> onSelect,
+                    const TreeViewOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    TreeViewSimple(*wc.ctx, id, root, bounds, onSelect, options);
+}
+
 
 } // namespace fst

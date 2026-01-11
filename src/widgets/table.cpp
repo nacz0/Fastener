@@ -68,12 +68,9 @@ float Table::getTotalWidth() const {
     return total;
 }
 
-void Table::begin(const std::string& id, const Rect& bounds,
+void Table::begin(Context& ctx, const std::string& id, const Rect& bounds,
                   const TableOptions& options,
                   const TableEvents& events) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-
     m_currentId = id;
     m_bounds = bounds;
     m_options = options;
@@ -83,8 +80,10 @@ void Table::begin(const std::string& id, const Rect& bounds,
     m_hoveredRow = -1;
     m_inTable = true;
 
-    const Theme& theme = *wc.theme;
-    Font* font = wc.font;
+    ctx.pushId(id.c_str());
+
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
 
     // Calculate heights
     m_rowHeight = options.rowHeight > 0 
@@ -100,25 +99,31 @@ void Table::begin(const std::string& id, const Rect& bounds,
                            bounds.width(), bounds.height() - headerH);
 
     // Handle scrolling
-    handleScroll();
+    handleScroll(ctx);
     
     // Handle column resizing
-    handleColumnResize();
+    handleColumnResize(ctx);
 
     // Render header
     if (options.showHeader) {
-        renderHeader();
+        renderHeader(ctx);
     }
 }
 
-void Table::renderHeader() {
+void Table::begin(const std::string& id, const Rect& bounds,
+                  const TableOptions& options,
+                  const TableEvents& events) {
     auto wc = getWidgetContext();
     if (!wc.valid()) return;
+    begin(*wc.ctx, id, bounds, options, events);
+}
 
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    Font* font = wc.font;
-    InputState& input = wc.ctx->input();
+
+void Table::renderHeader(Context& ctx) {
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
+    InputState& input = ctx.input();
 
     Rect headerRect(m_bounds.x(), m_bounds.y(), m_bounds.width(), m_headerHeight);
     
@@ -144,8 +149,9 @@ void Table::renderHeader() {
         }
 
         // Handle click for sorting
-        bool canClick = hovered && col.sortable && !wc.ctx->isInputCaptured() && !input.isMouseConsumed();
+        bool canClick = hovered && col.sortable && !ctx.isInputCaptured() && !input.isMouseConsumed();
         if (canClick && input.isMousePressed(MouseButton::Left)) {
+
             if (m_sortColumn == (int)i) {
                 m_sortAscending = !m_sortAscending;
             } else {
@@ -208,14 +214,12 @@ void Table::renderHeader() {
     }
 }
 
-void Table::handleColumnResize() {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-
-    InputState& input = wc.ctx->input();
+void Table::handleColumnResize(Context& ctx) {
+    InputState& input = ctx.input();
 
     // Start resizing
     if (m_resizingColumn < 0 && input.isMousePressed(MouseButton::Left)) {
+
         float x = m_bounds.x();
         for (size_t i = 0; i < m_columns.size() - 1; ++i) {
             x += m_columns[i].width;
@@ -247,28 +251,24 @@ void Table::handleColumnResize() {
     }
 }
 
-void Table::handleScroll() {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-
-    InputState& input = wc.ctx->input();
+void Table::handleScroll(Context& ctx) {
+    InputState& input = ctx.input();
 
     if (m_contentBounds.contains(input.mousePos())) {
+
         m_scrollOffset -= input.scrollDelta().y * m_rowHeight;
         // Will be clamped in end() when we know total rows
     }
 }
 
-bool Table::row(const std::vector<std::string>& cells, bool selected) {
+bool Table::row(Context& ctx, const std::vector<std::string>& cells, bool selected) {
     if (!m_inTable) return false;
 
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
+    InputState& input = ctx.input();
 
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    Font* font = wc.font;
-    InputState& input = wc.ctx->input();
 
     float y = m_contentBounds.y() + m_currentRow * m_rowHeight - m_scrollOffset;
     
@@ -306,7 +306,7 @@ bool Table::row(const std::vector<std::string>& cells, bool selected) {
 
     // Handle click
     bool clicked = false;
-    bool canClick = hovered && !wc.ctx->isInputCaptured() && !input.isMouseConsumed();
+    bool canClick = hovered && !ctx.isInputCaptured() && !input.isMouseConsumed();
     if (canClick && input.isMousePressed(MouseButton::Left)) {
         m_clickedRow = m_currentRow;
         clicked = true;
@@ -314,6 +314,7 @@ bool Table::row(const std::vector<std::string>& cells, bool selected) {
             m_events.onRowClick(m_currentRow);
         }
     }
+
 
     // Draw cells
     float x = rowRect.x();
@@ -367,15 +368,12 @@ bool Table::row(const std::vector<std::string>& cells, bool selected) {
     return clicked;
 }
 
-void Table::end() {
+void Table::end(Context& ctx) {
     if (!m_inTable) return;
 
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    InputState& input = wc.ctx->input();
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    InputState& input = ctx.input();
 
     // Clamp scroll offset
     float totalHeight = m_currentRow * m_rowHeight;
@@ -405,16 +403,20 @@ void Table::end() {
     m_inTable = false;
 }
 
+void Table::end() {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    end(*wc.ctx);
+}
+
+
 //=============================================================================
 // Immediate-Mode API
 //=============================================================================
 
-bool BeginTable(const std::string& id, const std::vector<TableColumn>& columns,
+bool BeginTable(Context& ctx, const std::string& id, const std::vector<TableColumn>& columns,
                 const TableOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-
-    WidgetId widgetId = wc.ctx->makeId(id.c_str());
+    WidgetId widgetId = ctx.makeId(id.c_str());
     TableState& state = s_tableStates[widgetId];
     
     s_currentTable = &state;
@@ -427,8 +429,9 @@ bool BeginTable(const std::string& id, const std::vector<TableColumn>& columns,
     state.hoveredRow = -1;
     state.inTable = true;
 
-    const Theme& theme = *wc.theme;
-    Font* font = wc.font;
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
 
     // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 400.0f;
@@ -453,7 +456,7 @@ bool BeginTable(const std::string& id, const std::vector<TableColumn>& columns,
                                state.bounds.width(), state.bounds.height() - headerH);
 
     // Handle scrolling
-    InputState& input = wc.ctx->input();
+    InputState& input = ctx.input();
     if (state.contentBounds.contains(input.mousePos())) {
         state.scrollOffset -= input.scrollDelta().y * state.rowHeight;
     }
@@ -461,20 +464,26 @@ bool BeginTable(const std::string& id, const std::vector<TableColumn>& columns,
     return true;
 }
 
-void TableHeader(int sortColumn, bool sortAscending) {
+bool BeginTable(const std::string& id, const std::vector<TableColumn>& columns,
+                const TableOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return BeginTable(*wc.ctx, id, columns, options);
+}
+
+
+void TableHeader(Context& ctx, int sortColumn, bool sortAscending) {
     if (!s_currentTable || !s_currentTable->inTable) return;
     
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-
     TableState& state = *s_currentTable;
     state.sortColumn = sortColumn;
     state.sortAscending = sortAscending;
 
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    Font* font = wc.font;
-    InputState& input = wc.ctx->input();
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
+    InputState& input = ctx.input();
+
 
     if (!state.options.showHeader) return;
 
@@ -490,7 +499,8 @@ void TableHeader(int sortColumn, bool sortAscending) {
         Rect cellRect(x, headerRect.y(), col.width, state.headerHeight);
 
         bool hovered = cellRect.contains(input.mousePos());
-        bool canClick = hovered && col.sortable && !wc.ctx->isInputCaptured() && !input.isMouseConsumed();
+        bool canClick = hovered && col.sortable && !ctx.isInputCaptured() && !input.isMouseConsumed();
+
         if (hovered && col.sortable) {
             dl.addRectFilled(cellRect, theme.colors.selection.withAlpha((uint8_t)30));
             
@@ -540,17 +550,22 @@ void TableHeader(int sortColumn, bool sortAscending) {
     }
 }
 
-bool TableRow(const std::vector<std::string>& cells, bool selected) {
+void TableHeader(int sortColumn, bool sortAscending) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    TableHeader(*wc.ctx, sortColumn, sortAscending);
+}
+
+
+bool TableRow(Context& ctx, const std::vector<std::string>& cells, bool selected) {
     if (!s_currentTable || !s_currentTable->inTable) return false;
 
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-
     TableState& state = *s_currentTable;
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    Font* font = wc.font;
-    InputState& input = wc.ctx->input();
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
+    InputState& input = ctx.input();
+
 
     float y = state.contentBounds.y() + state.currentRow * state.rowHeight - state.scrollOffset;
 
@@ -582,8 +597,9 @@ bool TableRow(const std::vector<std::string>& cells, bool selected) {
 
     bool clicked = false;
     // Only handle click if input is not captured by another widget
-    bool canClick = hovered && !wc.ctx->isInputCaptured() && !input.isMouseConsumed();
+    bool canClick = hovered && !ctx.isInputCaptured() && !input.isMouseConsumed();
     if (canClick && input.isMousePressed(MouseButton::Left)) {
+
         state.clickedRow = state.currentRow;
         clicked = true;
     }
@@ -636,16 +652,21 @@ bool TableRow(const std::vector<std::string>& cells, bool selected) {
     return clicked;
 }
 
-void EndTable() {
+bool TableRow(const std::vector<std::string>& cells, bool selected) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return TableRow(*wc.ctx, cells, selected);
+}
+
+
+void EndTable(Context& ctx) {
     if (!s_currentTable || !s_currentTable->inTable) return;
 
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-
     TableState& state = *s_currentTable;
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    InputState& input = wc.ctx->input();
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    InputState& input = ctx.input();
+
 
     float totalHeight = state.currentRow * state.rowHeight;
     float maxScroll = std::max(0.0f, totalHeight - state.contentBounds.height());
@@ -674,23 +695,51 @@ void EndTable() {
     s_currentTableId = 0;
 }
 
-int GetTableClickedRow() {
+void EndTable() {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    EndTable(*wc.ctx);
+}
+
+
+int GetTableClickedRow(Context& ctx) {
+    (void)ctx;
     return s_currentTable ? s_currentTable->clickedRow : -1;
 }
 
-int GetTableSortColumn() {
+int GetTableClickedRow() {
+    return GetTableClickedRow(*Context::current());
+}
+
+int GetTableSortColumn(Context& ctx) {
+    (void)ctx;
     return s_currentTable ? s_currentTable->sortColumn : -1;
 }
 
-bool GetTableSortAscending() {
+int GetTableSortColumn() {
+    return GetTableSortColumn(*Context::current());
+}
+
+bool GetTableSortAscending(Context& ctx) {
+    (void)ctx;
     return s_currentTable ? s_currentTable->sortAscending : true;
 }
 
-void SetTableSort(int column, bool ascending) {
+bool GetTableSortAscending() {
+    return GetTableSortAscending(*Context::current());
+}
+
+void SetTableSort(Context& ctx, int column, bool ascending) {
+    (void)ctx;
     if (s_currentTable) {
         s_currentTable->sortColumn = column;
         s_currentTable->sortAscending = ascending;
     }
 }
+
+void SetTableSort(int column, bool ascending) {
+    if (Context::current()) SetTableSort(*Context::current(), column, ascending);
+}
+
 
 } // namespace fst

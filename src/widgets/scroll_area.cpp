@@ -8,6 +8,8 @@
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/ui/theme.h"
+#include "fastener/ui/widget_utils.h"
+
 #include <algorithm>
 
 namespace fst {
@@ -31,16 +33,14 @@ void ScrollArea::scrollTo(const Rect& area) {
     // TODO: Implement logic to make a specific sub-rect visible
 }
 
-void ScrollArea::render(const std::string& id, const Rect& bounds, 
+void ScrollArea::render(Context& ctx, const std::string& id, const Rect& bounds, 
                         std::function<void(const Rect& viewport)> contentRenderer,
                         const ScrollAreaOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
+    ctx.pushId(id.c_str());
 
-    ctx->pushId(id.c_str());
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
 
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
 
     // Background & Border
     dl.addRectFilled(bounds, theme.colors.windowBackground, options.style.borderRadius);
@@ -60,7 +60,8 @@ void ScrollArea::render(const std::string& id, const Rect& bounds,
     if (showH) viewport.size.y -= sbSize;
 
     clampScroll(viewport);
-    handleInteraction(id, bounds, viewport, options);
+    handleInteraction(ctx, id, bounds, viewport, options);
+
 
     // Content Rendering
     dl.pushClipRect(viewport);
@@ -80,8 +81,9 @@ void ScrollArea::render(const std::string& id, const Rect& bounds,
         Rect thumb(track.x() + 2, thumbY, track.width() - 4, thumbHeight);
         Color thumbColor;
         if (m_draggingV) thumbColor = theme.colors.scrollbarThumbHover; // or primary
-        else if (track.contains(ctx->input().mousePos())) thumbColor = theme.colors.scrollbarThumbHover;
+        else if (track.contains(ctx.input().mousePos())) thumbColor = theme.colors.scrollbarThumbHover;
         else thumbColor = theme.colors.scrollbarThumb;
+
         
         dl.addRectFilled(thumb, thumbColor, (sbSize - 4) / 2);
     }
@@ -98,8 +100,9 @@ void ScrollArea::render(const std::string& id, const Rect& bounds,
         Rect thumb(thumbX, track.y() + 2, thumbWidth, track.height() - 4);
         Color thumbColor;
         if (m_draggingH) thumbColor = theme.colors.scrollbarThumbHover;
-        else if (track.contains(ctx->input().mousePos())) thumbColor = theme.colors.scrollbarThumbHover;
+        else if (track.contains(ctx.input().mousePos())) thumbColor = theme.colors.scrollbarThumbHover;
         else thumbColor = theme.colors.scrollbarThumb;
+
 
         dl.addRectFilled(thumb, thumbColor, (sbSize - 4) / 2);
     }
@@ -108,20 +111,29 @@ void ScrollArea::render(const std::string& id, const Rect& bounds,
         dl.addRectFilled(Rect(bounds.right() - sbSize, bounds.bottom() - sbSize, sbSize, sbSize), Color(0, 0, 0, 15));
     }
 
-    ctx->popId();
+    ctx.popId();
 }
 
-void ScrollArea::handleInteraction(const std::string& id, const Rect& bounds, const Rect& viewport, const ScrollAreaOptions& options) {
-    Context* ctx = Context::current();
-    InputState& input = ctx->input();
+void ScrollArea::render(const std::string& id, const Rect& bounds, 
+                        std::function<void(const Rect& viewport)> contentRenderer,
+                        const ScrollAreaOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    render(*wc.ctx, id, bounds, contentRenderer, options);
+}
+
+void ScrollArea::handleInteraction(Context& ctx, const std::string& id, const Rect& bounds, const Rect& viewport, const ScrollAreaOptions& options) {
+    InputState& input = ctx.input();
     Vec2 mp = input.mousePos();
     float sbSize = options.scrollbarWidth;
+
 
     bool showV = options.showVertical && (!options.autoHide || m_contentSize.y > bounds.height());
     bool showH = options.showHorizontal && (!options.autoHide || m_contentSize.x > bounds.width() - (showV ? sbSize : 0));
 
     // Wheel Scrolling
-    if (bounds.contains(mp) && !ctx->isOccluded(mp)) {
+    if (bounds.contains(mp) && !ctx.isOccluded(mp)) {
+
         Vec2 delta = input.scrollDelta();
         if (input.modifiers().shift || !showV) {
             m_scrollOffset.x -= delta.y * 30.0f; 
@@ -137,7 +149,8 @@ void ScrollArea::handleInteraction(const std::string& id, const Rect& bounds, co
         float thumbHeight = std::max(options.minThumbSize, (viewport.height() / std::max(1.0f, m_contentSize.y)) * viewport.height());
         float maxScroll = std::max(0.1f, m_contentSize.y - viewport.height());
         
-        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !ctx->isOccluded(mp)) {
+        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !ctx.isOccluded(mp)) {
+
             m_draggingV = true;
             m_dragStartPos = mp.y;
             m_dragStartOffset = m_scrollOffset.y;
@@ -160,7 +173,8 @@ void ScrollArea::handleInteraction(const std::string& id, const Rect& bounds, co
         float thumbWidth = std::max(options.minThumbSize, (viewport.width() / std::max(1.0f, m_contentSize.x)) * viewport.width());
         float maxScroll = std::max(0.1f, m_contentSize.x - viewport.width());
 
-        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !ctx->isOccluded(mp)) {
+        if (input.isMousePressed(MouseButton::Left) && track.contains(mp) && !ctx.isOccluded(mp)) {
+
             m_draggingH = true;
             m_dragStartPos = mp.x;
             m_dragStartOffset = m_scrollOffset.x;

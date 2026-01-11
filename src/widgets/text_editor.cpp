@@ -10,7 +10,9 @@
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
+#include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
+
 #include "fastener/platform/window.h"
 #include <sstream>
 #include <algorithm>
@@ -66,16 +68,15 @@ void TextEditor::clear() {
     m_redoStack.clear();
 }
 
-void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOptions& options) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
     if (!font) return;
+    
+    InputState& input = ctx.input();
 
-    InputState& input = ctx->input();
+
 
     dl.addRectFilled(bounds, theme.colors.windowBackground);
     dl.addRect(bounds, theme.colors.border);
@@ -84,7 +85,7 @@ void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
     float charWidth = font->measureText("M").x; 
     float gutterWidth = options.showLineNumbers ? 50.0f : 0.0f;
 
-    handleInput(bounds, rowHeight, charWidth, gutterWidth);
+    handleInput(ctx, bounds, rowHeight, charWidth, gutterWidth);
 
     dl.pushClipRect(bounds);
 
@@ -129,11 +130,12 @@ void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
 
         if (i == m_cursor.line) {
             dl.addRectFilled(Rect(textBounds.x(), y, textBounds.width(), rowHeight), Color(255, 255, 255, 10));
-            if (ctx->window().isFocused() && static_cast<int>(ctx->time() * 2) % 2 == 0) {
+            if (ctx.window().isFocused() && static_cast<int>(ctx.time() * 2) % 2 == 0) {
                 float cx = textBounds.x() + 5 + font->measureText(m_lines[i].substr(0, m_cursor.column)).x;
                 dl.addLine(Vec2(cx, y + 2), Vec2(cx, y + rowHeight - 2), theme.colors.primary, 2.0f);
             }
         }
+
 
         // Text rendering (styled or plain)
         Vec2 textPos(textBounds.x() + 5, y + (rowHeight - font->lineHeight()) / 2);
@@ -181,6 +183,13 @@ void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
 
     dl.popClipRect();
 }
+
+void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return;
+    render(*wc.ctx, bounds, options);
+}
+
 
 void TextEditor::undo() {
     if (m_undoStack.empty()) return;
@@ -255,23 +264,25 @@ void TextEditor::setCursor(const TextPosition& pos) {
     m_cursor.column = std::clamp(pos.column, 0, static_cast<int>(m_lines[m_cursor.line].length()));
 }
 
-void TextEditor::handleInput(const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
-    Context* ctx = Context::current();
-    float dt = ctx->deltaTime();
+void TextEditor::handleInput(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
+    float dt = ctx.deltaTime();
     
-    handleKeyboard(bounds, rowHeight, dt);
-    handleMouse(bounds, rowHeight, charWidth, gutterWidth);
+    handleKeyboard(ctx, bounds, rowHeight, dt);
+    handleMouse(ctx, bounds, rowHeight, charWidth, gutterWidth);
     
-    InputState& input = ctx->input();
+    InputState& input = ctx.input();
     if (bounds.contains(input.mousePos())) {
         m_scrollOffset.y = std::max(0.0f, m_scrollOffset.y - input.scrollDelta().y * rowHeight * 3.0f);
     }
 }
 
-void TextEditor::handleKeyboard(const Rect& bounds, float rowHeight, float deltaTime) {
-    InputState& input = Context::current()->input();
+
+
+void TextEditor::handleKeyboard(Context& ctx, const Rect& bounds, float rowHeight, float deltaTime) {
+    InputState& input = ctx.input();
     bool shift = input.modifiers().shift;
     bool ctrl = input.modifiers().ctrl;
+
 
     auto move = [&](TextPosition p, bool extend) {
         if (extend) {
@@ -329,9 +340,10 @@ void TextEditor::handleKeyboard(const Rect& bounds, float rowHeight, float delta
     if (input.isKeyPressed(Key::Home)) move({m_cursor.line, 0}, shift);
     if (input.isKeyPressed(Key::End)) move({m_cursor.line, (int)m_lines[m_cursor.line].length()}, shift);
     
-    if (ctrl && input.isKeyPressed(Key::C)) copyToClipboard();
-    if (ctrl && input.isKeyPressed(Key::V)) pasteFromClipboard();
-    if (ctrl && input.isKeyPressed(Key::X)) cutToClipboard();
+    if (ctrl && input.isKeyPressed(Key::C)) copyToClipboard(ctx);
+    if (ctrl && input.isKeyPressed(Key::V)) pasteFromClipboard(ctx);
+    if (ctrl && input.isKeyPressed(Key::X)) cutToClipboard(ctx);
+
     if (ctrl && input.isKeyPressed(Key::A)) {
         m_selection.start = {0, 0};
         m_selection.end = {(int)m_lines.size() - 1, (int)m_lines.back().length()};
@@ -370,13 +382,13 @@ void TextEditor::handleKeyboard(const Rect& bounds, float rowHeight, float delta
     }
 }
 
-void TextEditor::handleMouse(const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
-    InputState& input = Context::current()->input();
+void TextEditor::handleMouse(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
+    InputState& input = ctx.input();
     Vec2 mp = input.mousePos();
-
+    
     if (input.isMousePressed(MouseButton::Left) && bounds.contains(mp)) {
         m_isSelecting = true;
-        m_cursor = screenToTextPos(mp, bounds, rowHeight, charWidth, gutterWidth);
+        m_cursor = screenToTextPos(ctx, mp, bounds, rowHeight, charWidth, gutterWidth);
         if (!input.modifiers().shift) {
             m_selection.clear();
             m_selectionAnchor = m_cursor;
@@ -386,13 +398,14 @@ void TextEditor::handleMouse(const Rect& bounds, float rowHeight, float charWidt
         }
     }
     if (m_isSelecting && input.isMouseDown(MouseButton::Left)) {
-        m_cursor = screenToTextPos(mp, bounds, rowHeight, charWidth, gutterWidth);
+        m_cursor = screenToTextPos(ctx, mp, bounds, rowHeight, charWidth, gutterWidth);
         m_selection.start = m_selectionAnchor;
         m_selection.end = m_cursor;
         ensureCursorVisible(bounds, rowHeight);
     }
     if (input.isMouseReleased(MouseButton::Left)) m_isSelecting = false;
 }
+
 
 void TextEditor::insertText(const std::string& text) {
     TextPosition start = m_cursor;
@@ -448,16 +461,19 @@ void TextEditor::enter() {
     recordAction(EditActionType::Insert, "\n" + indent, cursorBefore, m_cursor, cursorBefore);
 }
 
-void TextEditor::copyToClipboard() {
-    if (!m_selection.isEmpty()) Context::current()->window().setClipboardText(getSelectedText());
+void TextEditor::copyToClipboard(Context& ctx) {
+    if (!m_selection.isEmpty()) ctx.window().setClipboardText(getSelectedText());
 }
 
-void TextEditor::cutToClipboard() {
-    if (!m_selection.isEmpty()) { copyToClipboard(); deleteSelection(); }
+
+void TextEditor::cutToClipboard(Context& ctx) {
+    if (!m_selection.isEmpty()) { copyToClipboard(ctx); deleteSelection(); }
 }
 
-void TextEditor::pasteFromClipboard() {
-    std::string text = Context::current()->window().getClipboardText();
+
+void TextEditor::pasteFromClipboard(Context& ctx) {
+    std::string text = ctx.window().getClipboardText();
+
     if (text.empty()) return;
     if (!m_selection.isEmpty()) deleteSelection();
     std::stringstream ss(text);
@@ -493,14 +509,15 @@ void TextEditor::ensureCursorVisible(const Rect& bounds, float rowHeight) {
     else if (y + rowHeight > m_scrollOffset.y + bounds.height()) m_scrollOffset.y = y + rowHeight - bounds.height();
 }
 
-TextPosition TextEditor::screenToTextPos(const Vec2& mp, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
+TextPosition TextEditor::screenToTextPos(Context& ctx, const Vec2& mp, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
     float ly = mp.y - bounds.y() + m_scrollOffset.y;
     int line = std::clamp((int)(ly / rowHeight), 0, (int)m_lines.size() - 1);
     float lx = mp.x - bounds.x() - gutterWidth - 5 + m_scrollOffset.x;
     const std::string& s = m_lines[line];
     int col = 0;
     float curX = 0;
-    Font* f = Context::current()->font();
+    Font* f = ctx.font();
+
     for (int i = 0; i < (int)s.length(); ++i) {
         float cw = f->measureText(s.substr(i, 1)).x;
         if (curX + cw/2 > lx) break;

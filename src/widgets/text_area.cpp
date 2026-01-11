@@ -101,17 +101,15 @@ static size_t getCursorFromLineCol(const std::string& text, int line, int col) {
 // TextArea Implementation
 //=============================================================================
 
-bool TextArea(const char* id, std::string& value, const TextAreaOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
+bool TextArea(Context& ctx, const char* id, std::string& value, const TextAreaOptions& options) {
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
+    InputState& input = ctx.input();
 
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    Font* font = wc.font;
-    InputState& input = wc.ctx->input();
-
-    WidgetId widgetId = wc.ctx->makeId(id);
+    WidgetId widgetId = ctx.makeId(id);
     TextAreaState& state = s_textAreaStates[widgetId];
+
 
     // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 300.0f;
@@ -250,6 +248,7 @@ bool TextArea(const char* id, std::string& value, const TextAreaOptions& options
         state.scrollOffsetY -= input.scrollDelta().y * lineHeight;
     }
 
+
     auto lines = splitLines(value);
     float totalContentHeight = lineHeight * (float)lines.size();
     float maxScroll = std::max(0.0f, totalContentHeight - height + theme.metrics.paddingSmall * 2);
@@ -328,7 +327,8 @@ bool TextArea(const char* id, std::string& value, const TextAreaOptions& options
 
         // Draw cursor
         if (widgetState.focused && !options.readonly) {
-            float cursorAlpha = (std::fmod(wc.ctx->time() * 2.0f, 2.0f) < 1.0f) ? 1.0f : 0.0f;
+            float cursorAlpha = (std::fmod(ctx.time() * 2.0f, 2.0f) < 1.0f) ? 1.0f : 0.0f;
+
             if (cursorAlpha > 0.5f) {
                 float y = bounds.y() + padding + cursorLine * lineHeight - state.scrollOffsetY;
                 if (y >= bounds.y() && y + lineHeight <= bounds.bottom()) {
@@ -364,18 +364,26 @@ bool TextArea(const char* id, std::string& value, const TextAreaOptions& options
     return changed;
 }
 
+bool TextArea(const char* id, std::string& value, const TextAreaOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return false;
+    return TextArea(*wc.ctx, id, value, options);
+}
+
+bool TextArea(Context& ctx, const std::string& id, std::string& value, const TextAreaOptions& options) {
+    return TextArea(ctx, id.c_str(), value, options);
+}
+
 bool TextArea(const std::string& id, std::string& value, const TextAreaOptions& options) {
     return TextArea(id.c_str(), value, options);
 }
 
-bool TextAreaWithLabel(const std::string& label, std::string& value,
-                       const TextAreaOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return TextArea(label, value, options);
 
-    const Theme& theme = *wc.theme;
-    IDrawList& dl = *wc.dl;
-    Font* font = wc.font;
+bool TextAreaWithLabel(Context& ctx, const std::string& label, std::string& value,
+                       const TextAreaOptions& options) {
+    const Theme& theme = ctx.theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    Font* font = ctx.font();
 
     // Draw label
     if (font && !label.empty()) {
@@ -394,10 +402,18 @@ bool TextAreaWithLabel(const std::string& label, std::string& value,
         areaOpts.style.height = options.height;
         
         // The TextArea will allocate its own bounds below
-        return TextArea(label, value, areaOpts);
+        return TextArea(ctx, label, value, areaOpts);
     }
 
-    return TextArea(label, value, options);
+    return TextArea(ctx, label, value, options);
 }
+
+bool TextAreaWithLabel(const std::string& label, std::string& value,
+                       const TextAreaOptions& options) {
+    auto wc = getWidgetContext();
+    if (!wc.valid()) return TextArea(label, value, options);
+    return TextAreaWithLabel(*wc.ctx, label, value, options);
+}
+
 
 } // namespace fst

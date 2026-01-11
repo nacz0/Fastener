@@ -9,6 +9,8 @@
 #include <memory>
 
 namespace fst {
+class Context;
+
 
 //=============================================================================
 // TreeNode - Represents a single node in the tree
@@ -119,9 +121,13 @@ public:
     void scrollToNode(TreeNode* node);
     
     // Rendering
+    void render(Context& ctx, std::string_view id, const Rect& bounds, 
+                const TreeViewOptions& options = {},
+                const TreeViewEvents& events = {});
     void render(std::string_view id, const Rect& bounds, 
                 const TreeViewOptions& options = {},
                 const TreeViewEvents& events = {});
+
     
 private:
     std::shared_ptr<TreeNode> m_root;
@@ -136,20 +142,26 @@ private:
     void updateLayout();
     
     // Internal rendering
-    float renderNode(TreeNode* node, const Rect& bounds, float y,
+    float renderNode(Context& ctx, TreeNode* node, const Rect& bounds, float y,
                      const TreeViewOptions& options,
                      const TreeViewEvents& events);
+
     
     // Helper to draw expand/collapse arrow
-    void drawExpandArrow(const Vec2& pos, bool expanded, Color color);
+    void drawExpandArrow(Context& ctx, const Vec2& pos, bool expanded, Color color);
     
     // Helper to draw folder/file icon
-    void drawIcon(const Vec2& pos, bool isFolder, bool isExpanded, Color color);
+    void drawIcon(Context& ctx, const Vec2& pos, bool isFolder, bool isExpanded, Color color);
+
 };
 
 // Convenience function for simple tree rendering
+void TreeViewSimple(Context& ctx, std::string_view id, TreeNode* root, const Rect& bounds,
+                    std::function<void(TreeNode*)> onSelect = nullptr,
+                    const TreeViewOptions& options = {});
 void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
                     std::function<void(TreeNode*)> onSelect = nullptr,
                     const TreeViewOptions& options = {});
+
 
 } // namespace fst

@@ -7,6 +7,8 @@
 #include <functional>
 
 namespace fst {
+class Context;
+
 
 //=============================================================================
 // Tab Item
@@ -78,9 +80,13 @@ public:
     TabItem* selectedTab();
     
     // Rendering - returns content area rect
+    Rect render(Context& ctx, const std::string& id, const Rect& bounds,
+                const TabControlOptions& options = {},
+                const TabControlEvents& events = {});
     Rect render(const std::string& id, const Rect& bounds,
                 const TabControlOptions& options = {},
                 const TabControlEvents& events = {});
+
     
 private:
     std::vector<TabItem> m_tabs;
@@ -92,13 +98,14 @@ private:
     float m_dragStartX = 0.0f;
     
     // Calculate tab widths
-    std::vector<float> calculateTabWidths(float availableWidth, 
+    std::vector<float> calculateTabWidths(Context& ctx, float availableWidth, 
                                           const TabControlOptions& options) const;
     
     // Draw single tab
-    void drawTab(int index, const Rect& tabRect, 
+    void drawTab(Context& ctx, int index, const Rect& tabRect, 
                  const TabControlOptions& options,
                  const TabControlEvents& events);
+
 };
 
 } // namespace fst

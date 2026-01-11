@@ -17,11 +17,10 @@ namespace fst {
 static ContextMenu g_contextMenu;
 
 // Helper to access menu state from current Context
-static Context::MenuState& getMenuState() {
-    Context* ctx = Context::current();
-    static Context::MenuState fallback;  // Fallback if no context
-    return ctx ? ctx->menuState() : fallback;
+static Context::MenuState& getMenuState(Context& ctx) {
+    return ctx.menuState();
 }
+
 
 //=============================================================================
 // MenuBar
@@ -41,13 +40,11 @@ void MenuBar::clear() {
     m_openMenuIndex = -1;
 }
 
-float MenuBar::render(const Rect& bounds) {
-    Context* ctx = Context::current();
-    if (!ctx) return 0;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+float MenuBar::render(Context& ctx, const Rect& bounds) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
     
     float barHeight = 28.0f;
     Rect barRect(bounds.x(), bounds.y(), bounds.width(), barHeight);
@@ -69,7 +66,8 @@ float MenuBar::render(const Rect& bounds) {
         menu.x = x;
         
         Rect menuRect(x, bounds.y(), menu.width, barHeight);
-        bool isHovered = menuRect.contains(ctx->input().mousePos());
+        bool isHovered = menuRect.contains(ctx.input().mousePos());
+
         bool isOpen = (static_cast<int>(i) == m_openMenuIndex);
         
         if (isHovered) {
@@ -91,7 +89,8 @@ float MenuBar::render(const Rect& bounds) {
         }
         
         // Handle click
-        if (isHovered && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (isHovered && ctx.input().isMousePressed(MouseButton::Left)) {
+
             if (isOpen) {
                 m_openMenuIndex = -1;
             } else {
@@ -111,35 +110,45 @@ float MenuBar::render(const Rect& bounds) {
     m_dropdownY = barRect.bottom();
     
     // Update global state for input blocking
-    getMenuState().menuBarOpen = m_openMenuIndex >= 0;
-    if (!getMenuState().menuBarOpen) {
-        getMenuState().menuBarDropdownRect = Rect();
+    getMenuState(ctx).menuBarOpen = m_openMenuIndex >= 0;
+    if (!getMenuState(ctx).menuBarOpen) {
+        getMenuState(ctx).menuBarDropdownRect = Rect();
     }
     
     // Close on click outside
-    if (m_openMenuIndex >= 0 && ctx->input().isMousePressed(MouseButton::Left)) {
-        if (m_hoveredIndex < 0 && !getMenuState().menuBarDropdownRect.contains(ctx->input().mousePos())) {
+    if (m_openMenuIndex >= 0 && ctx.input().isMousePressed(MouseButton::Left)) {
+        if (m_hoveredIndex < 0 && !getMenuState(ctx).menuBarDropdownRect.contains(ctx.input().mousePos())) {
             m_openMenuIndex = -1;
         }
     }
+
     
     return barHeight;
 }
 
-void MenuBar::renderPopups() {
+void MenuBar::renderPopups(Context& ctx) {
     if (m_openMenuIndex >= 0 && m_openMenuIndex < static_cast<int>(m_menus.size())) {
         auto& menu = m_menus[m_openMenuIndex];
-        renderDropdown(menu, Vec2(menu.x, m_dropdownY));
+        renderDropdown(ctx, menu, Vec2(menu.x, m_dropdownY));
     }
 }
 
-void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
+float MenuBar::render(const Rect& bounds) {
+    Context* ctx = Context::current();
+    if (!ctx) return 0;
+    return render(*ctx, bounds);
+}
+
+void MenuBar::renderPopups() {
     Context* ctx = Context::current();
     if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+    renderPopups(*ctx);
+}
+
+void MenuBar::renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
     
     float itemHeight = 28.0f;
     float separatorHeight = 9.0f;
@@ -152,7 +161,7 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     
     // Dim background to obscure content underneath
     dl.setTexture(0);
-    dl.addRectFilled(fst::Rect(0.0f, 0.0f, ctx->input().windowSize().x, ctx->input().windowSize().y), 
+    dl.addRectFilled(fst::Rect(0.0f, 0.0f, ctx.input().windowSize().x, ctx.input().windowSize().y), 
                      fst::Color(0, 0, 0, 40)); 
     
     for (const auto& item : menu.items) {
@@ -174,8 +183,9 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     Rect dropdownRect(pos.x, pos.y, maxWidth, totalHeight);
     
     // Update global dropdown rect for occlusion testing
-    getMenuState().menuBarDropdownRect = dropdownRect;
-    ctx->addFloatingWindowRect(dropdownRect);
+    getMenuState(ctx).menuBarDropdownRect = dropdownRect;
+    ctx.addFloatingWindowRect(dropdownRect);
+
     
     // Reset texture to white texture for solid color background
     dl.setTexture(0);
@@ -202,7 +212,8 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
         }
         
         Rect itemRect(pos.x, y, maxWidth, itemHeight);
-        bool isHovered = itemRect.contains(ctx->input().mousePos());
+        bool isHovered = itemRect.contains(ctx.input().mousePos());
+
         
         // Hover background
         if (isHovered && item.enabled) {
@@ -247,7 +258,7 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
         }
         
         // Handle click
-        if (isHovered && item.enabled && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (isHovered && item.enabled && ctx.input().isMousePressed(MouseButton::Left)) {
             if (item.type != MenuItemType::Submenu) {
                 if (item.action) {
                     item.action();
@@ -255,6 +266,7 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
                 m_openMenuIndex = -1;  // Close menu
             }
         }
+
         
         y += itemHeight;
     }
@@ -263,24 +275,23 @@ void MenuBar::renderDropdown(const TopMenu& menu, const Vec2& pos) {
     if (m_activeSubmenuIndex >= 0 && m_activeSubmenuIndex < static_cast<int>(menu.items.size())) {
         const auto& item = menu.items[m_activeSubmenuIndex];
         if (item.type == MenuItemType::Submenu && !item.children.empty()) {
-            renderSubmenu(item.children, m_activeSubmenuBounds.topLeft());
+            renderSubmenu(ctx, item.children, m_activeSubmenuBounds.topLeft());
         }
     }
+
     
     // Clear submenu if mouse is far away
-    if (!dropdownRect.expanded(10).contains(ctx->input().mousePos()) && 
-        !m_activeSubmenuBounds.expanded(200).contains(ctx->input().mousePos())) {
+    if (!dropdownRect.expanded(10).contains(ctx.input().mousePos()) && 
+        !m_activeSubmenuBounds.expanded(200).contains(ctx.input().mousePos())) {
         m_activeSubmenuIndex = -1;
     }
 }
 
-void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+void MenuBar::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
     
     float itemHeight = 28.0f;
     float minWidth = 160.0f;
@@ -298,7 +309,8 @@ void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items,
     
     Rect subRect(pos.x, pos.y, maxWidth, totalHeight);
     m_activeSubmenuBounds = subRect; // Update bounds for hover persistence
-    ctx->addFloatingWindowRect(subRect);
+    ctx.addFloatingWindowRect(subRect);
+
     
     dl.setTexture(0);
     dl.addShadow(subRect, theme.colors.shadow, 8.0f, 4.0f);
@@ -308,7 +320,7 @@ void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items,
     float y = pos.y + padding;
     for (const auto& item : items) {
         Rect itemRect(pos.x + 2, y, maxWidth - 4, itemHeight);
-        bool isHovered = itemRect.contains(ctx->input().mousePos());
+        bool isHovered = itemRect.contains(ctx.input().mousePos());
         
         if (isHovered && item->enabled) {
             dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
@@ -323,10 +335,11 @@ void MenuBar::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items,
                        item->label, textColor);
         }
         
-        if (isHovered && item->enabled && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (isHovered && item->enabled && ctx.input().isMousePressed(MouseButton::Left)) {
             if (item->action) item->action();
             m_openMenuIndex = -1;
         }
+
         
         y += itemHeight;
     }
@@ -359,34 +372,35 @@ void ContextMenu::hide() {
     m_selectedItem = nullptr;
 }
 
-void ContextMenu::render() {
+void ContextMenu::render(Context& ctx) {
     if (!m_visible) return;
     
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    renderItems(m_items, m_position, 0);
+    renderItems(ctx, m_items, m_position, 0);
     
     // Close on click outside (simple check)
-    if (ctx->input().isMousePressed(MouseButton::Left) || 
-        ctx->input().isMousePressed(MouseButton::Right)) {
+    if (ctx.input().isMousePressed(MouseButton::Left) || 
+        ctx.input().isMousePressed(MouseButton::Right)) {
         // Check if any item was clicked - if not, close
         // For now, close after any click (items handle their own clicks)
     }
     
     // Close on escape
-    if (ctx->input().isKeyPressed(Key::Escape)) {
+    if (ctx.input().isKeyPressed(Key::Escape)) {
         hide();
     }
 }
 
-float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& pos, int depth) {
+void ContextMenu::render() {
     Context* ctx = Context::current();
-    if (!ctx) return 0;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+    if (!ctx) return;
+    render(*ctx);
+}
+
+float ContextMenu::renderItems(Context& ctx, const std::vector<MenuItem>& items, const Vec2& pos, int depth) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
     
     float itemHeight = 26.0f;
     float separatorHeight = 7.0f;
@@ -415,16 +429,18 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     
     Rect menuRect(pos.x, pos.y, maxWidth, totalHeight);
     if (depth == 0) {
-        getMenuState().contextMenuRect = menuRect;
+        getMenuState(ctx).contextMenuRect = menuRect;
     }
-    ctx->addFloatingWindowRect(menuRect);
+    ctx.addFloatingWindowRect(menuRect);
+
     
     // Dim background
     if (depth == 0) {
         dl.setTexture(0);
-        dl.addRectFilled(fst::Rect(0.0f, 0.0f, ctx->input().windowSize().x, ctx->input().windowSize().y), 
+        dl.addRectFilled(fst::Rect(0.0f, 0.0f, ctx.input().windowSize().x, ctx.input().windowSize().y), 
                          fst::Color(0, 0, 0, 40));
     }
+
     
     // Reset texture to solid
     dl.setTexture(0);
@@ -449,7 +465,8 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
         }
         
         Rect itemRect(pos.x + 2, y, maxWidth - 4, itemHeight);
-        bool isHovered = itemRect.contains(ctx->input().mousePos());
+        bool isHovered = itemRect.contains(ctx.input().mousePos());
+
         
         if (isHovered && item.enabled) {
             anyHovered = true;
@@ -499,7 +516,8 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
         }
         
         // Handle click
-        if (isHovered && item.enabled && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (isHovered && item.enabled && ctx.input().isMousePressed(MouseButton::Left)) {
+
             if (item.type != MenuItemType::Submenu) {
                 m_selectedItem = &item;
                 if (item.action) {
@@ -516,27 +534,26 @@ float ContextMenu::renderItems(const std::vector<MenuItem>& items, const Vec2& p
     if (m_openSubmenu >= 0 && m_openSubmenu < static_cast<int>(items.size())) {
         const auto& item = items[m_openSubmenu];
         if (item.type == MenuItemType::Submenu && !item.children.empty()) {
-            renderSubmenu(item.children, Vec2(pos.x + maxWidth - 5, pos.y + padding + m_openSubmenu * itemHeight));
+            renderSubmenu(ctx, item.children, Vec2(pos.x + maxWidth - 5, pos.y + padding + m_openSubmenu * itemHeight));
         }
     }
     
     // Close if clicked outside
-    if (!anyHovered && !menuRect.contains(ctx->input().mousePos())) {
-        if (ctx->input().isMousePressed(MouseButton::Left)) {
+    if (!anyHovered && !menuRect.contains(ctx.input().mousePos())) {
+        if (ctx.input().isMousePressed(MouseButton::Left)) {
             hide();
         }
     }
+
     
     return totalHeight;
 }
 
-void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
-    Font* font = ctx->font();
+void ContextMenu::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
+    Font* font = ctx.font();
+
     
     float itemHeight = 26.0f;
     float padding = 4.0f;
@@ -553,7 +570,8 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
     }
     
     Rect subRect(pos.x, pos.y, maxWidth, totalHeight);
-    ctx->addFloatingWindowRect(subRect);
+    ctx.addFloatingWindowRect(subRect);
+
     
     dl.setTexture(0);
     dl.addShadow(subRect, theme.colors.shadow, 6.0f, 4.0f);
@@ -563,7 +581,8 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
     float y = pos.y + padding;
     for (const auto& item : items) {
         Rect itemRect(pos.x + 2, y, maxWidth - 4, itemHeight);
-        bool isHovered = itemRect.contains(ctx->input().mousePos());
+        bool isHovered = itemRect.contains(ctx.input().mousePos());
+
         
         if (isHovered && item->enabled) {
             dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
@@ -578,7 +597,8 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
                        item->label, textColor);
         }
         
-        if (isHovered && item->enabled && ctx->input().isMousePressed(MouseButton::Left)) {
+        if (isHovered && item->enabled && ctx.input().isMousePressed(MouseButton::Left)) {
+
             if (item->action) item->action();
             hide();
         }
@@ -590,42 +610,61 @@ void ContextMenu::renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& it
 //=============================================================================
 // Global helpers
 //=============================================================================
-void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position) {
+void ShowContextMenu(Context& ctx, const std::vector<MenuItem>& items, const Vec2& position) {
     g_contextMenu.setItems(items);
     g_contextMenu.show(position);
-    getMenuState().contextMenuActive = true;
+    getMenuState(ctx).contextMenuActive = true;
 }
 
-void RenderContextMenu() {
-    if (getMenuState().contextMenuActive) {
-        g_contextMenu.render();
+void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position) {
+    Context* ctx = Context::current();
+    if (!ctx) return;
+    ShowContextMenu(*ctx, items, position);
+}
+
+void RenderContextMenu(Context& ctx) {
+    if (getMenuState(ctx).contextMenuActive) {
+        g_contextMenu.render(ctx);
         if (!g_contextMenu.isVisible()) {
-            getMenuState().contextMenuActive = false;
+            getMenuState(ctx).contextMenuActive = false;
         }
     }
 }
 
-bool IsContextMenuOpen() {
-    return getMenuState().contextMenuActive && g_contextMenu.isVisible();
+void RenderContextMenu() {
+    Context* ctx = Context::current();
+    if (ctx) RenderContextMenu(*ctx);
 }
+
+bool IsContextMenuOpen(Context& ctx) {
+    return getMenuState(ctx).contextMenuActive && g_contextMenu.isVisible();
+}
+
+bool IsContextMenuOpen() {
+    Context* ctx = Context::current();
+    return ctx ? IsContextMenuOpen(*ctx) : false;
+}
+
+void CloseContextMenu(Context& ctx) {
+    g_contextMenu.hide();
+    getMenuState(ctx).contextMenuActive = false;
+    getMenuState(ctx).contextMenuRect = Rect();
+}
+
 
 void CloseContextMenu() {
-    g_contextMenu.hide();
-    getMenuState().contextMenuActive = false;
-    getMenuState().contextMenuRect = Rect();
+    Context* ctx = Context::current();
+    if (ctx) CloseContextMenu(*ctx);
 }
 
-bool IsMouseOverAnyMenu() {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
+bool IsMouseOverAnyMenu(Context& ctx) {
+    Vec2 mousePos = ctx.input().mousePos();
     
-    Vec2 mousePos = ctx->input().mousePos();
-    
-    if (getMenuState().menuBarOpen && getMenuState().menuBarDropdownRect.contains(mousePos)) {
+    if (getMenuState(ctx).menuBarOpen && getMenuState(ctx).menuBarDropdownRect.contains(mousePos)) {
         return true;
     }
     
-    if (getMenuState().contextMenuActive && getMenuState().contextMenuRect.contains(mousePos)) {
+    if (getMenuState(ctx).contextMenuActive && getMenuState(ctx).contextMenuRect.contains(mousePos)) {
         return true;
     }
     
@@ -636,5 +675,11 @@ bool IsMouseOverAnyMenu() {
     
     return false;
 }
+
+bool IsMouseOverAnyMenu() {
+    Context* ctx = Context::current();
+    return ctx ? IsMouseOverAnyMenu(*ctx) : false;
+}
+
 
 } // namespace fst

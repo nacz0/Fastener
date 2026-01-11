@@ -7,6 +7,8 @@
 #include <functional>
 
 namespace fst {
+class Context;
+
 
 struct TextPosition {
     int line = 0;
@@ -72,7 +74,9 @@ public:
     std::string getText() const;
     void clear();
 
+    void render(Context& ctx, const Rect& bounds, const TextEditorOptions& options = {});
     void render(const Rect& bounds, const TextEditorOptions& options = {});
+
 
     // State access
     const TextPosition& cursor() const { return m_cursor; }
@@ -106,18 +110,19 @@ private:
     bool m_isUndoingRedoing = false;
 
     // Internal helpers
-    void handleInput(const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
-    void handleKeyboard(const Rect& bounds, float rowHeight, float deltaTime);
-    void handleMouse(const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
+    void handleInput(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
+    void handleKeyboard(Context& ctx, const Rect& bounds, float rowHeight, float deltaTime);
+    void handleMouse(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
     
     void insertText(const std::string& text);
     void deleteSelection();
     void backspace();
     void enter();
     
-    void copyToClipboard();
-    void pasteFromClipboard();
-    void cutToClipboard();
+    void copyToClipboard(Context& ctx);
+    void pasteFromClipboard(Context& ctx);
+    void cutToClipboard(Context& ctx);
+
     
     std::string getSelectedText() const;
     std::string getTextRange(TextPosition start, TextPosition end) const;
@@ -126,7 +131,8 @@ private:
     void applyAction(const EditAction& action, bool undo);
 
     void ensureCursorVisible(const Rect& bounds, float rowHeight);
-    TextPosition screenToTextPos(const Vec2& screenPos, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
+    TextPosition screenToTextPos(Context& ctx, const Vec2& screenPos, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
+
 };
 
 } // namespace fst

@@ -9,6 +9,8 @@
 #include <memory>
 
 namespace fst {
+class Context;
+
 
 //=============================================================================
 // MenuItem Types
@@ -88,10 +90,14 @@ public:
     void clear();
     
     // Render - returns height of menu bar
+    float render(Context& ctx, const Rect& bounds);
     float render(const Rect& bounds);
+
     
     // Render popups (call at end of frame, after all other rendering)
+    void renderPopups(Context& ctx);
     void renderPopups();
+
     
     // Check if menu is open
     bool isOpen() const { return m_openMenuIndex >= 0; }
@@ -118,8 +124,9 @@ private:
     int m_activeSubmenuIndex = -1;
     Rect m_activeSubmenuBounds;
     
-    void renderDropdown(const TopMenu& menu, const Vec2& pos);
-    void renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos);
+    void renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos);
+    void renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos);
+
 };
 
 //=============================================================================
@@ -140,7 +147,9 @@ public:
     bool isVisible() const { return m_visible; }
     
     // Render - call every frame when visible
+    void render(Context& ctx);
     void render();
+
     
     // Get selected item (after click)
     const MenuItem* selectedItem() const { return m_selectedItem; }
@@ -153,20 +162,30 @@ private:
     int m_openSubmenu = -1;
     const MenuItem* m_selectedItem = nullptr;
     
-    float renderItems(const std::vector<MenuItem>& items, const Vec2& pos, 
+    float renderItems(Context& ctx, const std::vector<MenuItem>& items, const Vec2& pos, 
                       int depth = 0);
-    void renderSubmenu(const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos);
+    void renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<MenuItem>>& items, const Vec2& pos);
+
 };
 
 //=============================================================================
 // Global context menu helper
 //=============================================================================
+void ShowContextMenu(Context& ctx, const std::vector<MenuItem>& items, const Vec2& position);
 void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position);
+
+void RenderContextMenu(Context& ctx);
 void RenderContextMenu();  // Call at end of frame
+
+bool IsContextMenuOpen(Context& ctx);
 bool IsContextMenuOpen();
+
+void CloseContextMenu(Context& ctx);
 void CloseContextMenu();
 
 // Input blocking
+bool IsMouseOverAnyMenu(Context& ctx);
 bool IsMouseOverAnyMenu();
+
 
 } // namespace fst

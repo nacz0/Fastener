@@ -30,12 +30,13 @@ static void renderDragPreview() {
     auto* ctx = Context::current();
     if (!ctx || !s_dragDropState.active) return;
     
-    auto& dl = ctx->drawList();
+    IDrawList& dl = *ctx->activeDrawList();
     const auto& theme = ctx->theme();
     const auto& input = ctx->input();
     
     // Switch to overlay layer for preview
-    dl.setLayer(DrawList::Layer::Overlay);
+    DrawLayer prevLayer = dl.currentLayer();
+    dl.setLayer(DrawLayer::Overlay);
     
     // Draw preview tooltip near cursor
     Vec2 pos = input.mousePos() + Vec2(15, 15);
@@ -46,23 +47,23 @@ static void renderDragPreview() {
     }
     
     Font* font = ctx->font();
+    float padding = 8.0f;
+    Vec2 textSize = font ? font->measureText(text) : Vec2(80, 14);
+    
+    Rect bgRect(pos.x, pos.y, textSize.x + padding * 2, textSize.y + padding * 2);
+    
+    // Background
+    dl.addRectFilled(bgRect, theme.colors.panelBackground.withAlpha(0.9f), 4.0f);
+    dl.addRect(bgRect, s_dragDropState.isOverValidTarget ? 
+               theme.colors.primary : theme.colors.border, 4.0f);
+    
+    // Text
     if (font) {
-        Vec2 textSize = font->measureText(text);
-        float padding = 8.0f;
-        
-        Rect bgRect(pos.x, pos.y, textSize.x + padding * 2, textSize.y + padding * 2);
-        
-        // Background
-        dl.addRectFilled(bgRect, theme.colors.panelBackground.withAlpha(0.9f), 4.0f);
-        dl.addRect(bgRect, s_dragDropState.isOverValidTarget ? 
-                   theme.colors.primary : theme.colors.border, 4.0f);
-        
-        // Text
         dl.addText(font, pos + Vec2(padding, padding), text, theme.colors.text);
     }
     
     // Reset layer
-    dl.setLayer(DrawList::Layer::Default);
+    dl.setLayer(prevLayer);
 }
 
 //=============================================================================
@@ -168,11 +169,6 @@ void EndDragDropSource() {
         const auto& input = ctx->input();
         s_dragDropState.currentPos = input.mousePos();
         
-        // Render preview
-        if (s_dragDropState.active) {
-            renderDragPreview();
-        }
-        
         // Check for drop (mouse released)
         if (!input.isMouseDown(MouseButton::Left) && s_dragDropState.active) {
             // Do NOT clear here immediately, as targets might be rendered later in the frame.
@@ -202,12 +198,11 @@ bool BeginDragDropTarget() {
     const auto& input = ctx->input();
     
     // Check if mouse is over this target
-    if (s_currentTargetRect.contains(input.mousePos())) {
+    if (s_currentTargetRect.contains(input.mousePos()) && !ctx->isOccluded(input.mousePos())) {
         s_dragDropState.hoveredDropTarget = ctx->currentId();
         return true;
     }
     
-    s_inTargetBlock = false;
     s_inTargetBlock = false;
     return false;
 }
@@ -225,7 +220,7 @@ bool BeginDragDropTarget(const Rect& targetRect) {
     const auto& input = ctx->input();
     
     // Check if mouse is over this target
-    if (s_currentTargetRect.contains(input.mousePos())) {
+    if (s_currentTargetRect.contains(input.mousePos()) && !ctx->isOccluded(input.mousePos())) {
         s_dragDropState.hoveredDropTarget = ctx->currentId();
         return true;
     }
@@ -256,7 +251,7 @@ const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags 
     
     // Highlight target
     if (!(flags & DragDropFlags_AcceptNoHighlight)) {
-        auto& dl = ctx->drawList();
+        IDrawList& dl = *ctx->activeDrawList();
         const auto& theme = ctx->theme();
         dl.addRect(s_currentTargetRect, theme.colors.primary, 2.0f);
     }
@@ -290,7 +285,6 @@ void EndDragDropTarget() {
     }
     
     s_inTargetBlock = false;
-    s_dragDropState.isOverValidTarget = false;
 }
 
 //=============================================================================
@@ -312,12 +306,20 @@ void CancelDragDrop() {
 }
 
 void EndDragDropFrame() {
+    // Render preview at the end of the frame when all potential targets have updated isOverValidTarget
+    if (s_dragDropState.active) {
+        renderDragPreview();
+    }
+
     // If pending clear was set (mouse released), and we reached end of frame,
     // we can safely clear the state now.
     if (s_dragDropState.pendingClear) {
         s_dragDropState.clear();
         s_dragDropState.pendingClear = false;
     }
+    
+    // Reset frame-cumulative state
+    s_dragDropState.isOverValidTarget = false;
 }
 
 } // namespace fst

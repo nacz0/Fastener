@@ -11,10 +11,12 @@
 #include "fastener/ui/drag_drop.h"
 #include <vector>
 #include <chrono>
+#include <algorithm>
 
 namespace fst {
 
-Context* Context::s_current = nullptr;
+// Thread-local context stack for multi-window/DI support
+static thread_local std::vector<Context*> s_contextStack;
 static IDrawList* s_testDrawList = nullptr;
 
 struct Context::Impl {
@@ -77,13 +79,15 @@ Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
 }
 
 Context::~Context() {
-    if (s_current == this) {
-        s_current = nullptr;
+    // Remove this context from the stack if it's there
+    auto it = std::find(s_contextStack.begin(), s_contextStack.end(), this);
+    if (it != s_contextStack.end()) {
+        s_contextStack.erase(it);
     }
 }
 
 void Context::beginFrame(IPlatformWindow& window) {
-    s_current = this;
+    pushContext(this);
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
     m_impl->inputState->beginFrame();
@@ -159,7 +163,7 @@ void Context::endFrame() {
         m_impl->renderer.endFrame();
     }
     
-    s_current = nullptr;
+    popContext();
 }
 
 void Context::setTheme(const Theme& theme) {
@@ -347,9 +351,28 @@ WidgetId Context::makeId(int idx) const {
     return combineIds(m_impl->idStack.back(), static_cast<WidgetId>(idx));
 }
 
-Context* Context::current() {
-    return s_current;
+void Context::pushContext(Context* ctx) {
+    s_contextStack.push_back(ctx);
 }
+
+void Context::popContext() {
+    if (!s_contextStack.empty()) {
+        s_contextStack.pop_back();
+    }
+}
+
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)  // Disable deprecated warning for our own usage
+#endif
+
+Context* Context::current() {
+    return s_contextStack.empty() ? nullptr : s_contextStack.back();
+}
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 void Context::deferRender(std::function<void()> cmd) {
     m_impl->postRenderCommands.push_back(std::move(cmd));

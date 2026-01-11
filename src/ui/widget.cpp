@@ -12,6 +12,12 @@ namespace fst {
 // Widget Context Helpers
 //=============================================================================
 
+// Using deprecated Context::current() internally for backward compatibility
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable: 4996)
+#endif
+
 WidgetContext getWidgetContext() {
     WidgetContext wc{};
     wc.ctx = Context::current();
@@ -20,6 +26,23 @@ WidgetContext getWidgetContext() {
         wc.dl = wc.ctx->activeDrawList();
         wc.font = wc.ctx->font();
     }
+    return wc;
+}
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
+
+WidgetContext getWidgetContext(Context& ctx) {
+    return WidgetContext::make(ctx);
+}
+
+WidgetContext WidgetContext::make(Context& ctx) {
+    WidgetContext wc{};
+    wc.ctx = &ctx;
+    wc.theme = &ctx.theme();
+    wc.dl = ctx.activeDrawList();
+    wc.font = ctx.font();
     return wc;
 }
 

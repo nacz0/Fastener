@@ -106,7 +106,15 @@ public:
     WidgetId makeId(std::string_view str) const;
     WidgetId makeId(int idx) const;
     
-    // Global access (use sparingly)
+    // Context stack management (for multi-window / DI support)
+    static void pushContext(Context* ctx);
+    static void popContext();
+    
+    /** 
+     * @brief Get current context from top of thread-local stack.
+     * @deprecated Use explicit context passing or WidgetScope for new code.
+     */
+    [[deprecated("Use explicit context passing or WidgetScope")]]
     static Context* current();
 
     // Deferred rendering (for popups/tooltips)
@@ -130,7 +138,7 @@ private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;
     
-    static Context* s_current;
+    // Note: Context stack is now thread-local, managed via pushContext/popContext
 };
 
 } // namespace fst

@@ -22,23 +22,38 @@ class LayoutContext;
  * @brief Aggregates common widget dependencies for cleaner initialization.
  * 
  * Use getWidgetContext() to obtain this struct at the start of each widget.
- * Returns an invalid context (ctx == nullptr) if Context::current() is not set.
+ * For explicit context passing, use WidgetContext::make(ctx) or getWidgetContext(ctx).
  */
 struct WidgetContext {
-    Context* ctx;
-    const Theme* theme;
-    IDrawList* dl;
-    Font* font;
+    Context* ctx = nullptr;
+    const Theme* theme = nullptr;
+    IDrawList* dl = nullptr;
+    Font* font = nullptr;
     
     /** @brief Check if context is valid. */
     bool valid() const { return ctx != nullptr; }
+    
+    /**
+     * @brief Create WidgetContext from explicit Context reference.
+     * @param ctx Context to use for widget rendering.
+     * @return Initialized WidgetContext with all dependencies.
+     */
+    static WidgetContext make(Context& ctx);
 };
 
 /**
- * @brief Get the current widget context with all common dependencies.
+ * @brief Get the current widget context using the context stack.
  * @return WidgetContext struct; check valid() before using.
+ * @deprecated Prefer getWidgetContext(Context&) for explicit DI.
  */
 WidgetContext getWidgetContext();
+
+/**
+ * @brief Get widget context from explicit Context reference.
+ * @param ctx Context to use for widget rendering.
+ * @return WidgetContext struct with all common dependencies.
+ */
+WidgetContext getWidgetContext(Context& ctx);
 
 /**
  * @brief Allocate bounds for a widget using layout or explicit style.

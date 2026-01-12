@@ -91,12 +91,10 @@ public:
     
     // Render - returns height of menu bar
     float render(Context& ctx, const Rect& bounds);
-    float render(const Rect& bounds);
 
     
     // Render popups (call at end of frame, after all other rendering)
     void renderPopups(Context& ctx);
-    void renderPopups();
 
     
     // Check if menu is open
@@ -148,7 +146,6 @@ public:
     
     // Render - call every frame when visible
     void render(Context& ctx);
-    void render();
 
     
     // Get selected item (after click)
@@ -172,20 +169,15 @@ private:
 // Global context menu helper
 //=============================================================================
 void ShowContextMenu(Context& ctx, const std::vector<MenuItem>& items, const Vec2& position);
-void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position);
 
 void RenderContextMenu(Context& ctx);
-void RenderContextMenu();  // Call at end of frame
 
 bool IsContextMenuOpen(Context& ctx);
-bool IsContextMenuOpen();
 
 void CloseContextMenu(Context& ctx);
-void CloseContextMenu();
 
 // Input blocking
 bool IsMouseOverAnyMenu(Context& ctx);
-bool IsMouseOverAnyMenu();
 
 
 } // namespace fst

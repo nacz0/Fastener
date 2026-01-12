@@ -35,27 +35,8 @@ bool Listbox(Context& ctx, std::string_view label, int& selectedIndex,
              const std::vector<std::string>& items,
              const ListboxOptions& options = {});
 
-/// Uses context stack
-bool Listbox(std::string_view label, int& selectedIndex, 
-             const std::vector<std::string>& items,
-             const ListboxOptions& options = {});
-
-/**
- * @brief Multi-select listbox variant.
- * 
- * @param label Label displayed before the listbox
- * @param selectedIndices Reference to vector of selected indices
- * @param items Vector of item strings to display
- * @param options Listbox styling and behavior options
- * @return true if the selection was changed this frame
- */
 /// Explicit DI version
 bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& selectedIndices,
-                  const std::vector<std::string>& items,
-                  const ListboxOptions& options = {});
-
-/// Uses context stack
-bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
                   const std::vector<std::string>& items,
                   const ListboxOptions& options = {});
 

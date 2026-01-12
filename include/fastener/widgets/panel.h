@@ -53,9 +53,6 @@ class PanelScope {
 public:
     /// RAII constructor with explicit context
     PanelScope(Context& ctx, const std::string& id, const PanelOptions& options = {});
-    
-    /// RAII constructor using context stack
-    PanelScope(const std::string& id, const PanelOptions& options = {});
     ~PanelScope();
     
     // For if(Panel) usage
@@ -66,16 +63,16 @@ public:
     PanelScope& operator=(const PanelScope&) = delete;
     
 private:
+    Context* m_ctx;
     bool m_visible;
     bool m_needsEnd;
 };
 
-// Usage: Panel("myPanel") { ... }
-#define Panel(id, ...) if (fst::PanelScope _panel_##__LINE__{id, ##__VA_ARGS__})
+// Usage: Panel(ctx, "myPanel") { ... }
+#define Panel(ctx, id, ...) if (fst::PanelScope _panel_##__LINE__{ctx, id, ##__VA_ARGS__})
 
 // Begin/End style (alternative)
 bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options = {});
-bool BeginPanel(const std::string& id, const PanelOptions& options = {});
-void EndPanel();
+void EndPanel(Context& ctx);
 
 } // namespace fst

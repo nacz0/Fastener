@@ -83,9 +83,6 @@ public:
     Rect render(Context& ctx, const std::string& id, const Rect& bounds,
                 const TabControlOptions& options = {},
                 const TabControlEvents& events = {});
-    Rect render(const std::string& id, const Rect& bounds,
-                const TabControlOptions& options = {},
-                const TabControlEvents& events = {});
 
     
 private:

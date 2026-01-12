@@ -31,14 +31,6 @@ void Tooltip(Context& ctx, const char* text, const TooltipOptions& options = {})
 void ShowTooltip(Context& ctx, const char* text, Vec2 position, const TooltipOptions& options = {});
 bool HelpMarker(Context& ctx, const char* text, const HelpMarkerOptions& options = {});
 
-/// Uses context stack
-void Tooltip(const char* text, const TooltipOptions& options = {});
-void Tooltip(const std::string& text, const TooltipOptions& options = {});
-void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options = {});
-void ShowTooltip(const std::string& text, Vec2 position, const TooltipOptions& options = {});
-bool HelpMarker(const char* text, const HelpMarkerOptions& options = {});
-bool HelpMarker(const std::string& text, const HelpMarkerOptions& options = {});
-
 //=============================================================================
 // Internal Tooltip State Management
 //=============================================================================

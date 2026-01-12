@@ -32,12 +32,8 @@ struct SplitterOptions {
  */
 bool Splitter(Context& ctx, const std::string& id, float& splitPosition, const Rect& bounds, 
              const SplitterOptions& options = {});
-bool Splitter(const std::string& id, float& splitPosition, const Rect& bounds, 
-             const SplitterOptions& options = {});
 
 bool Splitter(Context& ctx, const char* id, float& splitPosition, const Rect& bounds,
-             const SplitterOptions& options = {});
-bool Splitter(const char* id, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options = {});
 
 

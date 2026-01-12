@@ -38,9 +38,6 @@ public:
     void render(Context& ctx, const std::string& id, const Rect& bounds, 
                 std::function<void(const Rect& viewport)> contentRenderer,
                 const ScrollAreaOptions& options = {});
-    void render(const std::string& id, const Rect& bounds, 
-                std::function<void(const Rect& viewport)> contentRenderer,
-                const ScrollAreaOptions& options = {});
 
 
 private:

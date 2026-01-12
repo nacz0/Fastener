@@ -194,19 +194,13 @@ void BeginHorizontal(Context& ctx, float spacing) {
     }
 }
 
-void BeginHorizontal(float spacing) {
-    Context* ctx = Context::current();
-    if (ctx) BeginHorizontal(*ctx, spacing);
-}
+
 
 void EndHorizontal(Context& ctx) {
     ctx.layout().endContainer();
 }
 
-void EndHorizontal() {
-    Context* ctx = Context::current();
-    if (ctx) EndHorizontal(*ctx);
-}
+
 
 void BeginVertical(Context& ctx, float spacing) {
     LayoutContext& lc = ctx.layout();
@@ -220,19 +214,13 @@ void BeginVertical(Context& ctx, float spacing) {
     }
 }
 
-void BeginVertical(float spacing) {
-    Context* ctx = Context::current();
-    if (ctx) BeginVertical(*ctx, spacing);
-}
+
 
 void EndVertical(Context& ctx) {
     ctx.layout().endContainer();
 }
 
-void EndVertical() {
-    Context* ctx = Context::current();
-    if (ctx) EndVertical(*ctx);
-}
+
 
 
 void Spacing(Context& ctx, float size) {
@@ -244,46 +232,31 @@ void Spacing(Context& ctx, float size) {
     }
 }
 
-void Spacing(float size) {
-    Context* ctx = Context::current();
-    if (ctx) Spacing(*ctx, size);
-}
+
 
 void Padding(Context& ctx, float top, float right, float bottom, float left) {
     ctx.layout().setPadding(top, right, bottom, left);
 }
 
-void Padding(float top, float right, float bottom, float left) {
-    Context* ctx = Context::current();
-    if (ctx) Padding(*ctx, top, right, bottom, left);
-}
+
 
 void Padding(Context& ctx, float uniform) {
     Padding(ctx, uniform, uniform, uniform, uniform);
 }
 
-void Padding(float uniform) {
-    Context* ctx = Context::current();
-    if (ctx) Padding(*ctx, uniform);
-}
+
 
 Rect Allocate(Context& ctx, float width, float height, float flexGrow) {
     return ctx.layout().allocate(width, height, flexGrow);
 }
 
-Rect Allocate(float width, float height, float flexGrow) {
-    Context* ctx = Context::current();
-    return ctx ? Allocate(*ctx, width, height, flexGrow) : Rect();
-}
+
 
 Rect AllocateRemainingSpace(Context& ctx) {
     return ctx.layout().allocateRemaining();
 }
 
-Rect AllocateRemainingSpace() {
-    Context* ctx = Context::current();
-    return ctx ? AllocateRemainingSpace(*ctx) : Rect();
-}
+
 
 
 

@@ -12,26 +12,7 @@ namespace fst {
 // Widget Context Helpers
 //=============================================================================
 
-// Using deprecated Context::current() internally for backward compatibility
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable: 4996)
-#endif
 
-WidgetContext getWidgetContext() {
-    WidgetContext wc{};
-    wc.ctx = Context::current();
-    if (wc.ctx) {
-        wc.theme = &wc.ctx->theme();
-        wc.dl = wc.ctx->activeDrawList();
-        wc.font = wc.ctx->font();
-    }
-    return wc;
-}
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 WidgetContext getWidgetContext(Context& ctx) {
     return WidgetContext::make(ctx);
@@ -46,12 +27,9 @@ WidgetContext WidgetContext::make(Context& ctx) {
     return wc;
 }
 
-Rect allocateWidgetBounds(const Style& style, float width, float height) {
-    Context* ctx = Context::current();
-    if (!ctx) return Rect(0, 0, width, height);
-    
+Rect allocateWidgetBounds(Context& ctx, const Style& style, float width, float height) {
     if (style.x < 0.0f && style.y < 0.0f) {
-        return ctx->layout().allocate(width, height, style.flexGrow);
+        return ctx.layout().allocate(width, height, style.flexGrow);
     }
     return Rect(style.x, style.y, width, height);
 }
@@ -74,59 +52,48 @@ Color getStateColor(Color baseColor, Color hoverColor, Color activeColor,
 // Widget State Functions
 //=============================================================================
 
-WidgetState getWidgetState(WidgetId id) {
-    Context* ctx = Context::current();
-    if (!ctx) return {};
-    
+WidgetState getWidgetState(Context& ctx, WidgetId id) {
     WidgetState state;
-    state.hovered = ctx->getHoveredWidget() == id;
-    state.focused = ctx->getFocusedWidget() == id;
-    state.active = ctx->getActiveWidget() == id;
+    state.hovered = ctx.getHoveredWidget() == id;
+    state.focused = ctx.getFocusedWidget() == id;
+    state.active = ctx.getActiveWidget() == id;
     
     return state;
 }
 
-WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool focusable) {
-    Context* ctx = Context::current();
-    if (!ctx) return {};
-    
+WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable) {
     WidgetInteraction result;
-    const InputState& input = ctx->input();
+    const InputState& input = ctx.input();
     
     // Check if mouse is over widget
     Vec2 mousePos = input.mousePos();
     bool isHovered = bounds.contains(mousePos);
     
     // Check for clipping and existing capture (exclude ourselves if we are already active)
-    bool clipped = ctx->isPointClipped(mousePos);
-    bool captured = ctx->isInputCaptured() && !ctx->isCapturedBy(id);
-    bool occluded = ctx->isOccluded(mousePos);
-    bool consumed = ctx->input().isMouseConsumed();
-    
-
-
-
+    bool clipped = ctx.isPointClipped(mousePos);
+    bool captured = ctx.isInputCaptured() && !ctx.isCapturedBy(id);
+    bool occluded = ctx.isOccluded(mousePos);
+    bool consumed = ctx.input().isMouseConsumed();
     
     if (isHovered && !clipped && !captured && !occluded && !consumed) {
-        ctx->setHoveredWidget(id);
+        ctx.setHoveredWidget(id);
         result.hovered = true;
     }
 
-    
     // Handle mouse clicks
     if (isHovered && !clipped && !captured && !occluded && !consumed && input.isMousePressed(MouseButton::Left)) {
-        ctx->setActiveWidget(id);
+        ctx.setActiveWidget(id);
         if (focusable) {
-            ctx->setFocusedWidget(id);
+            ctx.setFocusedWidget(id);
         }
     }
     
-    if (ctx->getActiveWidget() == id) {
+    if (ctx.getActiveWidget() == id) {
         if (input.isMouseReleased(MouseButton::Left)) {
             if (isHovered) {
                 result.clicked = true;
             }
-            ctx->clearActiveWidget();
+            ctx.clearActiveWidget();
         }
         
         if (input.isMouseDown(MouseButton::Left)) {
@@ -145,21 +112,18 @@ WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool 
         result.rightClicked = true;
     }
     
-    result.focused = ctx->getFocusedWidget() == id;
+    result.focused = ctx.getFocusedWidget() == id;
     
     // Store this widget's info for drag-drop source identification
-    ctx->setLastWidgetId(id);
-    ctx->setLastWidgetBounds(bounds);
+    ctx.setLastWidgetId(id);
+    ctx.setLastWidgetBounds(bounds);
     
     return result;
 }
 
-void drawWidgetBackground(const Rect& bounds, const Style& style, const WidgetState& state) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
+void drawWidgetBackground(Context& ctx, const Rect& bounds, const Style& style, const WidgetState& state) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
     
     // Draw shadow
     if (style.hasShadow && style.shadowSize > 0) {
@@ -186,12 +150,9 @@ void drawWidgetBackground(const Rect& bounds, const Style& style, const WidgetSt
     dl.addRectFilled(bounds, bgColor, radius);
 }
 
-void drawWidgetBorder(const Rect& bounds, const Style& style, const WidgetState& state) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    
-    IDrawList& dl = *ctx->activeDrawList();
-    const Theme& theme = ctx->theme();
+void drawWidgetBorder(Context& ctx, const Rect& bounds, const Style& style, const WidgetState& state) {
+    IDrawList& dl = *ctx.activeDrawList();
+    const Theme& theme = ctx.theme();
     
     if (style.borderWidth <= 0) return;
     

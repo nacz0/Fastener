@@ -37,14 +37,12 @@ struct DockableWindowOptions {
  * @return true if the window content should be rendered
  */
 bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWindowOptions& options = {});
-bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& options = {});
 
 /**
  * Ends a dockable window.
  * Must be called after BeginDockableWindow returns true.
  */
 void EndDockableWindow(Context& ctx);
-void EndDockableWindow();
 
 
 //=============================================================================
@@ -53,7 +51,6 @@ void EndDockableWindow();
 class DockableWindowScope {
 public:
     DockableWindowScope(Context& ctx, const std::string& id, const DockableWindowOptions& options = {});
-    DockableWindowScope(const std::string& id, const DockableWindowOptions& options = {});
     ~DockableWindowScope();
 
     
@@ -65,13 +62,14 @@ public:
     DockableWindowScope& operator=(const DockableWindowScope&) = delete;
     
 private:
+    Context* m_ctx;
     bool m_visible;
 };
 
 //=============================================================================
 // Macro for convenient usage
 //=============================================================================
-#define DockableWindow(id, ...) \
-    if (fst::DockableWindowScope _dw_scope_##__LINE__{id, ##__VA_ARGS__})
+#define DockableWindow(ctx, id, ...) \
+    if (fst::DockableWindowScope _dw_scope_##__LINE__{ctx, id, ##__VA_ARGS__})
 
 } // namespace fst

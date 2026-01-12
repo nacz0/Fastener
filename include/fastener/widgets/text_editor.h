@@ -75,7 +75,6 @@ public:
     void clear();
 
     void render(Context& ctx, const Rect& bounds, const TextEditorOptions& options = {});
-    void render(const Rect& bounds, const TextEditorOptions& options = {});
 
 
     // State access

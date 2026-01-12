@@ -27,7 +27,6 @@ struct DockPreviewState {
  * Called automatically by DockContext::endFrame().
  */
 void RenderDockPreview(Context& ctx);
-void RenderDockPreview();
 
 
 /**
@@ -36,7 +35,7 @@ void RenderDockPreview();
  * @param mousePos Current mouse position
  * @return Preview state with target rect and direction
  */
-DockPreviewState CalculateDockPreview(const DockNode* targetNode, 
+DockPreviewState CalculateDockPreview(Context& ctx, const DockNode* targetNode, 
                                        const Vec2& mousePos);
 
 /**
@@ -44,7 +43,6 @@ DockPreviewState CalculateDockPreview(const DockNode* targetNode,
  * Shows directional indicators (left/right/top/bottom/center).
  */
 void RenderDockTargetIndicators(Context& ctx, DockNode* targetNode, const Vec2& mousePos);
-void RenderDockTargetIndicators(DockNode* targetNode, const Vec2& mousePos);
 
 
 /**

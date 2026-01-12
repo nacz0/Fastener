@@ -29,28 +29,14 @@ static int s_panelDepth = 0;
  * @brief RAII helper for automatic BeginPanel/EndPanel pairing.
  */
 PanelScope::PanelScope(Context& ctx, const std::string& id, const PanelOptions& options) 
-    : m_visible(true), m_needsEnd(true) 
+    : m_ctx(&ctx), m_visible(true), m_needsEnd(true) 
 {
     m_visible = BeginPanel(ctx, id, options);
-    m_needsEnd = true;
-}
-
-PanelScope::PanelScope(const std::string& id, const PanelOptions& options) 
-    : m_visible(true), m_needsEnd(true) 
-{
-    auto wc = getWidgetContext();
-    if (wc.valid()) {
-        m_visible = BeginPanel(*wc.ctx, id, options);
-        m_needsEnd = true;
-    } else {
-        m_visible = false;
-        m_needsEnd = false;
-    }
 }
 
 PanelScope::~PanelScope() {
-    if (m_needsEnd) {
-        EndPanel();
+    if (m_visible && m_ctx) {
+        EndPanel(*m_ctx);
     }
 }
 
@@ -83,7 +69,7 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
     float height = options.style.height > 0 ? options.style.height : 200.0f;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     // Determine background color
     Color bgColor = options.style.backgroundColor.a > 0 
@@ -156,32 +142,21 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
     return true;
 }
 
-/**
- * @brief Legacy wrapper using context stack.
- */
-bool BeginPanel(const std::string& id, const PanelOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return BeginPanel(*wc.ctx, id, options);
-}
 
 /**
  * @brief End a panel container started with BeginPanel().
  */
-void EndPanel() {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    
+void EndPanel(Context& ctx) {
     s_panelDepth--;
     
     // Restore clip rect
-    wc.dl->popClipRect();
+    ctx.drawList().popClipRect();
     
     // End layout container
-    wc.ctx->layout().endContainer();
+    ctx.layout().endContainer();
     
     // Pop panel ID
-    wc.ctx->popId();
+    ctx.popId();
 }
 
 } // namespace fst

@@ -133,18 +133,6 @@ void MenuBar::renderPopups(Context& ctx) {
     }
 }
 
-float MenuBar::render(const Rect& bounds) {
-    Context* ctx = Context::current();
-    if (!ctx) return 0;
-    return render(*ctx, bounds);
-}
-
-void MenuBar::renderPopups() {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    renderPopups(*ctx);
-}
-
 void MenuBar::renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos) {
     IDrawList& dl = *ctx.activeDrawList();
     const Theme& theme = ctx.theme();
@@ -390,12 +378,6 @@ void ContextMenu::render(Context& ctx) {
     }
 }
 
-void ContextMenu::render() {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    render(*ctx);
-}
-
 float ContextMenu::renderItems(Context& ctx, const std::vector<MenuItem>& items, const Vec2& pos, int depth) {
     IDrawList& dl = *ctx.activeDrawList();
     const Theme& theme = ctx.theme();
@@ -616,12 +598,6 @@ void ShowContextMenu(Context& ctx, const std::vector<MenuItem>& items, const Vec
     getMenuState(ctx).contextMenuActive = true;
 }
 
-void ShowContextMenu(const std::vector<MenuItem>& items, const Vec2& position) {
-    Context* ctx = Context::current();
-    if (!ctx) return;
-    ShowContextMenu(*ctx, items, position);
-}
-
 void RenderContextMenu(Context& ctx) {
     if (getMenuState(ctx).contextMenuActive) {
         g_contextMenu.render(ctx);
@@ -631,18 +607,8 @@ void RenderContextMenu(Context& ctx) {
     }
 }
 
-void RenderContextMenu() {
-    Context* ctx = Context::current();
-    if (ctx) RenderContextMenu(*ctx);
-}
-
 bool IsContextMenuOpen(Context& ctx) {
     return getMenuState(ctx).contextMenuActive && g_contextMenu.isVisible();
-}
-
-bool IsContextMenuOpen() {
-    Context* ctx = Context::current();
-    return ctx ? IsContextMenuOpen(*ctx) : false;
 }
 
 void CloseContextMenu(Context& ctx) {
@@ -651,11 +617,6 @@ void CloseContextMenu(Context& ctx) {
     getMenuState(ctx).contextMenuRect = Rect();
 }
 
-
-void CloseContextMenu() {
-    Context* ctx = Context::current();
-    if (ctx) CloseContextMenu(*ctx);
-}
 
 bool IsMouseOverAnyMenu(Context& ctx) {
     Vec2 mousePos = ctx.input().mousePos();
@@ -674,11 +635,6 @@ bool IsMouseOverAnyMenu(Context& ctx) {
     }
     
     return false;
-}
-
-bool IsMouseOverAnyMenu() {
-    Context* ctx = Context::current();
-    return ctx ? IsMouseOverAnyMenu(*ctx) : false;
 }
 
 

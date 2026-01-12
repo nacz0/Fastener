@@ -60,8 +60,8 @@ bool Splitter(Context& ctx, const char* id_str, float& splitPosition, const Rect
 
     // Expand hit area for better usability
     Rect hitBounds = splitterBounds.expanded(4.0f);
-    WidgetInteraction interaction = handleWidgetInteraction(id, hitBounds, false);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, hitBounds, false);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
 
     // Set appropriate resize cursor on hover/active
@@ -134,24 +134,9 @@ bool Splitter(Context& ctx, const char* id_str, float& splitPosition, const Rect
     return changed;
 }
 
-/**
- * @brief String overload for Splitter.
- */
-bool Splitter(const char* id_str, float& splitPosition, const Rect& bounds,
-             const SplitterOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return Splitter(*wc.ctx, id_str, splitPosition, bounds, options);
-}
-
 bool Splitter(Context& ctx, const std::string& id, float& splitPosition, const Rect& bounds,
              const SplitterOptions& options) {
     return Splitter(ctx, id.c_str(), splitPosition, bounds, options);
-}
-
-bool Splitter(const std::string& id, float& splitPosition, const Rect& bounds,
-             const SplitterOptions& options) {
-    return Splitter(id.c_str(), splitPosition, bounds, options);
 }
 
 

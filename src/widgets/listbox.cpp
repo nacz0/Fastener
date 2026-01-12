@@ -58,7 +58,7 @@ bool Listbox(Context& ctx, std::string_view label, int& selectedIndex,
     }
 
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, labelWidth + width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, labelWidth + width, height);
     Rect boxBounds(bounds.x() + labelWidth, bounds.y(), width, height);
 
     // Draw label
@@ -91,7 +91,7 @@ bool Listbox(Context& ctx, std::string_view label, int& selectedIndex,
         WidgetId scrollbarId = ctx.makeId(scrollerLabel);
         
         // Handle scrollbar dragging
-        WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
+        WidgetInteraction scrollInteraction = handleWidgetInteraction(ctx, scrollbarId, track, true);
         
         if (scrollInteraction.dragging || (scrollInteraction.clicked && track.contains(input.mousePos()))) {
              float thumbHeight = std::max(20.0f, (boxBounds.height() / totalContentHeight) * boxBounds.height());
@@ -181,7 +181,7 @@ bool Listbox(Context& ctx, std::string_view label, int& selectedIndex,
         
         std::string scrollerLabel = std::string(label) + "_scroller";
         WidgetId scrollbarId = ctx.makeId(scrollerLabel);
-        WidgetState scrollState = getWidgetState(scrollbarId);
+        WidgetState scrollState = getWidgetState(ctx, scrollbarId);
         
         Color thumbColor = (scrollState.hovered || scrollState.active)
             ? theme.colors.scrollbarThumbHover 
@@ -238,7 +238,7 @@ bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& select
         labelWidth = font->measureText(label).x + theme.metrics.paddingMedium;
     }
 
-    Rect bounds = allocateWidgetBounds(options.style, labelWidth + width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, labelWidth + width, height);
     Rect boxBounds(bounds.x() + labelWidth, bounds.y(), width, height);
 
     // Draw label
@@ -268,7 +268,7 @@ bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& select
         std::string scrollerLabel = std::string(label) + "_scroller";
         WidgetId scrollbarId = ctx.makeId(scrollerLabel);
         
-        WidgetInteraction scrollInteraction = handleWidgetInteraction(scrollbarId, track, true);
+        WidgetInteraction scrollInteraction = handleWidgetInteraction(ctx, scrollbarId, track, true);
         
         if (scrollInteraction.dragging || (scrollInteraction.clicked && track.contains(input.mousePos()))) {
              float thumbHeight = std::max(20.0f, (boxBounds.height() / totalContentHeight) * boxBounds.height());
@@ -363,7 +363,7 @@ bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& select
         
         std::string scrollerLabel = std::string(label) + "_scroller";
         WidgetId scrollbarId = ctx.makeId(scrollerLabel);
-        WidgetState scrollState = getWidgetState(scrollbarId);
+        WidgetState scrollState = getWidgetState(ctx, scrollbarId);
 
         Color thumbColor = (scrollState.hovered || scrollState.active)
             ? theme.colors.scrollbarThumbHover 
@@ -374,24 +374,6 @@ bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& select
     return changed;
 }
 
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
 
-bool Listbox(std::string_view label, int& selectedIndex, 
-             const std::vector<std::string>& items,
-             const ListboxOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return Listbox(*wc.ctx, label, selectedIndex, items, options);
-}
-
-bool ListboxMulti(std::string_view label, std::vector<int>& selectedIndices,
-                  const std::vector<std::string>& items,
-                  const ListboxOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return ListboxMulti(*wc.ctx, label, selectedIndices, items, options);
-}
 
 } // namespace fst

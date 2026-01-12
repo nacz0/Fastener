@@ -114,14 +114,6 @@ void ScrollArea::render(Context& ctx, const std::string& id, const Rect& bounds,
     ctx.popId();
 }
 
-void ScrollArea::render(const std::string& id, const Rect& bounds, 
-                        std::function<void(const Rect& viewport)> contentRenderer,
-                        const ScrollAreaOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    render(*wc.ctx, id, bounds, contentRenderer, options);
-}
-
 void ScrollArea::handleInteraction(Context& ctx, const std::string& id, const Rect& bounds, const Rect& viewport, const ScrollAreaOptions& options) {
     InputState& input = ctx.input();
     Vec2 mp = input.mousePos();

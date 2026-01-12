@@ -51,11 +51,11 @@ bool CollapsingHeader(Context& ctx, std::string_view label, bool& isOpen,
     }
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     
     // Toggle on click
     if (interaction.clicked) {
@@ -100,17 +100,6 @@ bool CollapsingHeader(Context& ctx, std::string_view label, bool& isOpen,
     }
     
     return isOpen;
-}
-
-//=============================================================================
-// Backward-compatible wrapper
-//=============================================================================
-
-bool CollapsingHeader(std::string_view label, bool& isOpen,
-                      const CollapsingHeaderOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return isOpen;
-    return CollapsingHeader(*wc.ctx, label, isOpen, options);
 }
 
 } // namespace fst

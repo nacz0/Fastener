@@ -239,14 +239,6 @@ Rect TabControl::render(Context& ctx, const std::string& id, const Rect& bounds,
     return contentRect;
 }
 
-Rect TabControl::render(const std::string& id, const Rect& bounds,
-                        const TabControlOptions& options,
-                        const TabControlEvents& events) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return bounds;
-    return render(*wc.ctx, id, bounds, options, events);
-}
-
 
 void TabControl::drawTab(Context& ctx, int index, const Rect& tabRect,
                          const TabControlOptions& options,

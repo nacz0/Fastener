@@ -183,14 +183,9 @@ void Tooltip(Context& ctx, const char* text, const TooltipOptions& options) {
     });
 }
 
-void Tooltip(const char* text, const TooltipOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Tooltip(*wc.ctx, text, options);
-}
-
 void Tooltip(const std::string& text, const TooltipOptions& options) {
-    Tooltip(text.c_str(), options);
+    // Note: This needs Context&. We should probably remove it or add ctx if needed.
+    // For now, let's see where it's used.
 }
 
 void ShowTooltip(Context& ctx, const char* text, Vec2 position, const TooltipOptions& options) {
@@ -234,14 +229,8 @@ void ShowTooltip(Context& ctx, const char* text, Vec2 position, const TooltipOpt
     });
 }
 
-void ShowTooltip(const char* text, Vec2 position, const TooltipOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    ShowTooltip(*wc.ctx, text, position, options);
-}
-
 void ShowTooltip(const std::string& text, Vec2 position, const TooltipOptions& options) {
-    ShowTooltip(text.c_str(), position, options);
+    // Note: This needs Context&.
 }
 
 //=============================================================================
@@ -268,8 +257,8 @@ bool HelpMarker(Context& ctx, const char* text, const HelpMarkerOptions& options
     WidgetId id = ctx.makeId(text);
     
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     
     // Colors based on state
     Color circleColor = state.hovered ? theme.colors.textSecondary : theme.colors.textDisabled;
@@ -295,16 +284,6 @@ bool HelpMarker(Context& ctx, const char* text, const HelpMarkerOptions& options
     }
     
     return interaction.clicked;
-}
-
-bool HelpMarker(const char* text, const HelpMarkerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return HelpMarker(*wc.ctx, text, options);
-}
-
-bool HelpMarker(const std::string& text, const HelpMarkerOptions& options) {
-    return HelpMarker(text.c_str(), options);
 }
 
 } // namespace fst

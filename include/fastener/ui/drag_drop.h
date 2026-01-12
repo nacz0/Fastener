@@ -32,6 +32,8 @@
  */
 
 namespace fst {
+class Context;
+
 
 //=============================================================================
 // Drag and Drop Flags
@@ -124,6 +126,7 @@ using FileDropCallback = std::function<void(const std::vector<std::string>& path
  * @param flags Optional flags to customize behavior
  * @return true if drag is active from this source
  */
+bool BeginDragDropSource(Context& ctx, DragDropFlags flags = DragDropFlags_None);
 bool BeginDragDropSource(DragDropFlags flags = DragDropFlags_None);
 
 /**
@@ -153,6 +156,7 @@ void EndDragDropSource();
  * @brief Begin a drop target. Call when widget can accept drops.
  * @return true if something is being dragged over this target
  */
+bool BeginDragDropTarget(Context& ctx);
 bool BeginDragDropTarget();
 
 /**
@@ -160,6 +164,7 @@ bool BeginDragDropTarget();
  * @param targetRect The rectangle to check for mouse overlap
  * @return true if something is being dragged over this target
  */
+bool BeginDragDropTarget(Context& ctx, const Rect& targetRect);
 bool BeginDragDropTarget(const Rect& targetRect);
 
 /**
@@ -168,6 +173,8 @@ bool BeginDragDropTarget(const Rect& targetRect);
  * @param flags Optional flags
  * @return Pointer to payload if accepted, nullptr otherwise
  */
+const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
+                                          DragDropFlags flags = DragDropFlags_None);
 const DragPayload* AcceptDragDropPayload(const std::string& type, 
                                           DragDropFlags flags = DragDropFlags_None);
 

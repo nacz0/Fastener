@@ -21,6 +21,9 @@ static WidgetId s_currentSourceWidget = INVALID_WIDGET_ID;
 static Rect s_currentTargetRect;
 static bool s_inSourceBlock = false;
 static bool s_inTargetBlock = false;
+static Vec2 s_mousePressPos;
+static bool s_potentialDrag = false;
+static WidgetId s_potentialDragSource = INVALID_WIDGET_ID;
 
 //=============================================================================
 // Internal Helpers
@@ -70,20 +73,17 @@ static void renderDragPreview() {
 // Source API Implementation
 //=============================================================================
 
-bool BeginDragDropSource(DragDropFlags flags) {
-    auto* ctx = Context::current();
-    if (!ctx) return false;
-    
+bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
     s_inSourceBlock = true;
     
-    const auto& input = ctx->input();
+    const auto& input = ctx.input();
     
     // Start new drag on mouse down + drag threshold
     // BeginDragDropSource must be called AFTER the widget it applies to
-    WidgetId lastWidgetId = ctx->getLastWidgetId();
+    WidgetId lastWidgetId = ctx.getLastWidgetId();
     if (lastWidgetId == INVALID_WIDGET_ID) {
         // Fallback to hovered if last widget not set (but this is risky)
-        lastWidgetId = ctx->getHoveredWidget();
+        lastWidgetId = ctx.getHoveredWidget();
         if (lastWidgetId == INVALID_WIDGET_ID) {
             s_inSourceBlock = false;
             return false;
@@ -99,17 +99,13 @@ bool BeginDragDropSource(DragDropFlags flags) {
         return false; // Another widget is dragging
     }
     
-    // Static state for potential drag - must track which widget initiated it
-    static Vec2 s_mousePressPos;
-    static bool s_potentialDrag = false;
-    static WidgetId s_potentialDragSource = INVALID_WIDGET_ID;
-    
+    // Drag initiation logic using global potential drag state
     if (input.isMouseDown(MouseButton::Left)) {
         // On mouse press, check if this widget's bounds contain the press position
         // Only allow a widget to start a potential drag if mouse was pressed on it
         if (input.isMousePressed(MouseButton::Left)) {
             // Get bounds for this widget from the last widget bounds (set by the widget before BeginDragDropSource)
-            Rect widgetBounds = ctx->getLastWidgetBounds();
+            Rect widgetBounds = ctx.getLastWidgetBounds();
             if (widgetBounds.contains(input.mousePos())) {
                 s_mousePressPos = input.mousePos();
                 s_potentialDrag = true;
@@ -142,6 +138,12 @@ bool BeginDragDropSource(DragDropFlags flags) {
     
     s_inSourceBlock = false;
     return false;
+}
+
+bool BeginDragDropSource(DragDropFlags flags) {
+    auto* ctx = fst::Context::current();
+    if (!ctx) return false;
+    return fst::BeginDragDropSource(*ctx, flags);
 }
 
 bool SetDragDropPayload(const std::string& type, const void* data, size_t size) {
@@ -184,22 +186,44 @@ void EndDragDropSource() {
 // Target API Implementation
 //=============================================================================
 
-bool BeginDragDropTarget() {
+bool BeginDragDropTarget(Context& ctx) {
     if (!s_dragDropState.active) return false;
-    
-    auto* ctx = Context::current();
-    if (!ctx) return false;
     
     s_inTargetBlock = true;
     
     // Get current widget bounds (from layout)
-    s_currentTargetRect = ctx->layout().currentBounds();
+    s_currentTargetRect = ctx.layout().currentBounds();
     
-    const auto& input = ctx->input();
+    const auto& input = ctx.input();
     
     // Check if mouse is over this target
-    if (s_currentTargetRect.contains(input.mousePos()) && !ctx->isOccluded(input.mousePos())) {
-        s_dragDropState.hoveredDropTarget = ctx->currentId();
+    if (s_currentTargetRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos())) {
+        s_dragDropState.hoveredDropTarget = ctx.currentId();
+        return true;
+    }
+    
+    s_inTargetBlock = false;
+    return false;
+}
+
+bool BeginDragDropTarget() {
+    auto* ctx = fst::Context::current();
+    if (!ctx) return false;
+    return fst::BeginDragDropTarget(*ctx);
+}
+
+bool BeginDragDropTarget(Context& ctx, const Rect& targetRect) {
+    if (!s_dragDropState.active) return false;
+    
+    s_inTargetBlock = true;
+    
+    s_currentTargetRect = targetRect;
+    
+    const auto& input = ctx.input();
+    
+    // Check if mouse is over this target
+    if (s_currentTargetRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos())) {
+        s_dragDropState.hoveredDropTarget = ctx.currentId();
         return true;
     }
     
@@ -208,28 +232,12 @@ bool BeginDragDropTarget() {
 }
 
 bool BeginDragDropTarget(const Rect& targetRect) {
-    if (!s_dragDropState.active) return false;
-    
-    auto* ctx = Context::current();
+    auto* ctx = fst::Context::current();
     if (!ctx) return false;
-    
-    s_inTargetBlock = true;
-    
-    s_currentTargetRect = targetRect;
-    
-    const auto& input = ctx->input();
-    
-    // Check if mouse is over this target
-    if (s_currentTargetRect.contains(input.mousePos()) && !ctx->isOccluded(input.mousePos())) {
-        s_dragDropState.hoveredDropTarget = ctx->currentId();
-        return true;
-    }
-    
-    s_inTargetBlock = false;
-    return false;
+    return fst::BeginDragDropTarget(*ctx, targetRect);
 }
 
-const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags flags) {
+const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, DragDropFlags flags) {
     if (!s_inTargetBlock || !s_dragDropState.active) return nullptr;
     
     // Check type match
@@ -242,17 +250,14 @@ const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags 
         return nullptr;
     }
     
-    auto* ctx = Context::current();
-    if (!ctx) return nullptr;
-    
-    const auto& input = ctx->input();
+    const auto& input = ctx.input();
     
     s_dragDropState.isOverValidTarget = true;
     
     // Highlight target
     if (!(flags & DragDropFlags_AcceptNoHighlight)) {
-        IDrawList& dl = *ctx->activeDrawList();
-        const auto& theme = ctx->theme();
+        IDrawList& dl = *ctx.activeDrawList();
+        const auto& theme = ctx.theme();
         dl.addRect(s_currentTargetRect, theme.colors.primary, 2.0f);
     }
     
@@ -263,6 +268,12 @@ const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags 
     }
     
     return nullptr;
+}
+
+const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags flags) {
+    auto* ctx = fst::Context::current();
+    if (!ctx) return nullptr;
+    return fst::AcceptDragDropPayload(*ctx, type, flags);
 }
 
 void EndDragDropTarget() {
@@ -303,6 +314,8 @@ const DragPayload* GetDragDropPayload() {
 void CancelDragDrop() {
     s_dragDropState.clear();
     s_dragDropState.pendingClear = false;
+    s_potentialDrag = false;
+    s_potentialDragSource = INVALID_WIDGET_ID;
 }
 
 void EndDragDropFrame() {

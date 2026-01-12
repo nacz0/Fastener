@@ -285,16 +285,16 @@ int main() {
         float windowH = static_cast<float>(window.height());
         const float statusBarHeight = 24.0f;
 
-        menuBar.render(Rect(0, 0, windowW, menuBarHeight));
+        menuBar.render(ctx, Rect(0, 0, windowW, menuBarHeight));
         
         // Define the main docking area between menu bar and status bar
         Rect mainDockArea(0, menuBarHeight, windowW, windowH - menuBarHeight - statusBarHeight);
-        DockSpace("##MainDockSpace", mainDockArea);
+        DockSpace(ctx, "##MainDockSpace", mainDockArea);
 
         // --- Dockable Windows ---
 
         // Explorer Window
-        DockableWindow("Explorer") {
+        DockableWindow(ctx, "Explorer") {
             if (ctx.font()) {
                 dl.addText(ctx.font(), Vec2(ctx.layout().currentBounds().x() + 10, ctx.layout().currentBounds().y() + 8), "EXPLORER", theme.colors.textSecondary);
             }
@@ -313,11 +313,11 @@ int main() {
                 }
             };
             
-            fileTree.render("explorer_tree", treeRect, treeOpts, treeEvents);
+            fileTree.render(ctx, "explorer_tree", treeRect, treeOpts, treeEvents);
         }
 
         // Terminal Window
-        DockableWindow("Terminal") {
+        DockableWindow(ctx, "Terminal") {
             Rect terminalArea = ctx.layout().currentBounds();
             dl.addRectFilled(terminalArea, theme.colors.windowBackground.darker(0.1f));
             if (ctx.font()) {
@@ -328,14 +328,14 @@ int main() {
         }
 
         // Settings Window
-        DockableWindow("Settings") {
+        DockableWindow(ctx, "Settings") {
             Rect contentRect = ctx.layout().currentBounds();
             ctx.layout().beginContainer(contentRect);
             
             PanelOptions settingsPanelOpts;
             settingsPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
             
-            Panel("SettingsPanel", settingsPanelOpts) {
+            Panel(ctx, "SettingsPanel", settingsPanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
                 Label(ctx, "WIDGET DEMO", titleOpts);
@@ -380,7 +380,7 @@ int main() {
         }
 
         // Editor Placeholder
-        DockableWindow("Editor") {
+        DockableWindow(ctx, "Editor") {
             Rect contentRect = ctx.layout().currentBounds();
             dl.addRectFilled(contentRect, theme.colors.panelBackground);
             
@@ -388,12 +388,12 @@ int main() {
             tabOpts.tabHeight = 32.0f;
             tabOpts.showCloseButtons = true;
             
-            Rect editorTabsRect = tabs.render("editor_tabs", contentRect, tabOpts);
+            Rect editorTabsRect = tabs.render(ctx, "editor_tabs", contentRect, tabOpts);
             
             if (tabs.selectedTab()) {
                 const std::string& tabId = tabs.selectedTab()->id;
                 TextEditor& editor = getOrCreateEditor(tabId);
-                editor.render(editorTabsRect);
+                editor.render(ctx, editorTabsRect);
             } else {
                 if (ctx.font()) {
                     dl.addText(ctx.font(), Vec2(editorTabsRect.x() + 20, editorTabsRect.y() + 20), "No file open", theme.colors.textSecondary);
@@ -402,14 +402,14 @@ int main() {
         }
 
         // Input Demo Window
-        DockableWindow("Input Demo") {
+        DockableWindow(ctx, "Input Demo") {
             Rect contentRect = ctx.layout().currentBounds();
             ctx.layout().beginContainer(contentRect);
             
             PanelOptions inputPanelOpts;
             inputPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
             
-            Panel("InputDemoPanel", inputPanelOpts) {
+            Panel(ctx, "InputDemoPanel", inputPanelOpts) {
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
                 
@@ -432,14 +432,14 @@ int main() {
         }
 
         // New Widgets Window
-        DockableWindow("New Widgets") {
+        DockableWindow(ctx, "New Widgets") {
             Rect contentRect = ctx.layout().currentBounds();
             ctx.layout().beginContainer(contentRect);
             
             PanelOptions p2PanelOpts;
             p2PanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
             
-            Panel("NewWidgetsPanel", p2PanelOpts) {
+            Panel(ctx, "NewWidgetsPanel", p2PanelOpts) {
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
 
@@ -506,14 +506,14 @@ int main() {
         }
 
         // Table Demo Window
-        DockableWindow("Table Demo") {
+        DockableWindow(ctx, "Table Demo") {
             Rect contentRect = ctx.layout().currentBounds();
             ctx.layout().beginContainer(contentRect);
             
             PanelOptions tablePanelOpts;
             tablePanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
             
-            Panel("TableDemoPanel", tablePanelOpts) {
+            Panel(ctx, "TableDemoPanel", tablePanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
                 Label(ctx, "TABLE WIDGET DEMO", titleOpts);
@@ -571,14 +571,14 @@ int main() {
         }
 
         // Drag & Drop Demo Window
-        DockableWindow("Drag & Drop Demo") {
+        DockableWindow(ctx, "Drag & Drop Demo") {
             Rect contentRect = ctx.layout().currentBounds();
             ctx.layout().beginContainer(contentRect);
             
             PanelOptions ddPanelOpts;
             ddPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
             
-            Panel("DragDropDemoPanel", ddPanelOpts) {
+            Panel(ctx, "DragDropDemoPanel", ddPanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
                 Label(ctx, "DRAG & DROP DEMO", titleOpts);
@@ -629,7 +629,7 @@ int main() {
                 
                 PanelOptions list1Opts;
                 list1Opts.style = Style().withSize(listWidth, 180);
-                Panel("List1Panel", list1Opts) {
+                Panel(ctx, "List1Panel", list1Opts) {
                     Rect list1Rect = ctx.layout().currentBounds();
                     bool itemTargetHit = false;
                     
@@ -735,7 +735,7 @@ int main() {
                 
                 PanelOptions list2Opts;
                 list2Opts.style = Style().withSize(listWidth, 180);
-                Panel("List2Panel", list2Opts) {
+                Panel(ctx, "List2Panel", list2Opts) {
                     Rect list2Rect = ctx.layout().currentBounds();
                     bool itemTargetHit = false;
                     
@@ -844,11 +844,11 @@ int main() {
             dl.addText(ctx.font(), Vec2(10, statusRect.y() + 4), statusText, theme.colors.primaryText);
         }
         
-        menuBar.renderPopups();
-        RenderContextMenu();
+        menuBar.renderPopups(ctx);
+        RenderContextMenu(ctx);
         
         // Render docking preview overlay at the end
-        RenderDockPreview();
+        RenderDockPreview(ctx);
         
         ctx.endFrame();
         window.swapBuffers();
@@ -860,7 +860,7 @@ int main() {
         window.pollEvents();
         if (window.input().isKeyPressed(Key::Escape)) {
             if (menuBar.isOpen()) menuBar.closeAll();
-            else if (IsContextMenuOpen()) CloseContextMenu();
+            else if (IsContextMenuOpen(ctx)) CloseContextMenu(ctx);
             else window.close();
         }
         renderFrame();

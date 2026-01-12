@@ -177,6 +177,7 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     CancelDragDrop(); 
 
     // Step 1: Start drag - Frame A: Press
+    window.input().beginFrame();
     ctx->beginFrame(window);
     auto& input = ctx->input();
     
@@ -185,16 +186,17 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     ctx->setLastWidgetBounds(Rect(0, 0, 100, 100));
     input.onMouseDown(MouseButton::Left);
     
-    BeginDragDropSource();
+    BeginDragDropSource(*ctx);
     ctx->endFrame();
     
     // Step 1: Start drag - Frame B: Move and Activate
+    window.input().beginFrame();
     ctx->beginFrame(window);
     input.onMouseMove(70, 70); // Move enough to trigger drag
     ctx->setLastWidgetId(hashString("source"));
     ctx->setLastWidgetBounds(Rect(0, 0, 100, 100));
     
-    bool started = BeginDragDropSource();
+    bool started = BeginDragDropSource(*ctx);
     EXPECT_TRUE(started) << "Drag should have started";
     SetDragDropPayload("test", nullptr, 0);
     EndDragDropSource();
@@ -206,6 +208,7 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     ASSERT_TRUE(IsDragDropActive());
     
     // Step 2: Test occlusion in third frame
+    window.input().beginFrame();
     ctx->beginFrame(window);
     input.onMouseMove(70, 70); // Ensure mouse is still at (70, 70)
     
@@ -217,7 +220,7 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     EXPECT_TRUE(ctx->isOccluded(Vec2(70, 70)));
     
     // Try to begin a target at (70, 70)
-    bool isTarget = BeginDragDropTarget(Rect(40, 40, 40, 40));
+    bool isTarget = BeginDragDropTarget(*ctx, Rect(40, 40, 40, 40));
     EXPECT_FALSE(isTarget) << "Target should be occluded by floating window";
     
     if (isTarget) EndDragDropTarget();
@@ -227,6 +230,7 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
 
 TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
     // Step 1: Start drag
+    window.input().beginFrame();
     ctx->beginFrame(window);
     auto& input = ctx->input();
     input.onMouseMove(50, 50);
@@ -236,23 +240,24 @@ TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
     input.onMouseDown(MouseButton::Left);
     input.onMouseMove(60, 60);
     
-    BeginDragDropSource();
+    BeginDragDropSource(*ctx);
     SetDragDropPayload("test", nullptr, 0);
     EndDragDropSource();
     ctx->endFrame();
     
     // Step 2: Move to target and verify late update
+    window.input().beginFrame();
     ctx->beginFrame(window);
     input.onMouseMove(150, 150); 
     
     // Source processed first
-    BeginDragDropSource();
+    BeginDragDropSource(*ctx);
     EndDragDropSource();
     
     // Target processed second
-    bool isTarget = BeginDragDropTarget(Rect(140, 140, 40, 40));
+    bool isTarget = BeginDragDropTarget(*ctx, Rect(140, 140, 40, 40));
     if (isTarget) {
-        AcceptDragDropPayload("test");
+        AcceptDragDropPayload(*ctx, "test");
         EndDragDropTarget();
     }
     

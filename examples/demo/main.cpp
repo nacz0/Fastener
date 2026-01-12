@@ -268,15 +268,12 @@ int main() {
     auto renderFrame = [&]() {
         ctx.beginFrame(window);
         
-
-        
         if (!layoutInitialized) {
             initDockLayout();
         }
 
         DrawList& dl = ctx.drawList();
         const Theme& theme = ctx.theme();
-
         
         dl.addRectFilled(
             Rect(0, 0, static_cast<float>(window.width()), static_cast<float>(window.height())),
@@ -341,42 +338,42 @@ int main() {
             Panel("SettingsPanel", settingsPanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
-                Label("WIDGET DEMO", titleOpts);
-                Spacing(10);
+                Label(ctx, "WIDGET DEMO", titleOpts);
+                Spacing(ctx, 10);
                 
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
 
-                BeginVertical(10);
-                    Label("Checkboxes:", sectionOpts);
-                    (void)Checkbox("Show Line Numbers", checkValue1);
-                    (void)Checkbox("Word Wrap", checkValue2);
-                EndVertical();
+                BeginVertical(ctx, 10);
+                    Label(ctx, "Checkboxes:", sectionOpts);
+                    (void)Checkbox(ctx, "Show Line Numbers", checkValue1);
+                    (void)Checkbox(ctx, "Word Wrap", checkValue2);
+                EndVertical(ctx);
                 
-                Spacing(20);
+                Spacing(ctx, 20);
                 
-                BeginVertical(10);
-                    Label("Select Optimization:", sectionOpts);
+                BeginVertical(ctx, 10);
+                    Label(ctx, "Select Optimization:", sectionOpts);
                     ComboBoxOptions comboOpts;
                     comboOpts.style = Style().withWidth(300);
-                    (void)ComboBox("Performance", selectedCombo, comboOptions, comboOpts);
-                EndVertical();
+                    (void)ComboBox(ctx, "Performance", selectedCombo, comboOptions, comboOpts);
+                EndVertical(ctx);
                 
-                Spacing(20);
+                Spacing(ctx, 20);
                 
-                BeginVertical(10);
-                    Label("Progress Indicators:", sectionOpts);
+                BeginVertical(ctx, 10);
+                    Label(ctx, "Progress Indicators:", sectionOpts);
                     progressVal = std::fmod(ctx.time() * 0.1f, 1.0f);
                     ProgressBarOptions pb1; pb1.style = Style().withWidth(400);
-                    ProgressBar("Task Progress", progressVal, pb1);
-                EndVertical();
+                    ProgressBar(ctx, "Task Progress", progressVal, pb1);
+                EndVertical(ctx);
                 
-                Spacing(20);
+                Spacing(ctx, 20);
                 
-                BeginVertical(10);
-                    Label("Color Selection:", sectionOpts);
-                    ColorPicker("Accent Color", pickerColor);
-                EndVertical();
+                BeginVertical(ctx, 10);
+                    Label(ctx, "Color Selection:", sectionOpts);
+                    ColorPicker(ctx, "Accent Color", pickerColor);
+                EndVertical(ctx);
             }
             
             ctx.layout().endContainer();
@@ -384,13 +381,10 @@ int main() {
 
         // Editor Placeholder
         DockableWindow("Editor") {
-
-            
             Rect contentRect = ctx.layout().currentBounds();
             dl.addRectFilled(contentRect, theme.colors.panelBackground);
             
             TabControlOptions tabOpts;
-
             tabOpts.tabHeight = 32.0f;
             tabOpts.showCloseButtons = true;
             
@@ -419,19 +413,19 @@ int main() {
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
                 
-                BeginVertical(10);
-                    Label("Sliders:", sectionOpts);
+                BeginVertical(ctx, 10);
+                    Label(ctx, "Sliders:", sectionOpts);
                     SliderOptions sliderOpts;
                     sliderOpts.style = Style().withWidth(250);
-                    (void)Slider("Volume", sliderValue1, 0.0f, 100.0f, sliderOpts);
+                    (void)Slider(ctx, "Volume", sliderValue1, 0.0f, 100.0f, sliderOpts);
                     
-                    Spacing(20);
+                    Spacing(ctx, 20);
                     
-                    Label("Text Inputs:", sectionOpts);
+                    Label(ctx, "Text Inputs:", sectionOpts);
                     TextInputOptions tiOpts;
                     tiOpts.style = Style().withWidth(250);
-                    (void)TextInput("Username", textInputValue, tiOpts);
-                EndVertical();
+                    (void)TextInput(ctx, "Username", textInputValue, tiOpts);
+                EndVertical(ctx);
             }
             
             ctx.layout().endContainer();
@@ -449,63 +443,63 @@ int main() {
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
 
-                BeginHorizontal(30);
-                    BeginVertical(10);
-                        Label("Listbox:", sectionOpts);
+                BeginHorizontal(ctx, 30);
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "Listbox:", sectionOpts);
                         ListboxOptions lbOpts;
                         lbOpts.height = 120;
                         lbOpts.style = Style().withWidth(200);
-                        Listbox("demo_listbox", listboxSelection, listboxItems, lbOpts);
+                        Listbox(ctx, "demo_listbox", listboxSelection, listboxItems, lbOpts);
                         
-                        Spacing(20);
+                        Spacing(ctx, 20);
                         
-                        Label("RadioButtons:", sectionOpts);
-                        (void)RadioButton("Option A", radioSelection, 0);
-                        (void)RadioButton("Option B", radioSelection, 1);
-                        (void)RadioButton("Option C", radioSelection, 2);
-                    EndVertical();
+                        Label(ctx, "RadioButtons:", sectionOpts);
+                        (void)RadioButton(ctx, "Option A", radioSelection, 0);
+                        (void)RadioButton(ctx, "Option B", radioSelection, 1);
+                        (void)RadioButton(ctx, "Option C", radioSelection, 2);
+                    EndVertical(ctx);
                     
-                    BeginVertical(10);
-                        Label("Spinner:", sectionOpts);
-                        SpinnerWithLabel("loading", "Processing...");
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "Spinner:", sectionOpts);
+                        SpinnerWithLabel(ctx, "loading", "Processing...");
                         
-                        Spacing(20);
+                        Spacing(ctx, 20);
                         
-                        Label("Selectables:", sectionOpts);
-                        (void)Selectable("Option 1", selectable1);
-                        (void)Selectable("Option 2", selectable2);
+                        Label(ctx, "Selectables:", sectionOpts);
+                        (void)Selectable(ctx, "Option 1", selectable1);
+                        (void)Selectable(ctx, "Option 2", selectable2);
                         
-                        Spacing(20);
+                        Spacing(ctx, 20);
                         
-                        Label("InputNumber:", sectionOpts);
+                        Label(ctx, "InputNumber:", sectionOpts);
                         InputNumberOptions inOpts;
                         inOpts.style = Style().withWidth(150);
-                        (void)InputNumberInt("Amount", inputNumberValue, 0, 100, inOpts);
-                    EndVertical();
+                        (void)InputNumberInt(ctx, "Amount", inputNumberValue, 0, 100, inOpts);
+                    EndVertical(ctx);
                     
-                    BeginVertical(10);
-                        Label("CollapsingHeader:", sectionOpts);
-                        if (CollapsingHeader("Section 1", collapsingOpen1)) {
-                            Label("Content inside Section 1");
-                            Label("More content here...");
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "CollapsingHeader:", sectionOpts);
+                        if (CollapsingHeader(ctx, "Section 1", collapsingOpen1)) {
+                            Label(ctx, "Content inside Section 1");
+                            Label(ctx, "More content here...");
                         }
-                        if (CollapsingHeader("Section 2", collapsingOpen2)) {
-                            Label("Content inside Section 2");
-                            (void)Checkbox("Nested checkbox", checkValue2);
+                        if (CollapsingHeader(ctx, "Section 2", collapsingOpen2)) {
+                            Label(ctx, "Content inside Section 2");
+                            (void)Checkbox(ctx, "Nested checkbox", checkValue2);
                         }
                         
-                        Spacing(20);
+                        Spacing(ctx, 20);
                         
-                        Label("Separator:", sectionOpts);
-                        BeginVertical(5);
-                            Label("Above separator");
-                            Separator();
-                            Label("Below separator");
-                            SeparatorWithLabel("With Text");
-                            Label("After text separator");
-                        EndVertical();
-                    EndVertical();
-                EndHorizontal();
+                        Label(ctx, "Separator:", sectionOpts);
+                        BeginVertical(ctx, 5);
+                            Label(ctx, "Above separator");
+                            Separator(ctx);
+                            Label(ctx, "Below separator");
+                            SeparatorWithLabel(ctx, "With Text");
+                            Label(ctx, "After text separator");
+                        EndVertical(ctx);
+                    EndVertical(ctx);
+                EndHorizontal(ctx);
             }
             
             ctx.layout().endContainer();
@@ -522,14 +516,14 @@ int main() {
             Panel("TableDemoPanel", tablePanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
-                Label("TABLE WIDGET DEMO", titleOpts);
-                Spacing(10);
+                Label(ctx, "TABLE WIDGET DEMO", titleOpts);
+                Spacing(ctx, 10);
                 
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
                 
-                Label("Click column headers to sort. Resize columns by dragging dividers.", sectionOpts);
-                Spacing(10);
+                Label(ctx, "Click column headers to sort. Resize columns by dragging dividers.", sectionOpts);
+                Spacing(ctx, 10);
                 
                 // Table widget
                 TableOptions tableOpts;
@@ -538,38 +532,38 @@ int main() {
                 tableOpts.bordered = true;
                 tableOpts.resizableColumns = true;
                 
-                if (BeginTable("file_table", tableColumns, tableOpts)) {
-                    TableHeader(tableSortColumn, tableSortAsc);
+                if (BeginTable(ctx, "file_table", tableColumns, tableOpts)) {
+                    TableHeader(ctx, tableSortColumn, tableSortAsc);
                     
                     for (int i = 0; i < (int)tableData.size(); ++i) {
                         const auto& file = tableData[i];
                         bool isSelected = (i == tableSelectedRow);
                         
-                        if (TableRow({file.name, file.type, file.size, file.modified}, isSelected)) {
+                        if (TableRow(ctx, {file.name, file.type, file.size, file.modified}, isSelected)) {
                             tableSelectedRow = i;
                             statusText = "Selected: " + file.name;
                         }
                     }
                     
                     // Update sort state from table
-                    tableSortColumn = GetTableSortColumn();
-                    tableSortAsc = GetTableSortAscending();
+                    tableSortColumn = GetTableSortColumn(ctx);
+                    tableSortAsc = GetTableSortAscending(ctx);
                     
-                    EndTable();
+                    EndTable(ctx);
                 }
                 
-                Spacing(15);
+                Spacing(ctx, 15);
                 
                 // Selected row info
                 if (tableSelectedRow >= 0 && tableSelectedRow < (int)tableData.size()) {
                     const auto& file = tableData[tableSelectedRow];
-                    Label("Selected: " + file.name + " (" + file.size + ")", sectionOpts);
+                    Label(ctx, "Selected: " + file.name + " (" + file.size + ")", sectionOpts);
                 } else {
-                    Label("No row selected. Click a row to select it.", sectionOpts);
+                    Label(ctx, "No row selected. Click a row to select it.", sectionOpts);
                 }
                 
-                Spacing(10);
-                Label("Sort column: " + std::to_string(tableSortColumn) + 
+                Spacing(ctx, 10);
+                Label(ctx, "Sort column: " + std::to_string(tableSortColumn) + 
                       (tableSortAsc ? " (ascending)" : " (descending)"), sectionOpts);
             }
             
@@ -587,51 +581,51 @@ int main() {
             Panel("DragDropDemoPanel", ddPanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
-                Label("DRAG & DROP DEMO", titleOpts);
-                Spacing(10);
+                Label(ctx, "DRAG & DROP DEMO", titleOpts);
+                Spacing(ctx, 10);
                 
                 LabelOptions sectionOpts;
                 sectionOpts.color = theme.colors.textSecondary;
                 
                 // Section 1: System File Drop
-                Label("System File Drop", titleOpts);
-                Label("Drag files from your desktop/explorer onto this window:", sectionOpts);
-                Spacing(5);
+                Label(ctx, "System File Drop", titleOpts);
+                Label(ctx, "Drag files from your desktop/explorer onto this window:", sectionOpts);
+                Spacing(ctx, 5);
                 
                 // Display dropped files
                 if (droppedFilePaths.empty()) {
-                    Label("No files dropped yet. Try dragging files here!", sectionOpts);
+                    Label(ctx, "No files dropped yet. Try dragging files here!", sectionOpts);
                 } else {
                     for (size_t i = 0; i < droppedFilePaths.size() && i < 10; ++i) {
-                        Label(std::to_string(i + 1) + ". " + droppedFilePaths[i], sectionOpts);
+                        Label(ctx, std::to_string(i + 1) + ". " + droppedFilePaths[i], sectionOpts);
                     }
                     if (droppedFilePaths.size() > 10) {
-                        Label("... and " + std::to_string(droppedFilePaths.size() - 10) + " more", sectionOpts);
+                        Label(ctx, "... and " + std::to_string(droppedFilePaths.size() - 10) + " more", sectionOpts);
                     }
                     
-                    Spacing(5);
+                    Spacing(ctx, 5);
                     ButtonOptions clearBtnOpts;
                     clearBtnOpts.style = Style().withSize(120, 28);
-                    if (Button("Clear Files", clearBtnOpts)) {
+                    if (Button(ctx, "Clear Files", clearBtnOpts)) {
                         droppedFilePaths.clear();
                     }
                 }
                 
-                Spacing(20);
-                Separator();
-                Spacing(10);
+                Spacing(ctx, 20);
+                Separator(ctx);
+                Spacing(ctx, 10);
                 
                 // Section 2: Internal Drag and Drop
-                Label("Internal Drag & Drop", titleOpts);
-                Label("Drag items between lists to move them:", sectionOpts);
-                Spacing(10);
+                Label(ctx, "Internal Drag & Drop", titleOpts);
+                Label(ctx, "Drag items between lists to move them:", sectionOpts);
+                Spacing(ctx, 10);
                 
                 // Two lists side by side
                 Rect listsRect = ctx.layout().currentBounds();
                 float listWidth = (listsRect.width() - 20) / 2;
                 
                 // --- List 1 ---
-                Label("List 1 (Drop here)", sectionOpts);
+                Label(ctx, "List 1 (Drop here)", sectionOpts);
                 
                 PanelOptions list1Opts;
                 list1Opts.style = Style().withSize(listWidth, 180);
@@ -649,7 +643,7 @@ int main() {
                         SelectableOptions selOpts;
                         selOpts.spanWidth = true;
                         bool isSelected = (selectedDragItem1 == dragDropList1[i]);
-                        if (Selectable(dragDropList1[i], isSelected, selOpts)) {
+                        if (Selectable(ctx, dragDropList1[i], isSelected, selOpts)) {
                             selectedDragItem1 = dragDropList1[i];
                         }
                         
@@ -734,10 +728,10 @@ int main() {
                     }
                 }
                 
-                Spacing(15);
+                Spacing(ctx, 15);
                 
                 // --- List 2 ---
-                Label("List 2 (Drop here)", sectionOpts);
+                Label(ctx, "List 2 (Drop here)", sectionOpts);
                 
                 PanelOptions list2Opts;
                 list2Opts.style = Style().withSize(listWidth, 180);
@@ -755,7 +749,7 @@ int main() {
                         SelectableOptions selOpts;
                         selOpts.spanWidth = true;
                         bool isSelected = (selectedDragItem2 == dragDropList2[i]);
-                        if (Selectable(dragDropList2[i], isSelected, selOpts)) {
+                        if (Selectable(ctx, dragDropList2[i], isSelected, selOpts)) {
                             selectedDragItem2 = dragDropList2[i];
                         }
                         

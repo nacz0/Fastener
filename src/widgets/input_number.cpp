@@ -56,7 +56,7 @@ bool InputNumber(Context& ctx, std::string_view label, float& value, float minVa
     float totalWidth = labelWidth + inputWidth;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, totalWidth, height);
     
     // Calculate sub-regions
     Rect labelRect(bounds.x(), bounds.y(), labelWidth, height);
@@ -76,8 +76,8 @@ bool InputNumber(Context& ctx, std::string_view label, float& value, float minVa
     bool changed = false;
     
     // Handle minus button
-    WidgetInteraction minusInteraction = handleWidgetInteraction(minusId, minusButtonRect, true);
-    WidgetState minusState = getWidgetState(minusId);
+    WidgetInteraction minusInteraction = handleWidgetInteraction(ctx, minusId, minusButtonRect, true);
+    WidgetState minusState = getWidgetState(ctx, minusId);
     minusState.disabled = options.disabled || value <= minVal;
     
     if (minusInteraction.clicked && !minusState.disabled) {
@@ -86,8 +86,8 @@ bool InputNumber(Context& ctx, std::string_view label, float& value, float minVa
     }
     
     // Handle plus button
-    WidgetInteraction plusInteraction = handleWidgetInteraction(plusId, plusButtonRect, true);
-    WidgetState plusState = getWidgetState(plusId);
+    WidgetInteraction plusInteraction = handleWidgetInteraction(ctx, plusId, plusButtonRect, true);
+    WidgetState plusState = getWidgetState(ctx, plusId);
     plusState.disabled = options.disabled || value >= maxVal;
     
     if (plusInteraction.clicked && !plusState.disabled) {
@@ -161,15 +161,7 @@ bool InputNumber(Context& ctx, std::string_view label, float& value, float minVa
     return changed;
 }
 
-/**
- * @brief Legacy wrapper using context stack.
- */
-bool InputNumber(std::string_view label, float& value, float minVal, float maxVal,
-                 const InputNumberOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return InputNumber(*wc.ctx, label, value, minVal, maxVal, options);
-}
+
 
 /**
  * @brief Integer variant of InputNumber.
@@ -194,14 +186,6 @@ bool InputNumberInt(Context& ctx, std::string_view label, int& value, int minVal
     return changed;
 }
 
-/**
- * @brief Legacy wrapper using context stack.
- */
-bool InputNumberInt(std::string_view label, int& value, int minVal, int maxVal,
-                    const InputNumberOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return InputNumberInt(*wc.ctx, label, value, minVal, maxVal, options);
-}
+
 
 } // namespace fst

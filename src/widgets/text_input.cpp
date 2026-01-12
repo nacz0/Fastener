@@ -35,11 +35,11 @@ bool TextInput(Context& ctx, std::string_view id, std::string& value, const Text
     float height = options.style.height > 0 ? options.style.height : theme.metrics.inputHeight;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(widgetId, bounds, true);
-    WidgetState state = getWidgetState(widgetId);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, widgetId, bounds, true);
+    WidgetState state = getWidgetState(ctx, widgetId);
     
     bool changed = false;
     
@@ -140,22 +140,7 @@ bool TextInputWithLabel(Context& ctx, std::string_view label, std::string& value
     return TextInput(ctx, label, value, options);
 }
 
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
 
-bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return TextInput(*wc.ctx, id, value, options);
-}
-
-bool TextInputWithLabel(std::string_view label, std::string& value, 
-                        const TextInputOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return TextInputWithLabel(*wc.ctx, label, value, options);
-}
 
 } // namespace fst
 

@@ -85,7 +85,7 @@ bool ColorPicker(Context& ctx, const char* label, Color& color, const ColorPicke
     Rect svRect = Allocate(ctx, svSize, svSize);
     WidgetId svId = ctx.makeId("sv_square");
 
-    WidgetInteraction svInteract = handleWidgetInteraction(svId, svRect);
+    WidgetInteraction svInteract = handleWidgetInteraction(ctx, svId, svRect);
     
     if (svInteract.dragging) {
         Vec2 mousePos = ctx.input().mousePos();
@@ -117,7 +117,7 @@ bool ColorPicker(Context& ctx, const char* label, Color& color, const ColorPicke
     // 2. Hue Bar
     Rect hueRect = Allocate(ctx, hueBarWidth, svSize);
     WidgetId hueId = ctx.makeId("hue_bar");
-    WidgetInteraction hueInteract = handleWidgetInteraction(hueId, hueRect);
+    WidgetInteraction hueInteract = handleWidgetInteraction(ctx, hueId, hueRect);
 
     if (hueInteract.dragging) {
         Vec2 mousePos = ctx.input().mousePos();
@@ -183,20 +183,5 @@ bool ColorPicker(Context& ctx, const char* label, Color& color, const ColorPicke
 
     return changed;
 }
-
-bool ColorPicker(const char* label, Color& color, const ColorPickerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return ColorPicker(*wc.ctx, label, color, options);
-}
-
-bool ColorPicker(Context& ctx, const std::string& label, Color& color, const ColorPickerOptions& options) {
-    return ColorPicker(ctx, label.c_str(), color, options);
-}
-
-bool ColorPicker(const std::string& label, Color& color, const ColorPickerOptions& options) {
-    return ColorPicker(label.c_str(), color, options);
-}
-
 
 } // namespace fst

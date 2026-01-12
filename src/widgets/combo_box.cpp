@@ -64,13 +64,13 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
     }
 
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, labelWidth + width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, labelWidth + width, height);
 
     Rect boxBounds(bounds.x() + labelWidth, bounds.y(), width, height);
 
     // Handle main button interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, boxBounds, true);
-    WidgetState widgetState = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, boxBounds, true);
+    WidgetState widgetState = getWidgetState(ctx, id);
     widgetState.disabled = options.disabled;
 
     bool changed = false;
@@ -232,16 +232,6 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
     return changed;
 }
 
-//=============================================================================
-// Backward-compatible wrapper
-//=============================================================================
 
-bool ComboBox(std::string_view label, int& selectedIndex,
-              const std::vector<std::string>& items,
-              const ComboBoxOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return ComboBox(*wc.ctx, label, selectedIndex, items, options);
-}
 
 } // namespace fst

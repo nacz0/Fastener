@@ -38,15 +38,15 @@ bool Selectable(Context& ctx, std::string_view label, bool& selected, const Sele
         : (options.spanWidth ? 0.0f : textWidth + theme.metrics.paddingSmall * 2);
 
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     if (options.spanWidth && bounds.width() < textWidth + theme.metrics.paddingSmall * 2) {
         bounds.size.x = textWidth + theme.metrics.paddingSmall * 2;
     }
 
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
 
     bool clicked = false;
@@ -102,10 +102,10 @@ bool SelectableWithIcon(Context& ctx, std::string_view icon, std::string_view la
         ? options.style.width 
         : (options.spanWidth ? 0.0f : totalWidth + theme.metrics.paddingSmall * 2);
 
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
 
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
 
     bool clicked = false;
@@ -136,23 +136,6 @@ bool SelectableWithIcon(Context& ctx, std::string_view icon, std::string_view la
     }
 
     return clicked;
-}
-
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
-
-bool Selectable(std::string_view label, bool& selected, const SelectableOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return Selectable(*wc.ctx, label, selected, options);
-}
-
-bool SelectableWithIcon(std::string_view icon, std::string_view label, 
-                        bool& selected, const SelectableOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return SelectableWithIcon(*wc.ctx, icon, label, selected, options);
 }
 
 } // namespace fst

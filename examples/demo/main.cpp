@@ -268,12 +268,15 @@ int main() {
     auto renderFrame = [&]() {
         ctx.beginFrame(window);
         
+
+        
         if (!layoutInitialized) {
             initDockLayout();
         }
 
         DrawList& dl = ctx.drawList();
         const Theme& theme = ctx.theme();
+
         
         dl.addRectFilled(
             Rect(0, 0, static_cast<float>(window.width()), static_cast<float>(window.height())),
@@ -381,10 +384,13 @@ int main() {
 
         // Editor Placeholder
         DockableWindow("Editor") {
+
+            
             Rect contentRect = ctx.layout().currentBounds();
             dl.addRectFilled(contentRect, theme.colors.panelBackground);
             
             TabControlOptions tabOpts;
+
             tabOpts.tabHeight = 32.0f;
             tabOpts.showCloseButtons = true;
             

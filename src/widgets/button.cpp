@@ -93,10 +93,13 @@ bool Button(Context& ctx, std::string_view label, const ButtonOptions& options) 
 //=============================================================================
 
 bool Button(std::string_view label, const ButtonOptions& options) {
+
+    
     auto wc = getWidgetContext();
     if (!wc.valid()) return false;
     return Button(*wc.ctx, label, options);
 }
+
 
 bool ButtonPrimary(std::string_view label) {
     ButtonOptions options;

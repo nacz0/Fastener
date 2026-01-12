@@ -386,7 +386,10 @@ void TextEditor::handleMouse(Context& ctx, const Rect& bounds, float rowHeight, 
     InputState& input = ctx.input();
     Vec2 mp = input.mousePos();
     
+
+    
     if (input.isMousePressed(MouseButton::Left) && bounds.contains(mp)) {
+
         m_isSelecting = true;
         m_cursor = screenToTextPos(ctx, mp, bounds, rowHeight, charWidth, gutterWidth);
         if (!input.modifiers().shift) {

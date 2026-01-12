@@ -273,6 +273,8 @@ DockableWindowScope::DockableWindowScope(const std::string& id,
 }
 
 
+
+
 DockableWindowScope::~DockableWindowScope() {
     if (m_visible) {
         EndDockableWindow();

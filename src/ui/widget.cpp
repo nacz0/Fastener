@@ -103,10 +103,15 @@ WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool 
     bool occluded = ctx->isOccluded(mousePos);
     bool consumed = ctx->input().isMouseConsumed();
     
+
+
+
+    
     if (isHovered && !clipped && !captured && !occluded && !consumed) {
         ctx->setHoveredWidget(id);
         result.hovered = true;
     }
+
     
     // Handle mouse clicks
     if (isHovered && !clipped && !captured && !occluded && !consumed && input.isMousePressed(MouseButton::Left)) {

@@ -119,9 +119,12 @@ bool TextArea(Context& ctx, const char* id, std::string& value, const TextAreaOp
     // Allocate bounds
     Rect bounds = allocateWidgetBounds(options.style, width, height);
 
+
+
     // Handle interaction
     WidgetInteraction interaction = handleWidgetInteraction(widgetId, bounds, true);
     WidgetState widgetState = getWidgetState(widgetId);
+
 
     bool changed = false;
 

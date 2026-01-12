@@ -40,15 +40,26 @@ while(window.isOpen()) {
 | **Label** | `void Label(text, options={})` | Includes `LabelHeading`, `LabelSecondary` |
 | **TextInput** | `bool TextInput(id, string& val, options={})` | Returns true when changed |
 | **Checkbox** | `bool Checkbox(label, bool& val, options={})` | Returns true when toggled |
+| **RadioButton** | `bool RadioButton(label, bool selected, opts={})` | For option groups |
 | **Slider** | `bool Slider(label, float& val, min, max, opts)` | `SliderInt` for integers |
+| **InputNumber** | `bool InputNumber(id, float& val, opts={})` | Spinbox-style numeric input |
 | **Panel** | `Panel(id, options)` (Scope macro) | Container: `if(Panel("id")){...}` |
 | **TreeView** | `tree.render(id, bounds, options, events)` | Uses `fst::TreeNode` structure |
 | **TabControl**| `tabs.render(id, bounds, options, events)` | Returns `fst::Rect` for content area |
 | **Splitter** | `bool Splitter(id, float& pos, bounds, opts)` | `pos` is X (Vert) or Y (Horiz) |
-| **ComboBox** | `bool ComboBox(label, int& idx, vector<string>)`| |
+| **ComboBox** | `bool ComboBox(label, int& idx, vector<string>)`| Dropdown selection |
+| **Listbox** | `bool Listbox(id, int& idx, vector<string>, bounds)` | Scrollable list |
+| **Selectable** | `bool Selectable(label, bool selected, opts={})` | List item with selection |
 | **ProgressBar**| `void ProgressBar(val, options)` | `val` is 0.0 to 1.0 |
+| **Spinner** | `void Spinner(options={})` | Animated loading indicator |
 | **Tooltip** | `void Tooltip(text, options={})` | Call AFTER the widget to attach |
+| **ColorPicker** | `bool ColorPicker(id, Color& col, opts={})` | Interactive color selection |
+| **Table** | `table.render(id, bounds, opts)` | Multi-column data display |
+| **TextArea** | `bool TextArea(id, string& text, bounds, opts)` | Multi-line text input |
 | **TextEditor** | `editor.render(bounds, options)` | Multi-line code editor |
+| **Image** | `void Image(Texture*, size, opts={})` | Display texture/image |
+| **Separator** | `void Separator(options={})` | Horizontal/vertical divider |
+| **CollapsingHeader** | `bool CollapsingHeader(label, bool& open, opts)` | Collapsible section |
 | **Menu** | `menuBar.render(bounds)` | Popups: `menuBar.renderPopups()` at frame end |
 | **Layout** | `BeginHorizontal()`, `BeginVertical()`, `Spacing(v)`, `Padding(v)` | Automatic positioning |
 
@@ -88,6 +99,34 @@ fst::BeginVertical();
         fst::Button("Cancel");
     fst::EndHorizontal();
 fst::EndVertical();
+```
+
+### Drag and Drop
+```cpp
+// SOURCE: After rendering the draggable widget
+fst::Button("Draggable Item");
+if (fst::BeginDragDropSource()) {
+    int itemData = 42;
+    fst::SetDragDropPayload("MY_TYPE", &itemData, sizeof(int));
+    fst::SetDragDropDisplayText("Item 42");
+    fst::EndDragDropSource();
+}
+
+// TARGET: After rendering the drop target widget
+fst::Panel("drop_area");
+if (fst::BeginDragDropTarget()) {
+    if (const auto* payload = fst::AcceptDragDropPayload("MY_TYPE")) {
+        int droppedData = payload->getData<int>();
+        // Handle drop
+    }
+    fst::EndDragDropTarget();
+}
+
+// Cross-window drag
+if (fst::BeginDragDropSource(fst::DragDropFlags_CrossWindow)) {
+    // Setup payload...
+    fst::EndDragDropSource();
+}
 ```
 
 ## ⚠️ Common Mistakes to Avoid

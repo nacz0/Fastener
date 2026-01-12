@@ -154,12 +154,14 @@ fst::Rect contentArea = tabs.render("tabs", bounds, {}, events);
 
 - [x] Core rendering (OpenGL 3.3)
 - [x] Font rendering (stb_truetype)
-- [x] Basic widgets (Button, Label, TextInput, etc.)
+- [x] Basic widgets (Button, Label, TextInput, Checkbox, Slider, etc.)
+- [x] Advanced widgets (RadioButton, ColorPicker, Spinner, Table, etc.)
 - [x] TreeView
 - [x] TabControl
+- [x] Drag and Drop system (including cross-window)
+- [x] Docking system (DockSpace, DockableWindow)
 - [ ] TextEditor (syntax highlighting)
-- [ ] Menu & ContextMenu
-- [ ] Docking system
+- [ ] Menu & ContextMenu (in progress)
 - [ ] Cross-platform (Linux, macOS)
 
 ## 📚 Documentation

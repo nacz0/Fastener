@@ -19,6 +19,7 @@ class Theme;
 class Font;
 class LayoutContext;
 class DockContext;
+class Profiler;
 
 //=============================================================================
 // Context - Main application context
@@ -36,6 +37,9 @@ public:
     void beginFrame(IPlatformWindow& window);
     void endFrame();
     
+    // Profiling
+    Profiler& profiler();
+
     // Theme
     void setTheme(const Theme& theme);
     Theme& theme();

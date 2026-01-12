@@ -141,6 +141,10 @@ int main() {
     std::string selectedDragItem1;
     std::string selectedDragItem2;
 
+    // Profiler state
+    bool showProfilerOverlay = true;
+    bool showProfilerWindow = false;
+
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
         if (it == editors.end()) {
@@ -229,6 +233,11 @@ int main() {
         MenuItem("about", "About Fastener", [&]() { 
             statusText = "Fastener v0.1.0 - High-performance C++ GUI"; 
         })
+    });
+
+    menuBar.addMenu("Profiler", {
+        MenuItem::checkbox("showOverlay", "Show Overlay", &showProfilerOverlay),
+        MenuItem::checkbox("showWindow", "Show Detailed Window", &showProfilerWindow)
     });
     
     // Initialize default dock layout
@@ -838,11 +847,15 @@ int main() {
         }
 
         // Status Bar
-        Rect statusRect(0, windowH - statusBarHeight, windowW, statusBarHeight);
-        dl.addRectFilled(statusRect, theme.colors.primary);
+        Rect statusBarRect(0, windowH - statusBarHeight, windowW, statusBarHeight);
+        dl.addRectFilled(statusBarRect, theme.colors.primary);
         if (ctx.font()) {
-            dl.addText(ctx.font(), Vec2(10, statusRect.y() + 4), statusText, theme.colors.primaryText);
+            dl.addText(ctx.font(), Vec2(statusBarRect.x() + 10, statusBarRect.y() + 4), statusText, theme.colors.primaryText);
         }
+
+        // Render Profiler Widgets
+        ShowProfilerOverlay(&showProfilerOverlay);
+        ShowProfilerWindow("Performance Profiler", &showProfilerWindow);
         
         menuBar.renderPopups(ctx);
         RenderContextMenu(ctx);

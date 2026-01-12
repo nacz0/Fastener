@@ -60,6 +60,10 @@
 // Drag and Drop
 #include "fastener/ui/drag_drop.h"
 
+// Profiling
+#include "fastener/core/profiler.h"
+#include "fastener/widgets/profiler_widget.h"
+
 namespace fst {
     // Version info
     constexpr int VERSION_MAJOR = 0;

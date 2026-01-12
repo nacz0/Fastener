@@ -9,6 +9,7 @@
 #include "fastener/ui/layout.h"
 #include "fastener/ui/dock_context.h"
 #include "fastener/ui/drag_drop.h"
+#include "fastener/core/profiler.h"
 #include <vector>
 #include <chrono>
 #include <algorithm>
@@ -25,6 +26,7 @@ struct Context::Impl {
     DrawList drawList;
     LayoutContext layout;
     DockContext dockContext;
+    Profiler profiler;
     
     // Theme
     Theme theme = Theme::dark();
@@ -102,6 +104,10 @@ void Context::beginFrame(IPlatformWindow& window) {
     auto total = std::chrono::duration_cast<std::chrono::microseconds>(now - m_impl->startTime);
     m_impl->totalTime = total.count() / 1000000.0f;
     
+    // Profiler
+    m_impl->profiler.beginFrame();
+    m_impl->profiler.beginSection("Frame");
+
     // Clear draw list
     m_impl->inputState->setFrameTime(m_impl->totalTime);
     m_impl->drawList.clear();
@@ -135,9 +141,14 @@ void Context::beginFrame(IPlatformWindow& window) {
     
     // Begin docking frame
     m_impl->dockContext.beginFrame();
+
+    m_impl->profiler.beginSection("UI");
 }
 
 void Context::endFrame() {
+    m_impl->profiler.endSection(); // UI
+
+    m_impl->profiler.beginSection("Internal");
     // End docking frame
     m_impl->dockContext.endFrame();
     
@@ -163,6 +174,10 @@ void Context::endFrame() {
         m_impl->renderer.endFrame();
     }
     
+    m_impl->profiler.endSection(); // Internal
+    m_impl->profiler.endSection(); // Frame
+    m_impl->profiler.endFrame();
+
     popContext();
 }
 
@@ -228,6 +243,10 @@ LayoutContext& Context::layout() {
 
 DockContext& Context::docking() {
     return m_impl->dockContext;
+}
+
+Profiler& Context::profiler() {
+    return m_impl->profiler;
 }
 
 float Context::deltaTime() const {

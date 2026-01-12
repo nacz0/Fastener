@@ -42,7 +42,7 @@ void ProgressBar(Context& ctx, std::string_view label, float progress, const Pro
     }
 
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, labelWidth + width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, labelWidth + width, height);
 
     // Draw label
     if (font && !label.empty()) {
@@ -108,22 +108,6 @@ void ProgressBar(Context& ctx, std::string_view label, float progress, const Pro
         );
         dl.addText(font, textPos, text, theme.colors.text);
     }
-}
-
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
-
-void ProgressBar(float progress, const ProgressBarOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    ProgressBar(*wc.ctx, progress, options);
-}
-
-void ProgressBar(std::string_view label, float progress, const ProgressBarOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    ProgressBar(*wc.ctx, label, progress, options);
 }
 
 } // namespace fst

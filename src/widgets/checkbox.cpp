@@ -35,11 +35,11 @@ bool Checkbox(Context& ctx, std::string_view label, bool& checked, const Checkbo
     float height = std::max(boxSize, textSize.y);
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, totalWidth, height);
     
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
     
     // Toggle on click
@@ -108,15 +108,7 @@ bool Checkbox(Context& ctx, std::string_view label, bool& checked, const Checkbo
     return changed;
 }
 
-//=============================================================================
-// Backward-compatible wrapper
-//=============================================================================
 
-bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return Checkbox(*wc.ctx, label, checked, options);
-}
 
 } // namespace fst
 

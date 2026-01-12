@@ -37,7 +37,7 @@ void Image(Context& ctx, Texture* texture, Vec2 size, const ImageOptions& option
     float height = options.style.height > 0 ? options.style.height : size.y;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     // Draw image with optional tint
     if (texture) {
@@ -48,22 +48,6 @@ void Image(Context& ctx, Texture* texture, Vec2 size, const ImageOptions& option
         const Theme& theme = *wc.theme;
         dl.addRectFilled(bounds, theme.colors.secondary, options.borderRadius);
     }
-}
-
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
-
-void Image(Texture* texture, const ImageOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Image(*wc.ctx, texture, options);
-}
-
-void Image(Texture* texture, Vec2 size, const ImageOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Image(*wc.ctx, texture, size, options);
 }
 
 } // namespace fst

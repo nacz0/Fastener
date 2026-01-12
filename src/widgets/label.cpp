@@ -36,37 +36,26 @@ void Label(Context& ctx, std::string_view text, const LabelOptions& options) {
     float height = options.style.height > 0 ? options.style.height : textSize.y;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     // Draw text
     dl.addText(font, bounds.pos, text, textColor);
 }
 
-//=============================================================================
-// Backward-compatible wrapper
-//=============================================================================
 
-void Label(std::string_view text, const LabelOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Label(*wc.ctx, text, options);
-}
 
 //=============================================================================
 // Label Variants
 //=============================================================================
 
-void LabelSecondary(std::string_view text) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    
+void LabelSecondary(Context& ctx, std::string_view text) {
     LabelOptions options;
-    options.color = wc.theme->colors.textSecondary;
-    Label(text, options);
+    options.color = ctx.theme().colors.textSecondary;
+    Label(ctx, text, options);
 }
 
-void LabelHeading(std::string_view text) {
-    Label(text);
+void LabelHeading(Context& ctx, std::string_view text) {
+    Label(ctx, text);
 }
 
 } // namespace fst

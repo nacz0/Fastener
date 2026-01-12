@@ -52,7 +52,7 @@ bool Slider(Context& ctx, std::string_view label, float& value, float minVal, fl
     float totalWidth = layout_utils::totalWidthWithLabel(sliderWidth, labelWidth, valueWidth, 0);
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, totalWidth, height);
     
     // Calculate track bounds
     Rect trackBounds(
@@ -63,8 +63,8 @@ bool Slider(Context& ctx, std::string_view label, float& value, float minVal, fl
     );
     
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
     
     bool changed = false;
@@ -168,23 +168,7 @@ bool SliderInt(Context& ctx, std::string_view label, int& value, int min, int ma
     return changed;
 }
 
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
 
-bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
-            const SliderOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return Slider(*wc.ctx, label, value, minVal, maxVal, options);
-}
-
-bool SliderInt(std::string_view label, int& value, int min, int max,
-               const SliderOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return SliderInt(*wc.ctx, label, value, min, max, options);
-}
 
 } // namespace fst
 

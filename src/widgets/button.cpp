@@ -35,11 +35,11 @@ bool Button(Context& ctx, std::string_view label, const ButtonOptions& options) 
     float height = options.style.height > 0 ? options.style.height : theme.metrics.buttonHeight;
     
     // Allocate bounds from layout or use explicit position
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
     // Handle mouse/keyboard interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
     
     // Determine colors based on variant and state
@@ -88,23 +88,13 @@ bool Button(Context& ctx, std::string_view label, const ButtonOptions& options) 
     return interaction.clicked && !options.disabled;
 }
 
-//=============================================================================
-// Backward-compatible wrapper (uses context stack)
-//=============================================================================
-
-bool Button(std::string_view label, const ButtonOptions& options) {
-
-    
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return Button(*wc.ctx, label, options);
-}
 
 
-bool ButtonPrimary(std::string_view label) {
+
+bool ButtonPrimary(Context& ctx, std::string_view label) {
     ButtonOptions options;
     options.primary = true;
-    return Button(label, options);
+    return Button(ctx, label, options);
 }
 
 } // namespace fst

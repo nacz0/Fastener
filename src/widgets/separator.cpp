@@ -34,7 +34,7 @@ void Separator(Context& ctx, const SeparatorOptions& options) {
     float totalHeight = options.thickness + theme.metrics.paddingSmall * 2;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, totalHeight);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, totalHeight);
     
     // If width was 0, use full available width from bounds
     if (width <= 0) {
@@ -63,7 +63,7 @@ void SeparatorWithLabel(Context& ctx, std::string_view label, const SeparatorOpt
     }
 
     // Allocate bounds - width 0 means fill width
-    Rect bounds = allocateWidgetBounds(options.style, 0.0f, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, 0.0f, height);
 
     float centerY = bounds.center().y;
     Color color = options.color.a > 0 ? options.color : theme.colors.border;
@@ -92,21 +92,7 @@ void SeparatorWithLabel(Context& ctx, std::string_view label, const SeparatorOpt
     }
 }
 
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
 
-void Separator(const SeparatorOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Separator(*wc.ctx, options);
-}
-
-void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    SeparatorWithLabel(*wc.ctx, label, options);
-}
 
 } // namespace fst
 

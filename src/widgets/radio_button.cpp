@@ -36,11 +36,11 @@ bool RadioButton(Context& ctx, std::string_view label, int& selectedIndex, int i
     float height = std::max(circleSize, textSize.y);
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, totalWidth, height);
     
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(id, bounds, true);
-    WidgetState state = getWidgetState(id);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, id, bounds, true);
+    WidgetState state = getWidgetState(ctx, id);
     state.disabled = options.disabled;
     
     // Check if this radio button is selected
@@ -104,17 +104,6 @@ bool RadioButton(Context& ctx, std::string_view label, int& selectedIndex, int i
     }
     
     return changed;
-}
-
-//=============================================================================
-// Backward-compatible wrapper
-//=============================================================================
-
-bool RadioButton(std::string_view label, int& selectedIndex, int index,
-                 const RadioButtonOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return RadioButton(*wc.ctx, label, selectedIndex, index, options);
 }
 
 } // namespace fst

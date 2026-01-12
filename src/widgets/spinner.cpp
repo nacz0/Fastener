@@ -36,7 +36,7 @@ void Spinner(Context& ctx, const std::string& id, const SpinnerOptions& options)
     float thickness = options.thickness;
     
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, size, size);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, size, size);
     Vec2 center = bounds.center();
     float radius = (size - thickness) * 0.5f;
 
@@ -81,7 +81,7 @@ void SpinnerWithLabel(Context& ctx, const std::string& id, const std::string& la
     float totalWidth = size + theme.metrics.paddingSmall + textWidth;
     float height = std::max(size, font ? font->lineHeight() : size);
 
-    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, totalWidth, height);
 
     Vec2 center(bounds.x() + size * 0.5f, bounds.center().y);
     float radius = (size - options.thickness) * 0.5f;
@@ -123,7 +123,7 @@ void LoadingDots(Context& ctx, const std::string& id, const SpinnerOptions& opti
     float totalWidth = dotSize * 3 + spacing * 2;
     float height = options.size;
 
-    Rect bounds = allocateWidgetBounds(options.style, totalWidth, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, totalWidth, height);
     
     float time = ctx.time() * options.speed * 3.0f;
     Color baseColor = options.color.a > 0 ? options.color : theme.colors.primary;
@@ -140,35 +140,6 @@ void LoadingDots(Context& ctx, const std::string& id, const SpinnerOptions& opti
         Color dotColor = baseColor.withAlpha((uint8_t)(baseColor.a * (0.4f + 0.6f * scale)));
         dl.addCircleFilled(Vec2(x, y), r, dotColor);
     }
-}
-
-//=============================================================================
-// Backward-compatible wrappers
-//=============================================================================
-
-void Spinner(const char* id, const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Spinner(*wc.ctx, std::string(id), options);
-}
-
-void Spinner(const std::string& id, const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    Spinner(*wc.ctx, id, options);
-}
-
-void SpinnerWithLabel(const std::string& id, const std::string& label, 
-                      const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    SpinnerWithLabel(*wc.ctx, id, label, options);
-}
-
-void LoadingDots(const std::string& id, const SpinnerOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    LoadingDots(*wc.ctx, id, options);
 }
 
 } // namespace fst

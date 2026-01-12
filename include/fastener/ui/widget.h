@@ -38,15 +38,15 @@ struct WidgetInteraction {
 //=============================================================================
 
 // Get widget state for a given ID
-WidgetState getWidgetState(WidgetId id);
+WidgetState getWidgetState(Context& ctx, WidgetId id);
 
 // Handle basic widget interaction (hover, click, focus)
-WidgetInteraction handleWidgetInteraction(WidgetId id, const Rect& bounds, bool focusable = true);
+WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable = true);
 
 // Draw common widget background
-void drawWidgetBackground(const Rect& bounds, const Style& style, const WidgetState& state);
+void drawWidgetBackground(Context& ctx, const Rect& bounds, const Style& style, const WidgetState& state);
 
 // Draw common widget border
-void drawWidgetBorder(const Rect& bounds, const Style& style, const WidgetState& state);
+void drawWidgetBorder(Context& ctx, const Rect& bounds, const Style& style, const WidgetState& state);
 
 } // namespace fst

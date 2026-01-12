@@ -42,13 +42,6 @@ struct WidgetContext {
 };
 
 /**
- * @brief Get the current widget context using the context stack.
- * @return WidgetContext struct; check valid() before using.
- * @deprecated Prefer getWidgetContext(Context&) for explicit DI.
- */
-WidgetContext getWidgetContext();
-
-/**
  * @brief Get widget context from explicit Context reference.
  * @param ctx Context to use for widget rendering.
  * @return WidgetContext struct with all common dependencies.
@@ -66,7 +59,7 @@ WidgetContext getWidgetContext(Context& ctx);
  * @param height Calculated/default height
  * @return Allocated bounds rectangle
  */
-Rect allocateWidgetBounds(const Style& style, float width, float height);
+Rect allocateWidgetBounds(Context& ctx, const Style& style, float width, float height);
 
 //=============================================================================
 // State Color Helpers

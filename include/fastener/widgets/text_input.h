@@ -43,10 +43,5 @@ struct TextInputOptions {
 [[nodiscard]] bool TextInputWithLabel(Context& ctx, std::string_view label, std::string& value, 
                         const TextInputOptions& options = {});
 
-/// Uses context stack
-[[nodiscard]] bool TextInput(std::string_view id, std::string& value, const TextInputOptions& options = {});
-[[nodiscard]] bool TextInputWithLabel(std::string_view label, std::string& value, 
-                        const TextInputOptions& options = {});
-
 } // namespace fst
 

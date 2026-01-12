@@ -26,12 +26,5 @@ struct SelectableOptions {
 [[nodiscard]] bool SelectableWithIcon(Context& ctx, std::string_view icon, std::string_view label, 
                         bool& selected, const SelectableOptions& options = {});
 
-/// Uses context stack
-[[nodiscard]] bool Selectable(std::string_view label, bool& selected, 
-                const SelectableOptions& options = {});
-
-[[nodiscard]] bool SelectableWithIcon(std::string_view icon, std::string_view label, 
-                        bool& selected, const SelectableOptions& options = {});
-
 } // namespace fst
 

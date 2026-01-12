@@ -184,12 +184,6 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
     dl.popClipRect();
 }
 
-void TextEditor::render(const Rect& bounds, const TextEditorOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    render(*wc.ctx, bounds, options);
-}
-
 
 void TextEditor::undo() {
     if (m_undoStack.empty()) return;

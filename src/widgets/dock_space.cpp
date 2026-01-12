@@ -56,24 +56,11 @@ DockNode::Id DockSpace(Context& ctx, const std::string& id, const Rect& bounds,
     return nodeId;
 }
 
-DockNode::Id DockSpace(const std::string& id, const Rect& bounds, 
-                       const DockSpaceOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return DockNode::INVALID_ID;
-    return DockSpace(*wc.ctx, id, bounds, options);
-}
-
 DockNode::Id DockSpaceOverViewport(Context& ctx, const DockSpaceOptions& options) {
     auto& window = ctx.window();
     Rect viewportBounds(0, 0, window.width(), window.height());
     
     return DockSpace(ctx, "##MainDockSpace", viewportBounds, options);
-}
-
-DockNode::Id DockSpaceOverViewport(const DockSpaceOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return DockNode::INVALID_ID;
-    return DockSpaceOverViewport(*wc.ctx, options);
 }
 
 
@@ -116,11 +103,6 @@ void RenderDockSplitters(Context& ctx, DockNode* rootNode) {
         
         HandleDockSplitter(ctx, node, splitterRect, isVertical);
     });
-}
-
-void RenderDockSplitters(DockNode* rootNode) {
-    auto wc = getWidgetContext();
-    if (wc.valid()) RenderDockSplitters(*wc.ctx, rootNode);
 }
 
 
@@ -180,12 +162,6 @@ bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, 
     dl.addRectFilled(splitterRect, splitterColor);
     
     return isDragging;
-}
-
-bool HandleDockSplitter(DockNode* node, const Rect& splitterRect, bool isVertical) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return HandleDockSplitter(*wc.ctx, node, splitterRect, isVertical);
 }
 
 
@@ -307,11 +283,5 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
         1.0f
     );
 }
-
-void RenderDockTabBar(DockNode* node) {
-    auto wc = getWidgetContext();
-    if (wc.valid()) RenderDockTabBar(*wc.ctx, node);
-}
-
 
 } // namespace fst

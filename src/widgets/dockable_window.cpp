@@ -216,11 +216,7 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
     return true;
 }
 
-bool BeginDockableWindow(const std::string& id, const DockableWindowOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return BeginDockableWindow(*wc.ctx, id, options);
-}
+/* removed legacy BeginDockableWindow */
 
 
 //=============================================================================
@@ -251,11 +247,6 @@ void EndDockableWindow(Context& ctx) {
     s_windowStack.pop_back();
 }
 
-void EndDockableWindow() {
-    auto wc = getWidgetContext();
-    if (wc.valid()) EndDockableWindow(*wc.ctx);
-}
-
 
 //=============================================================================
 // DockableWindowScope
@@ -263,21 +254,15 @@ void EndDockableWindow() {
 
 DockableWindowScope::DockableWindowScope(Context& ctx, const std::string& id, 
                                          const DockableWindowOptions& options)
-    : m_visible(BeginDockableWindow(ctx, id, options)) {
-}
-
-DockableWindowScope::DockableWindowScope(const std::string& id, 
-                                         const DockableWindowOptions& options) {
-    auto wc = getWidgetContext();
-    m_visible = wc.valid() ? BeginDockableWindow(*wc.ctx, id, options) : false;
+    : m_ctx(&ctx), m_visible(BeginDockableWindow(ctx, id, options)) {
 }
 
 
 
 
 DockableWindowScope::~DockableWindowScope() {
-    if (m_visible) {
-        EndDockableWindow();
+    if (m_visible && m_ctx) {
+        EndDockableWindow(*m_ctx);
     }
 }
 

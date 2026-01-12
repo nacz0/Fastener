@@ -124,9 +124,6 @@ public:
     void render(Context& ctx, std::string_view id, const Rect& bounds, 
                 const TreeViewOptions& options = {},
                 const TreeViewEvents& events = {});
-    void render(std::string_view id, const Rect& bounds, 
-                const TreeViewOptions& options = {},
-                const TreeViewEvents& events = {});
 
     
 private:
@@ -157,9 +154,6 @@ private:
 
 // Convenience function for simple tree rendering
 void TreeViewSimple(Context& ctx, std::string_view id, TreeNode* root, const Rect& bounds,
-                    std::function<void(TreeNode*)> onSelect = nullptr,
-                    const TreeViewOptions& options = {});
-void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
                     std::function<void(TreeNode*)> onSelect = nullptr,
                     const TreeViewOptions& options = {});
 

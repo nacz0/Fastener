@@ -110,15 +110,6 @@ void Table::begin(Context& ctx, const std::string& id, const Rect& bounds,
     }
 }
 
-void Table::begin(const std::string& id, const Rect& bounds,
-                  const TableOptions& options,
-                  const TableEvents& events) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    begin(*wc.ctx, id, bounds, options, events);
-}
-
-
 void Table::renderHeader(Context& ctx) {
     const Theme& theme = ctx.theme();
     IDrawList& dl = *ctx.activeDrawList();
@@ -403,12 +394,6 @@ void Table::end(Context& ctx) {
     m_inTable = false;
 }
 
-void Table::end() {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    end(*wc.ctx);
-}
-
 
 //=============================================================================
 // Immediate-Mode API
@@ -437,7 +422,7 @@ bool BeginTable(Context& ctx, const std::string& id, const std::vector<TableColu
     float width = options.style.width > 0 ? options.style.width : 400.0f;
     float height = options.style.height > 0 ? options.style.height : 200.0f;
 
-    state.bounds = allocateWidgetBounds(options.style, width, height);
+    state.bounds = allocateWidgetBounds(ctx, options.style, width, height);
 
     // Note: We intentionally do NOT call handleWidgetInteraction here.
     // Table handles its own row clicks directly without capturing input,
@@ -462,13 +447,6 @@ bool BeginTable(Context& ctx, const std::string& id, const std::vector<TableColu
     }
 
     return true;
-}
-
-bool BeginTable(const std::string& id, const std::vector<TableColumn>& columns,
-                const TableOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return BeginTable(*wc.ctx, id, columns, options);
 }
 
 
@@ -549,13 +527,6 @@ void TableHeader(Context& ctx, int sortColumn, bool sortAscending) {
         x += col.width;
     }
 }
-
-void TableHeader(int sortColumn, bool sortAscending) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    TableHeader(*wc.ctx, sortColumn, sortAscending);
-}
-
 
 bool TableRow(Context& ctx, const std::vector<std::string>& cells, bool selected) {
     if (!s_currentTable || !s_currentTable->inTable) return false;
@@ -652,13 +623,6 @@ bool TableRow(Context& ctx, const std::vector<std::string>& cells, bool selected
     return clicked;
 }
 
-bool TableRow(const std::vector<std::string>& cells, bool selected) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return TableRow(*wc.ctx, cells, selected);
-}
-
-
 void EndTable(Context& ctx) {
     if (!s_currentTable || !s_currentTable->inTable) return;
 
@@ -695,20 +659,9 @@ void EndTable(Context& ctx) {
     s_currentTableId = 0;
 }
 
-void EndTable() {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    EndTable(*wc.ctx);
-}
-
-
 int GetTableClickedRow(Context& ctx) {
     (void)ctx;
     return s_currentTable ? s_currentTable->clickedRow : -1;
-}
-
-int GetTableClickedRow() {
-    return GetTableClickedRow(*Context::current());
 }
 
 int GetTableSortColumn(Context& ctx) {
@@ -716,17 +669,9 @@ int GetTableSortColumn(Context& ctx) {
     return s_currentTable ? s_currentTable->sortColumn : -1;
 }
 
-int GetTableSortColumn() {
-    return GetTableSortColumn(*Context::current());
-}
-
 bool GetTableSortAscending(Context& ctx) {
     (void)ctx;
     return s_currentTable ? s_currentTable->sortAscending : true;
-}
-
-bool GetTableSortAscending() {
-    return GetTableSortAscending(*Context::current());
 }
 
 void SetTableSort(Context& ctx, int column, bool ascending) {
@@ -736,10 +681,5 @@ void SetTableSort(Context& ctx, int column, bool ascending) {
         s_currentTable->sortAscending = ascending;
     }
 }
-
-void SetTableSort(int column, bool ascending) {
-    if (Context::current()) SetTableSort(*Context::current(), column, ascending);
-}
-
 
 } // namespace fst

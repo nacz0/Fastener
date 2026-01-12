@@ -117,13 +117,13 @@ bool TextArea(Context& ctx, const char* id, std::string& value, const TextAreaOp
     float lineHeight = font ? font->lineHeight() : 16.0f;
 
     // Allocate bounds
-    Rect bounds = allocateWidgetBounds(options.style, width, height);
+    Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
 
 
 
     // Handle interaction
-    WidgetInteraction interaction = handleWidgetInteraction(widgetId, bounds, true);
-    WidgetState widgetState = getWidgetState(widgetId);
+    WidgetInteraction interaction = handleWidgetInteraction(ctx, widgetId, bounds, true);
+    WidgetState widgetState = getWidgetState(ctx, widgetId);
 
 
     bool changed = false;
@@ -367,18 +367,8 @@ bool TextArea(Context& ctx, const char* id, std::string& value, const TextAreaOp
     return changed;
 }
 
-bool TextArea(const char* id, std::string& value, const TextAreaOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return false;
-    return TextArea(*wc.ctx, id, value, options);
-}
-
 bool TextArea(Context& ctx, const std::string& id, std::string& value, const TextAreaOptions& options) {
     return TextArea(ctx, id.c_str(), value, options);
-}
-
-bool TextArea(const std::string& id, std::string& value, const TextAreaOptions& options) {
-    return TextArea(id.c_str(), value, options);
 }
 
 
@@ -394,7 +384,7 @@ bool TextAreaWithLabel(Context& ctx, const std::string& label, std::string& valu
         float width = options.style.width > 0 ? options.style.width : 300.0f;
         float totalHeight = labelHeight + options.height;
         
-        Rect bounds = allocateWidgetBounds(options.style, width, totalHeight);
+        Rect bounds = allocateWidgetBounds(ctx, options.style, width, totalHeight);
         
         Vec2 labelPos(bounds.x(), bounds.y());
         dl.addText(font, labelPos, label, theme.colors.text);
@@ -409,13 +399,6 @@ bool TextAreaWithLabel(Context& ctx, const std::string& label, std::string& valu
     }
 
     return TextArea(ctx, label, value, options);
-}
-
-bool TextAreaWithLabel(const std::string& label, std::string& value,
-                       const TextAreaOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return TextArea(label, value, options);
-    return TextAreaWithLabel(*wc.ctx, label, value, options);
 }
 
 

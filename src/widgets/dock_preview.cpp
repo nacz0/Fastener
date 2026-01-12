@@ -32,7 +32,7 @@ void RenderDockPreview(Context& ctx) {
     dl.setLayer(DrawLayer::Overlay);
     
     // Calculate preview rect
-    DockPreviewState preview = CalculateDockPreview(hoveredNode, 
+    DockPreviewState preview = CalculateDockPreview(ctx, hoveredNode, 
                                                      dragState.mousePos);
     
     if (preview.visible) {
@@ -50,17 +50,12 @@ void RenderDockPreview(Context& ctx) {
     dl.setLayer(DrawLayer::Default);
 }
 
-void RenderDockPreview() {
-    auto wc = getWidgetContext();
-    if (wc.valid()) RenderDockPreview(*wc.ctx);
-}
-
 
 //=============================================================================
 // Preview Calculation
 //=============================================================================
 
-DockPreviewState CalculateDockPreview(const DockNode* targetNode, 
+DockPreviewState CalculateDockPreview(Context& ctx, const DockNode* targetNode, 
                                        const Vec2& mousePos) {
     DockPreviewState state;
     
@@ -68,10 +63,7 @@ DockPreviewState CalculateDockPreview(const DockNode* targetNode,
         return state;
     }
     
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return state;
-    
-    const auto& theme = *wc.theme;
+    const auto& theme = ctx.theme();
 
 
     
@@ -191,11 +183,6 @@ void RenderDockTargetIndicators(Context& ctx, DockNode* targetNode, const Vec2& 
                 break;
         }
     }
-}
-
-void RenderDockTargetIndicators(DockNode* targetNode, const Vec2& mousePos) {
-    auto wc = getWidgetContext();
-    if (wc.valid()) RenderDockTargetIndicators(*wc.ctx, targetNode, mousePos);
 }
 
 

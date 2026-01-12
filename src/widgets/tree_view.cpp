@@ -140,16 +140,6 @@ void TreeView::render(Context& ctx, std::string_view id, const Rect& bounds,
     dl.popClipRect();
     ctx.popId();
 }
-
-void TreeView::render(std::string_view id, const Rect& bounds,
-                      const TreeViewOptions& options,
-                      const TreeViewEvents& events) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    render(*wc.ctx, id, bounds, options, events);
-}
-
-
 void TreeView::updateLayout() {
     m_flatNodes.clear();
     
@@ -344,14 +334,5 @@ void TreeViewSimple(Context& ctx, std::string_view id, TreeNode* root, const Rec
     
     tv.render(ctx, std::string_view(id), bounds, options, events);
 }
-
-void TreeViewSimple(std::string_view id, TreeNode* root, const Rect& bounds,
-                    std::function<void(TreeNode*)> onSelect,
-                    const TreeViewOptions& options) {
-    auto wc = getWidgetContext();
-    if (!wc.valid()) return;
-    TreeViewSimple(*wc.ctx, id, root, bounds, onSelect, options);
-}
-
 
 } // namespace fst

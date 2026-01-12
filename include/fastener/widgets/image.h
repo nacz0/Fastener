@@ -22,9 +22,5 @@ struct ImageOptions {
 void Image(Context& ctx, Texture* texture, const ImageOptions& options = {});
 void Image(Context& ctx, Texture* texture, Vec2 size, const ImageOptions& options = {});
 
-/// Uses context stack
-void Image(Texture* texture, const ImageOptions& options = {});
-void Image(Texture* texture, Vec2 size, const ImageOptions& options = {});
-
 } // namespace fst
 

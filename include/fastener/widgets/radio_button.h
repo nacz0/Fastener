@@ -22,9 +22,5 @@ struct RadioButtonOptions {
 [[nodiscard]] bool RadioButton(Context& ctx, std::string_view label, int& selectedIndex, int index, 
                  const RadioButtonOptions& options = {});
 
-/// Uses context stack
-[[nodiscard]] bool RadioButton(std::string_view label, int& selectedIndex, int index, 
-                 const RadioButtonOptions& options = {});
-
 } // namespace fst
 

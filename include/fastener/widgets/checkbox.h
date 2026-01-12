@@ -36,8 +36,5 @@ struct CheckboxOptions {
 /// Explicit DI version
 [[nodiscard]] bool Checkbox(Context& ctx, std::string_view label, bool& checked, const CheckboxOptions& options = {});
 
-/// Uses context stack
-[[nodiscard]] bool Checkbox(std::string_view label, bool& checked, const CheckboxOptions& options = {});
-
 } // namespace fst
 

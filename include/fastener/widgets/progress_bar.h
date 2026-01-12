@@ -21,9 +21,5 @@ struct ProgressBarOptions {
 void ProgressBar(Context& ctx, float progress, const ProgressBarOptions& options = {});
 void ProgressBar(Context& ctx, std::string_view label, float progress, const ProgressBarOptions& options = {});
 
-/// Uses context stack
-void ProgressBar(float progress, const ProgressBarOptions& options = {});
-void ProgressBar(std::string_view label, float progress, const ProgressBarOptions& options = {});
-
 } // namespace fst
 

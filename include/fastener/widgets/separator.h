@@ -23,9 +23,5 @@ struct SeparatorOptions {
 void Separator(Context& ctx, const SeparatorOptions& options = {});
 void SeparatorWithLabel(Context& ctx, std::string_view label, const SeparatorOptions& options = {});
 
-/// Uses context stack
-void Separator(const SeparatorOptions& options = {});
-void SeparatorWithLabel(std::string_view label, const SeparatorOptions& options = {});
-
 } // namespace fst
 

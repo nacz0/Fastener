@@ -23,12 +23,9 @@ struct LabelOptions {
 /// Explicit DI version
 void Label(Context& ctx, std::string_view text, const LabelOptions& options = {});
 
-/// Uses context stack
-void Label(std::string_view text, const LabelOptions& options = {});
-
 // Convenience overloads
-void LabelSecondary(std::string_view text);
-void LabelHeading(std::string_view text);
+void LabelSecondary(Context& ctx, std::string_view text);
+void LabelHeading(Context& ctx, std::string_view text);
 
 } // namespace fst
 

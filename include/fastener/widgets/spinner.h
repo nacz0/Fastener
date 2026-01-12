@@ -22,12 +22,5 @@ void SpinnerWithLabel(Context& ctx, const std::string& id, const std::string& la
                       const SpinnerOptions& options = {});
 void LoadingDots(Context& ctx, const std::string& id, const SpinnerOptions& options = {});
 
-/// Uses context stack
-void Spinner(const std::string& id, const SpinnerOptions& options = {});
-void Spinner(const char* id, const SpinnerOptions& options = {});
-void SpinnerWithLabel(const std::string& id, const std::string& label, 
-                      const SpinnerOptions& options = {});
-void LoadingDots(const std::string& id, const SpinnerOptions& options = {});
-
 } // namespace fst
 

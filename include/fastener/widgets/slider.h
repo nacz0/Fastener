@@ -43,12 +43,5 @@ struct SliderOptions {
 [[nodiscard]] bool SliderInt(Context& ctx, std::string_view label, int& value, int min, int max,
                const SliderOptions& options = {});
 
-/// Uses context stack
-[[nodiscard]] bool Slider(std::string_view label, float& value, float minVal, float maxVal, 
-            const SliderOptions& options = {});
-
-[[nodiscard]] bool SliderInt(std::string_view label, int& value, int min, int max,
-               const SliderOptions& options = {});
-
 } // namespace fst
 

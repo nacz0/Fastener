@@ -132,6 +132,22 @@ public:
     InputState& input() override;
     const InputState& input() const override;
     
+    // Screen position (for cross-window drag & drop)
+    Vec2 screenPosition() const;
+    Vec2 position() const;
+    
+    // Shared OpenGL context (for multi-window)
+    /**
+     * @brief Create window with shared OpenGL context.
+     * @param config Window configuration
+     * @param shareWindow Window to share GL context with (nullptr for new context)
+     * @return true if window was created successfully
+     */
+    bool createWithSharedContext(const WindowConfig& config, Window* shareWindow);
+    
+    /** @brief Get the OpenGL context handle (for sharing). */
+    void* glContext() const;
+    
     // Platform handle (use with caution)
     void* nativeHandle() const override;
     

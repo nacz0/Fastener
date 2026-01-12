@@ -49,6 +49,9 @@ endif()
 if(FST_BUILD_EXAMPLES)
     add_executable(fastener_demo examples/demo/main.cpp)
     target_link_libraries(fastener_demo PRIVATE fastener)
+    
+    add_executable(multi_window_demo examples/multi_window/main.cpp)
+    target_link_libraries(multi_window_demo PRIVATE fastener)
 endif()
 
 # Install

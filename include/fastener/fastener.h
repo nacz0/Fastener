@@ -8,6 +8,7 @@
 #include "fastener/core/input.h"
 
 #include "fastener/platform/window.h"
+#include "fastener/platform/window_manager.h"
 
 #include "fastener/graphics/renderer.h"
 #include "fastener/graphics/draw_list.h"

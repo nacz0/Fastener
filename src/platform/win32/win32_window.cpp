@@ -321,6 +321,7 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             if (impl->closeCallback) {
                 impl->closeCallback({});
             }
+            ShowWindow(hwnd, SW_HIDE);
             impl->isOpen = false;
             return 0;
         
@@ -636,6 +637,9 @@ bool Window::isOpen() const {
 }
 
 void Window::close() {
+    if (m_impl->hwnd) {
+        ShowWindow(m_impl->hwnd, SW_HIDE);
+    }
     m_impl->isOpen = false;
 }
 
@@ -839,6 +843,158 @@ const InputState& Window::input() const {
 
 void* Window::nativeHandle() const {
     return m_impl->hwnd;
+}
+
+Vec2 Window::screenPosition() const {
+    RECT rect;
+    GetWindowRect(m_impl->hwnd, &rect);
+    return Vec2(static_cast<float>(rect.left), static_cast<float>(rect.top));
+}
+
+Vec2 Window::position() const {
+    return screenPosition();
+}
+
+void* Window::glContext() const {
+    return m_impl->hglrc;
+}
+
+bool Window::createWithSharedContext(const WindowConfig& config, Window* shareWindow) {
+    if (m_impl->isOpen) {
+        destroy();
+    }
+    
+    // Load WGL extensions
+    m_impl->loadWGLExtensions();
+    
+    // Register window class
+    WNDCLASSEXW wc = {};
+    wc.cbSize = sizeof(wc);
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+    wc.lpfnWndProc = Impl::WndProc;
+    wc.hInstance = GetModuleHandleW(nullptr);
+    wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    wc.lpszClassName = L"FastenerWindow";
+    RegisterClassExW(&wc);
+    
+    // Convert title to wide string
+    int titleLen = MultiByteToWideChar(CP_UTF8, 0, config.title.c_str(), -1, nullptr, 0);
+    std::wstring wideTitle(titleLen, 0);
+    MultiByteToWideChar(CP_UTF8, 0, config.title.c_str(), -1, wideTitle.data(), titleLen);
+    
+    // Calculate window size
+    DWORD style = WS_OVERLAPPEDWINDOW;
+    if (!config.resizable) {
+        style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
+    }
+    if (!config.decorated) {
+        style = WS_POPUP;
+    }
+    
+    RECT rect = {0, 0, config.width, config.height};
+    AdjustWindowRect(&rect, style, FALSE);
+    
+    // Create window
+    m_impl->hwnd = CreateWindowExW(
+        0,
+        L"FastenerWindow",
+        wideTitle.c_str(),
+        style,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        rect.right - rect.left,
+        rect.bottom - rect.top,
+        nullptr, nullptr,
+        GetModuleHandleW(nullptr),
+        nullptr
+    );
+    
+    if (!m_impl->hwnd) {
+        return false;
+    }
+    
+    g_windowMap[m_impl->hwnd] = m_impl.get();
+    
+    // Enable file drag and drop
+    DragAcceptFiles(m_impl->hwnd, TRUE);
+    
+    m_impl->hdc = GetDC(m_impl->hwnd);
+    
+    // Set pixel format (must match shared context)
+    if (shareWindow) {
+        // Get pixel format from shared window
+        int format = GetPixelFormat(static_cast<HDC>(GetDC(static_cast<HWND>(shareWindow->nativeHandle()))));
+        PIXELFORMATDESCRIPTOR pfd;
+        DescribePixelFormat(m_impl->hdc, format, sizeof(pfd), &pfd);
+        SetPixelFormat(m_impl->hdc, format, &pfd);
+        
+        // Create shared context
+        if (m_impl->wglCreateContextAttribsARB) {
+            int attribs[] = {
+                WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+                WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+                WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
+                0
+            };
+            m_impl->hglrc = m_impl->wglCreateContextAttribsARB(
+                m_impl->hdc, 
+                static_cast<HGLRC>(shareWindow->glContext()),
+                attribs
+            );
+        } else {
+            // Legacy shared context
+            m_impl->hglrc = wglCreateContext(m_impl->hdc);
+            if (m_impl->hglrc && shareWindow->glContext()) {
+                wglShareLists(static_cast<HGLRC>(shareWindow->glContext()), m_impl->hglrc);
+            }
+        }
+    } else {
+        // No sharing, create normally
+        if (!m_impl->createGLContext(config.msaaSamples, config.vsync)) {
+            destroy();
+            return false;
+        }
+    }
+    
+    if (!m_impl->hglrc) {
+        destroy();
+        return false;
+    }
+    
+    wglMakeCurrent(m_impl->hdc, m_impl->hglrc);
+    
+    if (config.vsync && m_impl->wglSwapIntervalEXT) {
+        m_impl->wglSwapIntervalEXT(1);
+    }
+    
+    // Load cursors
+    m_impl->cursors[static_cast<int>(Cursor::Arrow)] = LoadCursorW(nullptr, IDC_ARROW);
+    m_impl->cursors[static_cast<int>(Cursor::IBeam)] = LoadCursorW(nullptr, IDC_IBEAM);
+    m_impl->cursors[static_cast<int>(Cursor::Hand)] = LoadCursorW(nullptr, IDC_HAND);
+    m_impl->cursors[static_cast<int>(Cursor::ResizeH)] = LoadCursorW(nullptr, IDC_SIZEWE);
+    m_impl->cursors[static_cast<int>(Cursor::ResizeV)] = LoadCursorW(nullptr, IDC_SIZENS);
+    m_impl->cursors[static_cast<int>(Cursor::ResizeNESW)] = LoadCursorW(nullptr, IDC_SIZENESW);
+    m_impl->cursors[static_cast<int>(Cursor::ResizeNWSE)] = LoadCursorW(nullptr, IDC_SIZENWSE);
+    m_impl->cursors[static_cast<int>(Cursor::Move)] = LoadCursorW(nullptr, IDC_SIZEALL);
+    m_impl->cursors[static_cast<int>(Cursor::NotAllowed)] = LoadCursorW(nullptr, IDC_NO);
+    m_impl->cursors[static_cast<int>(Cursor::Wait)] = LoadCursorW(nullptr, IDC_WAIT);
+    
+    // Get initial size
+    RECT clientRect;
+    GetClientRect(m_impl->hwnd, &clientRect);
+    m_impl->width = clientRect.right;
+    m_impl->height = clientRect.bottom;
+    m_impl->updateDPI();
+    
+    // Show window
+    if (config.maximized) {
+        ShowWindow(m_impl->hwnd, SW_SHOWMAXIMIZED);
+    } else {
+        ShowWindow(m_impl->hwnd, SW_SHOW);
+    }
+    
+    m_impl->isOpen = true;
+    
+    return true;
 }
 
 } // namespace fst

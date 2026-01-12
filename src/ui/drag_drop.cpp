@@ -122,6 +122,7 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
                 s_dragDropState.startPos = s_mousePressPos;
                 s_dragDropState.currentPos = input.mousePos();
                 s_dragDropState.payload.sourceWidget = lastWidgetId;
+                s_dragDropState.payload.sourceWindow = &ctx.window();  // Track source window
                 s_currentSourceWidget = lastWidgetId;
                 s_potentialDrag = false;
                 s_potentialDragSource = INVALID_WIDGET_ID;

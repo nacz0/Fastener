@@ -318,6 +318,12 @@ void Renderer::beginFrame(int width, int height, float dpiScale) {
     m_impl->viewportHeight = height;
     m_impl->dpiScale = dpiScale;
     
+    // Rebind VAO since it may not be valid in shared contexts
+    // VAOs are NOT shared between GL contexts, only textures/buffers/shaders are
+    if (m_impl->vao) {
+        m_impl->glBindVertexArray(m_impl->vao);
+    }
+    
     glViewport(0, 0, width, height);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

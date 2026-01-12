@@ -91,12 +91,18 @@ struct DragPayload {
 
 /**
  * @brief Global state for drag and drop operations
+ * 
+ * @ai_hint For cross-window D&D: globalStartPos/globalCurrentPos are screen coordinates
+ * obtained via GetGlobalCursorPos(). targetWindow tracks which window the cursor is over.
  */
 struct DragDropState {
     bool active = false;                         ///< Is drag operation in progress
     DragPayload payload;                         ///< Current payload being dragged
-    Vec2 startPos;                               ///< Mouse position when drag started
-    Vec2 currentPos;                             ///< Current mouse position
+    Vec2 startPos;                               ///< Mouse position when drag started (window-local)
+    Vec2 currentPos;                             ///< Current mouse position (window-local)
+    Vec2 globalStartPos;                         ///< Drag start position in screen coordinates
+    Vec2 globalCurrentPos;                       ///< Current position in screen coordinates
+    IPlatformWindow* targetWindow = nullptr;     ///< Window currently under cursor (for cross-window)
     WidgetId hoveredDropTarget = INVALID_WIDGET_ID;  ///< Currently hovered drop target
     bool isOverValidTarget = false;              ///< Is hovering over valid target
     float holdTimer = 0.0f;                      ///< Timer for hold-to-open
@@ -106,6 +112,9 @@ struct DragDropState {
         payload = DragPayload{};
         startPos = Vec2(0, 0);
         currentPos = Vec2(0, 0);
+        globalStartPos = Vec2(0, 0);
+        globalCurrentPos = Vec2(0, 0);
+        targetWindow = nullptr;
         hoveredDropTarget = INVALID_WIDGET_ID;
         isOverValidTarget = false;
         holdTimer = 0.0f;

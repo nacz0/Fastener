@@ -104,8 +104,8 @@ int main() {
                 
                 Spacing(ctx, 15);
                 
-                // Lista z Drag & Drop (w ramach tego okna)
-                Label(ctx, "Drag & Drop (wewnątrz okna):");
+                // Lista z Drag & Drop (cross-window!)
+                Label(ctx, "Drag & Drop (przeciągaj do Tools):");
                 Spacing(ctx, 5);
                 
                 for (size_t i = 0; i < items.size(); ++i) {
@@ -187,12 +187,59 @@ int main() {
                 Separator(ctx);
                 Spacing(ctx, 10);
                 
-                // Lista items (podgląd)
-                Label(ctx, "Items (kolejność):");
-                for (const auto& item : items) {
-                    LabelOptions lo;
-                    lo.color = theme.colors.textSecondary;
-                    Label(ctx, "  - " + item, lo);
+                // Cross-window drop zone
+                Label(ctx, "Przeciągnij elementy tutaj:");
+                Spacing(ctx, 5);
+                
+                // Drop zone area
+                static std::vector<std::string> droppedItems;
+                
+                Rect dropZone = ctx.layout().allocate(180, 80);
+                DrawList& dlTools = ctx.drawList();
+                
+                // Background for drop zone
+                Color dropColor = theme.colors.panelBackground;
+                if (IsDragDropActive()) {
+                    dropColor = theme.colors.primary.withAlpha(0.3f);
+                }
+                dlTools.addRectFilled(dropZone, dropColor, 4.0f);
+                dlTools.addRect(dropZone, theme.colors.border, 4.0f);
+                
+                // Show dropped items
+                float textY = dropZone.y() + 5;
+                for (const auto& item : droppedItems) {
+                    dlTools.addText(ctx.font(), Vec2(dropZone.x() + 8, textY), item, theme.colors.text);
+                    textY += 16;
+                    if (textY > dropZone.y() + dropZone.height() - 16) break;
+                }
+                
+                if (droppedItems.empty()) {
+                    dlTools.addText(ctx.font(), 
+                        Vec2(dropZone.x() + 15, dropZone.y() + 30), 
+                        "(drop zone)", 
+                        theme.colors.textSecondary);
+                }
+                
+                // Accept cross-window drops!
+                if (BeginDragDropTarget(ctx, dropZone)) {
+                    if (const auto* payload = AcceptDragDropPayload(ctx, "ITEM_IDX")) {
+                        int srcIdx = payload->getData<int>();
+                        if (srcIdx >= 0 && srcIdx < (int)items.size()) {
+                            droppedItems.push_back(items[srcIdx]);
+                            items.erase(items.begin() + srcIdx);
+                        }
+                    }
+                    EndDragDropTarget();
+                }
+                
+                // Clear button
+                Spacing(ctx, 5);
+                if (Button(ctx, "Clear")) {
+                    // Move items back
+                    for (const auto& item : droppedItems) {
+                        items.push_back(item);
+                    }
+                    droppedItems.clear();
                 }
                 
                 Spacing(ctx, 15);

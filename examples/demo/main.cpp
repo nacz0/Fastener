@@ -28,6 +28,107 @@ int main() {
     // Load font
     ctx.loadFont("C:/Windows/Fonts/arial.ttf", 14.0f);
     
+    // Initialize localization
+    I18n::instance().loadFromString(R"({
+        "en": {
+            "app.title": "Fastener IDE Demo",
+            "menu.file": "File",
+            "menu.edit": "Edit",
+            "menu.view": "View",
+            "menu.help": "Help",
+            "menu.file.new": "New File",
+            "menu.file.open": "Open File...",
+            "menu.file.save": "Save",
+            "menu.file.exit": "Exit",
+            "explorer.title": "EXPLORER",
+            "terminal.title": "TERMINAL",
+            "settings.title": "WIDGET DEMO",
+            "settings.checkboxes": "Checkboxes:",
+            "settings.lineNumbers": "Show Line Numbers",
+            "settings.wordWrap": "Word Wrap",
+            "settings.optimization": "Select Optimization:",
+            "settings.progress": "Progress Indicators:",
+            "settings.color": "Color Selection:",
+            "button.save": "Save",
+            "button.cancel": "Cancel",
+            "button.clear": "Clear Files",
+            "status.ready": "Ready",
+            "status.created": "Created: {0}",
+            "status.saved": "Saved!",
+            "localization.title": "LOCALIZATION DEMO",
+            "localization.current": "Current Language:",
+            "localization.select": "Select Language:",
+            "localization.greeting": "Hello, World!",
+            "localization.items.one": "{0} item selected",
+            "localization.items.other": "{0} items selected"
+        },
+        "pl": {
+            "app.title": "Fastener IDE Demo",
+            "menu.file": "Plik",
+            "menu.edit": "Edycja",
+            "menu.view": "Widok",
+            "menu.help": "Pomoc",
+            "menu.file.new": "Nowy plik",
+            "menu.file.open": "Otwórz plik...",
+            "menu.file.save": "Zapisz",
+            "menu.file.exit": "Zakończ",
+            "explorer.title": "EKSPLORATOR",
+            "terminal.title": "TERMINAL",
+            "settings.title": "DEMO WIDŻETÓW",
+            "settings.checkboxes": "Pola wyboru:",
+            "settings.lineNumbers": "Pokaż numery linii",
+            "settings.wordWrap": "Zawijanie wierszy",
+            "settings.optimization": "Wybierz optymalizację:",
+            "settings.progress": "Wskaźniki postępu:",
+            "settings.color": "Wybór koloru:",
+            "button.save": "Zapisz",
+            "button.cancel": "Anuluj",
+            "button.clear": "Wyczyść pliki",
+            "status.ready": "Gotowy",
+            "status.created": "Utworzono: {0}",
+            "status.saved": "Zapisano!",
+            "localization.title": "DEMO LOKALIZACJI",
+            "localization.current": "Aktualny język:",
+            "localization.select": "Wybierz język:",
+            "localization.greeting": "Witaj, Świecie!",
+            "localization.items.one": "{0} element zaznaczony",
+            "localization.items.other": "{0} elementów zaznaczonych"
+        },
+        "de": {
+            "app.title": "Fastener IDE Demo",
+            "menu.file": "Datei",
+            "menu.edit": "Bearbeiten",
+            "menu.view": "Ansicht",
+            "menu.help": "Hilfe",
+            "menu.file.new": "Neue Datei",
+            "menu.file.open": "Datei öffnen...",
+            "menu.file.save": "Speichern",
+            "menu.file.exit": "Beenden",
+            "explorer.title": "EXPLORER",
+            "terminal.title": "TERMINAL",
+            "settings.title": "WIDGET-DEMO",
+            "settings.checkboxes": "Kontrollkästchen:",
+            "settings.lineNumbers": "Zeilennummern anzeigen",
+            "settings.wordWrap": "Zeilenumbruch",
+            "settings.optimization": "Optimierung wählen:",
+            "settings.progress": "Fortschrittsanzeigen:",
+            "settings.color": "Farbauswahl:",
+            "button.save": "Speichern",
+            "button.cancel": "Abbrechen",
+            "button.clear": "Dateien löschen",
+            "status.ready": "Bereit",
+            "status.created": "Erstellt: {0}",
+            "status.saved": "Gespeichert!",
+            "localization.title": "LOKALISIERUNGSDEMO",
+            "localization.current": "Aktuelle Sprache:",
+            "localization.select": "Sprache wählen:",
+            "localization.greeting": "Hallo, Welt!",
+            "localization.items.one": "{0} Element ausgewählt",
+            "localization.items.other": "{0} Elemente ausgewählt"
+        }
+    })");
+    I18n::instance().setLocale("en");
+    
     // Create file tree
     TreeView fileTree;
     auto root = fileTree.root();
@@ -143,6 +244,12 @@ int main() {
 
     // Profiler state
     bool showProfilerOverlay = true;
+
+    // Localization state
+    int selectedLocale = 0;
+    std::vector<std::string> localeOptions = {"English", "Polski", "Deutsch"};
+    std::vector<std::string> localeCodes = {"en", "pl", "de"};
+    float localizationItemCount = 3.0f;
     bool showProfilerWindow = false;
 
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
@@ -262,6 +369,8 @@ int main() {
         DockBuilder::DockWindow("Input Demo", centralNode);
         DockBuilder::DockWindow("New Widgets", centralNode);
         DockBuilder::DockWindow("Drag & Drop Demo", centralNode);
+        DockBuilder::DockWindow("Layout Demo", centralNode);
+        DockBuilder::DockWindow("Localization", centralNode);
         
         DockBuilder::Finish();
         layoutInitialized = true;
@@ -846,11 +955,248 @@ int main() {
             ctx.layout().endContainer();
         }
 
+        // Layout Demo Window
+        DockableWindow(ctx, "Layout Demo") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+            
+            PanelOptions layoutPanelOpts;
+            layoutPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+            
+            Panel(ctx, "LayoutDemoPanel", layoutPanelOpts) {
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label(ctx, "FLEX LAYOUT DEMO", titleOpts);
+                Spacing(ctx, 10);
+                
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
+                
+                // HStack Example
+                Label(ctx, "HStack - Horizontal container with gap:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                FlexOptions hstackOpts1;
+                hstackOpts1.gap = 10;
+                hstackOpts1.style = Style().withSize(400, 40).withBackground(theme.colors.inputBackground).withBorderRadius(4);
+                HStack(ctx, hstackOpts1) {
+                    (void)Button(ctx, "Button 1");
+                    (void)Button(ctx, "Button 2");
+                    (void)Button(ctx, "Button 3");
+                }
+                
+                Spacing(ctx, 15);
+                
+                // HStack with Spacer
+                Label(ctx, "HStack with Spacer (pushes buttons apart):", sectionOpts);
+                Spacing(ctx, 5);
+                
+                FlexOptions hstackOpts2;
+                hstackOpts2.gap = 10;
+                hstackOpts2.style = Style().withSize(400, 40).withBackground(theme.colors.inputBackground).withBorderRadius(4);
+                HStack(ctx, hstackOpts2) {
+                    (void)Button(ctx, "Left");
+                    Spacer(ctx);
+                    (void)Button(ctx, "Right");
+                }
+                
+                Spacing(ctx, 15);
+                
+                // VStack Example
+                Label(ctx, "VStack - Vertical container:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                FlexOptions vstackOpts1;
+                vstackOpts1.gap = 8;
+                vstackOpts1.style = Style().withSize(200, 120).withBackground(theme.colors.inputBackground).withBorderRadius(4).withPadding(8);
+                VStack(ctx, vstackOpts1) {
+                    Label(ctx, "Item 1");
+                    Label(ctx, "Item 2");
+                    Label(ctx, "Item 3");
+                }
+                
+                Spacing(ctx, 15);
+                
+                // Divider Example
+                Label(ctx, "Divider in VStack:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                FlexOptions vstackOpts2;
+                vstackOpts2.gap = 4;
+                vstackOpts2.style = Style().withSize(250, 100).withBackground(theme.colors.inputBackground).withBorderRadius(4).withPadding(8);
+                VStack(ctx, vstackOpts2) {
+                    Label(ctx, "Above divider");
+                    DividerOptions divOpts;
+                    divOpts.margin = 4;
+                    Divider(ctx, divOpts);
+                    Label(ctx, "Below divider");
+                }
+                
+                Spacing(ctx, 15);
+                
+                // Grid Example - using nested layout for proper row wrapping
+                Label(ctx, "Grid - 3 column layout:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                // Manual grid using VStack of HStacks
+                FlexOptions gridContainerOpts;
+                gridContainerOpts.gap = 8;
+                gridContainerOpts.style = Style().withSize(350, 120).withBackground(theme.colors.inputBackground).withBorderRadius(4).withPadding(8);
+                VStack(ctx, gridContainerOpts) {
+                    // Row 1: Cells 1-3
+                    FlexOptions rowOpts;
+                    rowOpts.gap = 8;
+                    HStack(ctx, rowOpts) {
+                        for (int gi = 0; gi < 3; ++gi) {
+                            ctx.pushId(gi);
+                            ButtonOptions btnOpts;
+                            btnOpts.style = Style().withSize(100, 30);
+                            (void)Button(ctx, "Cell " + std::to_string(gi + 1), btnOpts);
+                            ctx.popId();
+                        }
+                    }
+                    // Row 2: Cells 4-6
+                    HStack(ctx, rowOpts) {
+                        for (int gi = 3; gi < 6; ++gi) {
+                            ctx.pushId(gi);
+                            ButtonOptions btnOpts;
+                            btnOpts.style = Style().withSize(100, 30);
+                            (void)Button(ctx, "Cell " + std::to_string(gi + 1), btnOpts);
+                            ctx.popId();
+                        }
+                    }
+                }
+                
+                Spacing(ctx, 15);
+                
+                // Nested Layout Example
+                Label(ctx, "Nested: VStack containing HStacks:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                FlexOptions vstackOpts3;
+                vstackOpts3.gap = 10;
+                vstackOpts3.style = Style().withSize(350, 150).withBackground(theme.colors.inputBackground).withBorderRadius(4).withPadding(10);
+                VStack(ctx, vstackOpts3) {
+                    FlexOptions rowOpts;
+                    rowOpts.gap = 8;
+                    HStack(ctx, rowOpts) {
+                        Label(ctx, "Row 1:");
+                        (void)Button(ctx, "A");
+                        (void)Button(ctx, "B");
+                    }
+                    HStack(ctx, rowOpts) {
+                        Label(ctx, "Row 2:");
+                        (void)Button(ctx, "C");
+                        (void)Button(ctx, "D");
+                    }
+                    Spacer(ctx);
+                    FlexOptions footerOpts;
+                    footerOpts.gap = 8;
+                    footerOpts.mainAlign = Alignment::End;
+                    HStack(ctx, footerOpts) {
+                        (void)Button(ctx, "Cancel");
+                        (void)Button(ctx, "OK");
+                    }
+                }
+            }
+            
+            ctx.layout().endContainer();
+        }
+
+        // Localization Demo Window
+        DockableWindow(ctx, "Localization") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+            
+            PanelOptions i18nPanelOpts;
+            i18nPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+            
+            Panel(ctx, "LocalizationDemoPanel", i18nPanelOpts) {
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label(ctx, i18n("localization.title"), titleOpts);
+                Spacing(ctx, 10);
+                
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
+                
+                // Language selector
+                BeginVertical(ctx, 10);
+                    Label(ctx, i18n("localization.select"), sectionOpts);
+                    ComboBoxOptions comboOpts;
+                    comboOpts.style = Style().withWidth(200);
+                    if (ComboBox(ctx, "Language", selectedLocale, localeOptions, comboOpts)) {
+                        I18n::instance().setLocale(localeCodes[selectedLocale]);
+                    }
+                EndVertical(ctx);
+                
+                Spacing(ctx, 20);
+                Separator(ctx);
+                Spacing(ctx, 15);
+                
+                // Show current locale info
+                BeginVertical(ctx, 10);
+                    Label(ctx, i18n("localization.current") + " " + I18n::instance().getLocale(), sectionOpts);
+                    Spacing(ctx, 10);
+                    
+                    // Greeting example
+                    LabelOptions greetingOpts;
+                    greetingOpts.color = theme.colors.success;
+                    Label(ctx, i18n("localization.greeting"), greetingOpts);
+                EndVertical(ctx);
+                
+                Spacing(ctx, 20);
+                Separator(ctx);
+                Spacing(ctx, 15);
+                
+                // Plural forms demo
+                Label(ctx, "Plural Forms Demo:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                BeginVertical(ctx, 10);
+                    SliderOptions sliderOpts;
+                    sliderOpts.style = Style().withWidth(200);
+                    (void)Slider(ctx, "Item Count", localizationItemCount, 0.0f, 10.0f, sliderOpts);
+                    
+                    // Show plural translation
+                    std::string pluralText = i18n_plural(
+                        "localization.items.one", 
+                        "localization.items.other", 
+                        static_cast<int>(localizationItemCount));
+                    Label(ctx, pluralText);
+                EndVertical(ctx);
+                
+                Spacing(ctx, 20);
+                Separator(ctx);
+                Spacing(ctx, 15);
+                
+                // Show some translated UI elements
+                Label(ctx, "Translated UI Elements:", sectionOpts);
+                Spacing(ctx, 5);
+                
+                BeginHorizontal(ctx, 10);
+                    ButtonOptions btnOpts;
+                    btnOpts.style = Style().withSize(100, 30);
+                    (void)Button(ctx, i18n("button.save"), btnOpts);
+                    (void)Button(ctx, i18n("button.cancel"), btnOpts);
+                    (void)Button(ctx, i18n("button.clear"), btnOpts);
+                EndHorizontal(ctx);
+            }
+            
+            ctx.layout().endContainer();
+        }
+
         // Status Bar
         Rect statusBarRect(0, windowH - statusBarHeight, windowW, statusBarHeight);
         dl.addRectFilled(statusBarRect, theme.colors.primary);
         if (ctx.font()) {
             dl.addText(ctx.font(), Vec2(statusBarRect.x() + 10, statusBarRect.y() + 4), statusText, theme.colors.primaryText);
+            
+            // DEBUG: Show input state on-screen
+            std::string debugInfo = "ActiveWidget: " + std::to_string(ctx.getActiveWidget()) +
+                                   " InputCaptured: " + (ctx.isInputCaptured() ? "YES" : "no") +
+                                   " DragActive: " + (ctx.docking().dragState().active ? "YES" : "no");
+            dl.addText(ctx.font(), Vec2(windowW - 500, statusBarRect.y() + 4), debugInfo, Color::yellow());
         }
 
         // Render Profiler Widgets

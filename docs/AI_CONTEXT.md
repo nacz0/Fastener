@@ -62,6 +62,11 @@ while(window.isOpen()) {
 | **CollapsingHeader** | `bool CollapsingHeader(label, bool& open, opts)` | Collapsible section |
 | **Menu** | `menuBar.render(bounds)` | Popups: `menuBar.renderPopups()` at frame end |
 | **Layout** | `BeginHorizontal()`, `BeginVertical()`, `Spacing(v)`, `Padding(v)` | Automatic positioning |
+| **HStack** | `HStack(ctx, opts) { ... }` | Horizontal flexbox container |
+| **VStack** | `VStack(ctx, opts) { ... }` | Vertical flexbox container |
+| **Grid** | `Grid(ctx, opts) { ... }` | Grid layout with fixed columns |
+| **Spacer** | `Spacer(ctx, flex=1.0)` | Fills remaining space in H/VStack |
+| **Divider** | `Divider(ctx, opts)` | Visual separator line with optional label |
 
 ## 💡 Code Patterns & Idioms
 
@@ -99,6 +104,42 @@ fst::BeginVertical();
         fst::Button("Cancel");
     fst::EndHorizontal();
 fst::EndVertical();
+```
+
+### Flexbox Layout (HStack/VStack/Grid)
+```cpp
+// Horizontal stack with gap
+FlexOptions hOpts;
+hOpts.gap = 10;
+HStack(ctx, hOpts) {
+    Button(ctx, "A");
+    Button(ctx, "B");
+    Spacer(ctx);  // Push remaining items to end
+    Button(ctx, "C");
+}
+
+// Vertical stack with padding
+FlexOptions vOpts;
+vOpts.gap = 8;
+vOpts.style = Style().withPadding(10);
+VStack(ctx, vOpts) {
+    Label(ctx, "Form");
+    TextInput(ctx, "name", userName);
+    Divider(ctx);  // Visual separator
+    Button(ctx, "Submit");
+}
+
+// 3-column grid
+GridOptions gOpts;
+gOpts.columns = 3;
+gOpts.columnGap = 10;
+Grid(ctx, gOpts) {
+    for (int i = 0; i < 9; ++i) {
+        ctx.pushId(i);
+        Button(ctx, std::to_string(i));
+        ctx.popId();
+    }
+}
 ```
 
 ### Drag and Drop

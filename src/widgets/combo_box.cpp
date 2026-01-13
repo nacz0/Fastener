@@ -102,6 +102,22 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
         
         if (dropdownBounds.contains(input.mousePos())) {
             input.consumeMouse();
+            
+            // Handle hover - determine which item is under mouse
+            float relativeY = input.mousePos().y - (boxBounds.bottom() + 2) + state.scrollOffset;
+            int hoveredItem = static_cast<int>(relativeY / itemHeight);
+            if (hoveredItem >= 0 && hoveredItem < (int)items.size()) {
+                state.hoveredIndex = hoveredItem;
+                
+                // Handle click on item
+                if (input.isMousePressed(MouseButton::Left)) {
+                    if (selectedIndex != hoveredItem) {
+                        selectedIndex = hoveredItem;
+                        changed = true;
+                    }
+                    state.isOpen = false;
+                }
+            }
         }
     }
 

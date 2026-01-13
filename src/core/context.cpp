@@ -148,6 +148,13 @@ void Context::beginFrame(IPlatformWindow& window) {
 void Context::endFrame() {
     m_impl->profiler.endSection(); // UI
 
+    // Safety net: If mouse was released but activeWidget wasn't cleared by any widget,
+    // clear it here to prevent stuck input capture.
+    if (m_impl->activeWidget != INVALID_WIDGET_ID && 
+        m_impl->inputState->isMouseReleased(MouseButton::Left)) {
+        m_impl->activeWidget = INVALID_WIDGET_ID;
+    }
+
     m_impl->profiler.beginSection("Internal");
     // End docking frame
     m_impl->dockContext.endFrame();
@@ -282,10 +289,12 @@ WidgetId Context::getActiveWidget() const {
 }
 
 void Context::setActiveWidget(WidgetId id) {
+    FST_LOGF_DEBUG("setActiveWidget: %llu", id);
     m_impl->activeWidget = id;
 }
 
 void Context::clearActiveWidget() {
+    FST_LOGF_DEBUG("clearActiveWidget (was: %llu)", m_impl->activeWidget);
     m_impl->activeWidget = INVALID_WIDGET_ID;
 }
 

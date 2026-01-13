@@ -190,7 +190,12 @@ void MenuBar::renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos)
     float y = pos.y + padding;
     
     for (size_t i = 0; i < menu.items.size(); i++) {
-        const auto& item = menu.items[i];
+        auto& item = const_cast<MenuItem&>(menu.items[i]);
+        
+        // Read checked state from pointer if bound
+        if (item.type == MenuItemType::Checkbox && item.checkedPtr) {
+            item.checked = *item.checkedPtr;
+        }
         
         if (item.type == MenuItemType::Separator) {
             float sepY = y + separatorHeight / 2;
@@ -248,6 +253,13 @@ void MenuBar::renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos)
         // Handle click
         if (isHovered && item.enabled && ctx.input().isMousePressed(MouseButton::Left)) {
             if (item.type != MenuItemType::Submenu) {
+                // Toggle checkbox if clicked
+                if (item.type == MenuItemType::Checkbox) {
+                    item.checked = !item.checked;
+                    if (item.checkedPtr) {
+                        *item.checkedPtr = item.checked;
+                    }
+                }
                 if (item.action) {
                     item.action();
                 }

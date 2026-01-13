@@ -34,6 +34,7 @@ struct MenuItem {
     MenuItemType type = MenuItemType::Normal;
     bool enabled = true;
     bool checked = false;       // For Checkbox/Radio
+    bool* checkedPtr = nullptr;  // Pointer for two-way binding
     int radioGroup = 0;         // For Radio grouping
     
     std::vector<std::shared_ptr<MenuItem>> children;  // For Submenu
@@ -62,6 +63,16 @@ struct MenuItem {
         MenuItem item(id, label, action);
         item.type = MenuItemType::Checkbox;
         item.checked = checked;
+        return item;
+    }
+    
+    // Checkbox with pointer for two-way binding
+    static MenuItem checkbox(std::string_view id, std::string_view label, 
+                             bool* checkedPtr, std::function<void()> action = nullptr) {
+        MenuItem item(id, label, action);
+        item.type = MenuItemType::Checkbox;
+        item.checkedPtr = checkedPtr;
+        item.checked = checkedPtr ? *checkedPtr : false;
         return item;
     }
     

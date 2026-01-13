@@ -19,6 +19,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/widget_scope.h"
 #include "fastener/ui/layout.h"
+#include "fastener/ui/flex_layout.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/style.h"
 
@@ -63,6 +64,9 @@
 // Profiling
 #include "fastener/core/profiler.h"
 #include "fastener/widgets/profiler_widget.h"
+
+// Localization
+#include "fastener/core/i18n.h"
 
 namespace fst {
     // Version info

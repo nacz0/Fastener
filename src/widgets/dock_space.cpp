@@ -224,14 +224,14 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
             ctx.setActiveWidget(tabId);
         }
         
-        // Handle dragging for tab undocking
-        if (s_activeDockTab == tabId && s_dragNode == node && s_dragTabIndex == i) {
+        // Handle dragging for tab undocking - only if this is the active tab
+        if (s_activeDockTab == tabId) {
             if (input.isMouseReleased(MouseButton::Left)) {
                 s_activeDockTab = INVALID_WIDGET_ID;
                 s_dragNode = nullptr;
                 s_dragTabIndex = -1;
                 ctx.clearActiveWidget();
-            } else if (input.isMouseDown(MouseButton::Left)) {
+            } else if (input.isMouseDown(MouseButton::Left) && s_dragNode == node && s_dragTabIndex == i) {
                 float dragDistSq = (input.mousePos() - s_dragStartPos).lengthSquared();
                 if (dragDistSq > 25.0f) { // 5 pixel threshold
                     // Start dragging the window out of the dock

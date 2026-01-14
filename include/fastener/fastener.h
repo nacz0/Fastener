@@ -50,6 +50,14 @@
 #include "fastener/widgets/separator.h"
 #include "fastener/widgets/table.h"
 
+// New Widgets
+#include "fastener/widgets/toggle_switch.h"
+#include "fastener/widgets/badge.h"
+#include "fastener/widgets/card.h"
+#include "fastener/widgets/status_bar.h"
+#include "fastener/widgets/breadcrumb.h"
+#include "fastener/widgets/modal.h"
+
 // Docking
 #include "fastener/ui/dock_node.h"
 #include "fastener/ui/dock_context.h"

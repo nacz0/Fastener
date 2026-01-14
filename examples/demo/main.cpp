@@ -26,7 +26,17 @@ int main() {
     ctx.setTheme(Theme::dark());
     
     // Load font
-    ctx.loadFont("C:/Windows/Fonts/arial.ttf", 14.0f);
+#ifdef _WIN32
+    if (!ctx.loadFont("assets/arial.ttf", 14.0f)) {
+        ctx.loadFont("C:/Windows/Fonts/arial.ttf", 14.0f);
+    }
+#else
+    if (!ctx.loadFont("assets/arial.ttf", 14.0f)) {
+        if (!ctx.loadFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 14.0f)) {
+            ctx.loadFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14.0f);
+        }
+    }
+#endif
     
     // Initialize localization
     I18n::instance().loadFromString(R"({

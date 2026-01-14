@@ -224,9 +224,15 @@ void EndDragDropSource() {
         // Always update global position - works even if cursor left this window
         s_dragDropState.globalCurrentPos = GetGlobalCursorPos();
         
-        // Check for drop (mouse released) - use GLOBAL state for cross-window D&D
-        // The source window may not receive mouse events when cursor is over target window
-        if (!IsGlobalMouseButtonDown(MouseButton::Left) && s_dragDropState.active) {
+        // Check for drop (mouse released)
+        // Use global state only if we have a native handle (real window)
+        // For test stubs, use local input state since GetAsyncKeyState checks real mouse
+        bool hasNativeHandle = (ctx->window().nativeHandle() != nullptr);
+        bool mouseDown = hasNativeHandle 
+            ? IsGlobalMouseButtonDown(MouseButton::Left)
+            : input.isMouseDown(MouseButton::Left);
+        
+        if (!mouseDown && s_dragDropState.active) {
             // Do NOT clear here immediately, as targets might be rendered later in the frame.
             // Mark for clearing at end of frame.
             s_dragDropState.pendingClear = true;

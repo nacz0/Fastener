@@ -252,6 +252,13 @@ int main() {
     float localizationItemCount = 3.0f;
     bool showProfilerWindow = false;
 
+    // New Widget Demo state
+    bool toggleSwitch1 = false;
+    bool toggleSwitch2 = true;
+    int badgeCount = 5;
+    bool showModal = false;
+    std::vector<std::string> breadcrumbPath = {"Home", "Documents", "Projects", "Fastener"};
+
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
         if (it == editors.end()) {
@@ -556,6 +563,7 @@ int main() {
             
             PanelOptions p2PanelOpts;
             p2PanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+            p2PanelOpts.scrollable = true;
             
             Panel(ctx, "NewWidgetsPanel", p2PanelOpts) {
                 LabelOptions sectionOpts;
@@ -618,10 +626,78 @@ int main() {
                         EndVertical(ctx);
                     EndVertical(ctx);
                 EndHorizontal(ctx);
+                
+                Separator(ctx);
+                Spacing(ctx, 10);
+                
+                // New Widgets Row
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label(ctx, "NEW WIDGETS (Toggle, Badge, Breadcrumb, Modal)", titleOpts);
+                Spacing(ctx, 10);
+                
+                BeginHorizontal(ctx, 30);
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "Toggle Switch:", sectionOpts);
+                        (void)ToggleSwitch(ctx, "Dark Mode", toggleSwitch1);
+                        (void)ToggleSwitch(ctx, "Notifications", toggleSwitch2);
+                    EndVertical(ctx);
+                    
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "Badge:", sectionOpts);
+                        BeginHorizontal(ctx, 10);
+                            Badge(ctx, badgeCount);
+                            BadgeOptions badgeOpts1; badgeOpts1.maxValue = 99;
+                            Badge(ctx, 123, badgeOpts1);
+                            BadgeOptions badgeOpts2; badgeOpts2.color = Color::fromHex(0x2ECC71);
+                            Badge(ctx, "NEW", badgeOpts2);
+                        EndHorizontal(ctx);
+                        ButtonOptions addBadgeBtn; addBadgeBtn.style = Style().withSize(100, 24);
+                        if (Button(ctx, "Add Badge", addBadgeBtn)) {
+                            badgeCount++;
+                        }
+                    EndVertical(ctx);
+                    
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "Breadcrumb:", sectionOpts);
+                        int clickedBreadcrumb = Breadcrumb(ctx, breadcrumbPath);
+                        if (clickedBreadcrumb >= 0) {
+                            statusText = "Navigated to: " + breadcrumbPath[clickedBreadcrumb];
+                        }
+                    EndVertical(ctx);
+                    
+                    BeginVertical(ctx, 10);
+                        Label(ctx, "Modal Dialog:", sectionOpts);
+                        ButtonOptions modalBtn; modalBtn.style = Style().withSize(100, 28);
+                        if (Button(ctx, "Open Modal", modalBtn)) {
+                            showModal = true;
+                        }
+                    EndVertical(ctx);
+                EndHorizontal(ctx);
             }
             
             ctx.layout().endContainer();
         }
+        
+        // Modal Dialog (rendered outside the New Widgets panel)
+        ModalOptions modalOpts; modalOpts.title = "Example Modal"; modalOpts.width = 350;
+        if (BeginModal(ctx, "demo_modal", showModal, modalOpts)) {
+            Label(ctx, "This is a modal dialog!");
+            Spacing(ctx, 10);
+            Label(ctx, "Click outside or press Close to dismiss.");
+            Spacing(ctx, 20);
+            
+            BeginHorizontal(ctx, 10);
+                if (ModalButton(ctx, "Cancel")) {
+                    showModal = false;
+                }
+                if (ModalButton(ctx, "OK", true)) {
+                    showModal = false;
+                    statusText = "Modal confirmed!";
+                }
+            EndHorizontal(ctx);
+        }
+        EndModal(ctx);
 
         // Table Demo Window
         DockableWindow(ctx, "Table Demo") {

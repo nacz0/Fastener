@@ -331,14 +331,40 @@ void Context::addFloatingWindowRect(const Rect& rect) {
 }
 
 bool Context::isOccluded(const Vec2& pos) const {
-    // Only block if we are in the default layer (background)
+    float windowW = static_cast<float>(m_impl->currentWindow ? m_impl->currentWindow->width() : 1);
+    float windowH = static_cast<float>(m_impl->currentWindow ? m_impl->currentWindow->height() : 1);
+    
+    // First check for fullscreen modal backdrop - these block ALL layers
+    auto isFullscreen = [windowW, windowH](const Rect& r) {
+        return r.x() <= 1 && r.y() <= 1 && 
+               r.width() >= windowW - 2 && r.height() >= windowH - 2;
+    };
+    
+    for (const auto& r : m_impl->currentFloatingRects) {
+        if (isFullscreen(r) && r.contains(pos)) {
+            return true;  // Fullscreen modal blocks everything
+        }
+    }
+    for (const auto& r : m_impl->prevFloatingRects) {
+        if (isFullscreen(r) && r.contains(pos)) {
+            return true;  // Fullscreen modal blocks everything
+        }
+    }
+    
+    // For non-fullscreen floating windows, only block default layer
     IDrawList* dl = s_testDrawList ? s_testDrawList : &m_impl->drawList;
     if (dl->currentLayer() != DrawLayer::Default) {
         return false;
     }
     
+    // Check smaller floating windows (only for default layer)
+    for (const auto& r : m_impl->currentFloatingRects) {
+        if (!isFullscreen(r) && r.contains(pos)) {
+            return true;
+        }
+    }
     for (const auto& r : m_impl->prevFloatingRects) {
-        if (r.contains(pos)) {
+        if (!isFullscreen(r) && r.contains(pos)) {
             return true;
         }
     }

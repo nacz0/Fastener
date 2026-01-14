@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <cstring>
 
 /**
  * @file drag_drop.h  

@@ -15,6 +15,7 @@
 #elif defined(__linux__)
 #include <X11/Xlib.h>
 #endif
+#include <cstring>
 
 namespace fst {
 
@@ -211,6 +212,14 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
     s_inSourceBlock = false;
     return false;
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4996) 
+#endif
 
 bool BeginDragDropSource(DragDropFlags flags) {
     Context* ctx = Context::current();
@@ -433,5 +442,11 @@ void EndDragDropFrame() {
     Context* ctx = Context::current();
     if (ctx) fst::EndDragDropFrame(*ctx);
 }
+
+#if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 } // namespace fst

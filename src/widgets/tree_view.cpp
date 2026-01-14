@@ -115,7 +115,7 @@ void TreeView::render(Context& ctx, std::string_view id, const Rect& bounds,
     
     // Handle scrolling
     m_contentHeight = m_flatNodes.size() * options.rowHeight;
-    if (bounds.contains(ctx.input().mousePos())) {
+    if (bounds.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos())) {
         Vec2 scroll = ctx.input().scrollDelta();
         m_scrollY -= scroll.y * options.rowHeight * 3;
         m_scrollY = std::max(0.0f, std::min(m_scrollY, std::max(0.0f, m_contentHeight - contentBounds.height())));
@@ -177,7 +177,7 @@ float TreeView::renderNode(Context& ctx, TreeNode* node, const Rect& bounds, flo
     Rect actualRow(bounds.x() + indent, y, bounds.width() - indent, options.rowHeight);
     
     // Hit testing
-    bool isHovered = rowBounds.contains(ctx.input().mousePos()) && !fst::IsMouseOverAnyMenu(ctx);
+    bool isHovered = rowBounds.contains(ctx.input().mousePos()) && !fst::IsMouseOverAnyMenu(ctx) && !ctx.isOccluded(ctx.input().mousePos());
 
     if (isHovered) {
         m_hoveredNode = node;

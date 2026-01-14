@@ -10,6 +10,7 @@
 
 #include "fastener/platform/window.h"
 #include <X11/Xlib.h>
+#include <X11/Xresource.h>
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 #include <X11/cursorfont.h>
@@ -380,6 +381,8 @@ bool Window::create(const WindowConfig& config) {
     if (!m_impl->display) {
         return false;
     }
+
+    XrmInitialize();
     
     m_impl->width = config.width;
     m_impl->height = config.height;

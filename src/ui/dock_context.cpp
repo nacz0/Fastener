@@ -291,11 +291,8 @@ void DockContext::endDrag(bool commit) {
 // Frame Update
 //=============================================================================
 
-void DockContext::beginFrame() {
-    auto* ctx = Context::current();
-    if (!ctx) return;
-    
-    auto& input = ctx->input();
+void DockContext::beginFrame(Context& ctx) {
+    auto& input = ctx.input();
     
     // Update layouts for all dock spaces
     for (auto& [name, root] : m_impl->dockSpaces) {

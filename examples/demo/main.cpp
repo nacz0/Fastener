@@ -357,27 +357,27 @@ int main() {
     // Initialize default dock layout
     static bool layoutInitialized = false;
     auto initDockLayout = [&]() {
-        DockNode::Id mainDockId = DockBuilder::GetDockSpaceId("##MainDockSpace");
+        DockNode::Id mainDockId = DockBuilder::GetDockSpaceId(ctx, "##MainDockSpace");
         DockBuilder::Begin(mainDockId);
-        DockBuilder::ClearDockSpace(mainDockId);
+        DockBuilder::ClearDockSpace(ctx, mainDockId);
         
         // Split Root into Left and Right
-        DockNode::Id leftNode = DockBuilder::SplitNode(mainDockId, DockDirection::Left, 0.2f);
-        DockNode::Id rightNode = DockBuilder::GetNode(mainDockId, DockDirection::Right);
+        DockNode::Id leftNode = DockBuilder::SplitNode(ctx, mainDockId, DockDirection::Left, 0.2f);
+        DockNode::Id rightNode = DockBuilder::GetNode(ctx, mainDockId, DockDirection::Right);
         
         // Split Right into Center and Bottom
-        DockNode::Id bottomNode = DockBuilder::SplitNode(rightNode, DockDirection::Bottom, 0.25f);
-        DockNode::Id centralNode = DockBuilder::GetNode(rightNode, DockDirection::Top);
+        DockNode::Id bottomNode = DockBuilder::SplitNode(ctx, rightNode, DockDirection::Bottom, 0.25f);
+        DockNode::Id centralNode = DockBuilder::GetNode(ctx, rightNode, DockDirection::Top);
         
-        DockBuilder::DockWindow("Explorer", leftNode);
-        DockBuilder::DockWindow("Terminal", bottomNode);
-        DockBuilder::DockWindow("Editor", centralNode);
-        DockBuilder::DockWindow("Settings", centralNode);
-        DockBuilder::DockWindow("Input Demo", centralNode);
-        DockBuilder::DockWindow("New Widgets", centralNode);
-        DockBuilder::DockWindow("Drag & Drop Demo", centralNode);
-        DockBuilder::DockWindow("Layout Demo", centralNode);
-        DockBuilder::DockWindow("Localization", centralNode);
+        DockBuilder::DockWindow(ctx, "Explorer", leftNode);
+        DockBuilder::DockWindow(ctx, "Terminal", bottomNode);
+        DockBuilder::DockWindow(ctx, "Editor", centralNode);
+        DockBuilder::DockWindow(ctx, "Settings", centralNode);
+        DockBuilder::DockWindow(ctx, "Input Demo", centralNode);
+        DockBuilder::DockWindow(ctx, "New Widgets", centralNode);
+        DockBuilder::DockWindow(ctx, "Drag & Drop Demo", centralNode);
+        DockBuilder::DockWindow(ctx, "Layout Demo", centralNode);
+        DockBuilder::DockWindow(ctx, "Localization", centralNode);
         
         DockBuilder::Finish();
         layoutInitialized = true;
@@ -1276,8 +1276,8 @@ int main() {
         }
 
         // Render Profiler Widgets
-        ShowProfilerOverlay(&showProfilerOverlay);
-        ShowProfilerWindow("Performance Profiler", &showProfilerWindow);
+        ShowProfilerOverlay(ctx, &showProfilerOverlay);
+        ShowProfilerWindow(ctx, "Performance Profiler", &showProfilerWindow);
         
         menuBar.renderPopups(ctx);
         RenderContextMenu(ctx);

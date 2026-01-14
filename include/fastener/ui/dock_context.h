@@ -6,6 +6,8 @@
 #include <string>
 
 namespace fst {
+class Context;
+
 
 //=============================================================================
 // DockContext - Application-level docking state management
@@ -109,7 +111,7 @@ public:
     // Frame Update
     //-------------------------------------------------------------------------
     
-    void beginFrame();
+    void beginFrame(Context& ctx);
     void endFrame();
     
     //-------------------------------------------------------------------------

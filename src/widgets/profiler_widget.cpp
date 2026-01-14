@@ -13,43 +13,40 @@
 
 namespace fst {
 
-void ShowProfilerOverlay(bool* open) {
+void ShowProfilerOverlay(Context& ctx, bool* open) {
     if (open && !*open) return;
-
-    Context* ctx = Context::current();
-    if (!ctx) return;
 
     const float width = 180.0f;
     const float height = 80.0f;
     const float margin = 10.0f;
     
     PanelOptions opt;
-    opt.style.withPos(ctx->window().width() - width - margin, margin).withSize(width, height);
+    opt.style.withPos(ctx.window().width() - width - margin, margin).withSize(width, height);
     opt.title = "Profiler Overlay";
 
     // Using a simple panel for overlay
-    if (BeginPanel(*ctx, "Profiler Overlay", opt)) {
-        float avgTime = ctx->profiler().getAverageFrameTime();
+    if (BeginPanel(ctx, "Profiler Overlay", opt)) {
+        float avgTime = ctx.profiler().getAverageFrameTime();
         float fps = avgTime > 0.0f ? 1000.0f / avgTime : 0.0f;
 
         char buf[128];
         snprintf(buf, sizeof(buf), "FPS: %.1f", fps);
-        Label(*ctx, buf);
+        Label(ctx, buf);
 
         snprintf(buf, sizeof(buf), "Frame: %.2f ms", avgTime);
-        Label(*ctx, buf);
+        Label(ctx, buf);
 
         // Simple sparkline using frame history
         float history[128];
-        ctx->profiler().getFrameHistory(history, 128);
+        ctx.profiler().getFrameHistory(history, 128);
         
         float maxTime = 0.0f;
         for(float t : history) if (t > maxTime) maxTime = t;
         if (maxTime < 16.6f) maxTime = 16.6f; // Min scale 60fps
 
         // Draw basic lines for history
-        DrawList& dl = ctx->drawList();
-        Rect graphRect = ctx->layout().allocate(width - 20, 30);
+        DrawList& dl = ctx.drawList();
+        Rect graphRect = ctx.layout().allocate(width - 20, 30);
 
         dl.addRectFilled(graphRect, Color(40, 40, 40, 200));
         
@@ -65,28 +62,25 @@ void ShowProfilerOverlay(bool* open) {
             dl.addLine(p1, p2, Color(0, 255, 0), 1.0f);
         }
 
-        EndPanel(*ctx);
+        EndPanel(ctx);
     }
 }
 
-void ShowProfilerWindow(const char* title, bool* open) {
+void ShowProfilerWindow(Context& ctx, const char* title, bool* open) {
     if (open && !*open) return;
-
-    Context* ctx = Context::current();
-    if (!ctx) return;
 
     DockableWindowOptions opt;
     opt.title = title;
     opt.open = open;
     opt.style.withSize(450, 500).withPos(50, 50);
 
-    if (BeginDockableWindow(*ctx, "Performance Profiler", opt)) {
-        float avgTime = ctx->profiler().getAverageFrameTime();
+    if (BeginDockableWindow(ctx, "Performance Profiler", opt)) {
+        float avgTime = ctx.profiler().getAverageFrameTime();
         char buf[128];
         snprintf(buf, sizeof(buf), "Average Frame Time: %.2f ms (%.1f FPS)", avgTime, avgTime > 0 ? 1000.0f / avgTime : 0);
-        Label(*ctx, buf);
+        Label(ctx, buf);
         
-        Separator(*ctx);
+        Separator(ctx);
         
         std::vector<TableColumn> columns = {
             {"section", "Section", 200},
@@ -94,10 +88,10 @@ void ShowProfilerWindow(const char* title, bool* open) {
             {"graph", "Graph", 150}
         };
 
-        if (BeginTable(*ctx, "ProfilerTable", columns)) {
-            TableHeader(*ctx);
+        if (BeginTable(ctx, "ProfilerTable", columns)) {
+            TableHeader(ctx);
 
-            const auto& entries = ctx->profiler().getLastFrameEntries();
+            const auto& entries = ctx.profiler().getLastFrameEntries();
             // Sort entries by depth then by start time
             auto sortedEntries = entries;
             std::sort(sortedEntries.begin(), sortedEntries.end(), [](const ProfileEntry& a, const ProfileEntry& b) {
@@ -113,14 +107,14 @@ void ShowProfilerWindow(const char* title, bool* open) {
                 char timeBuf[32];
                 snprintf(timeBuf, sizeof(timeBuf), "%.3f", entry.duration);
 
-                if (TableRow(*ctx, {name, timeBuf, ""})) {
+                if (TableRow(ctx, {name, timeBuf, ""})) {
                     // Clicked row?
                 }
             }
-            EndTable(*ctx);
+            EndTable(ctx);
         }
 
-        EndDockableWindow(*ctx);
+        EndDockableWindow(ctx);
     }
 }
 

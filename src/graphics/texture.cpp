@@ -12,6 +12,8 @@
 // OpenGL function types
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__linux__)
+#include <GL/gl.h>
 #endif
 #include <GL/gl.h>
 

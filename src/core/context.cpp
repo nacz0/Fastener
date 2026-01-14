@@ -140,7 +140,7 @@ void Context::beginFrame(IPlatformWindow& window) {
     m_impl->currentFloatingRects.clear();
     
     // Begin docking frame
-    m_impl->dockContext.beginFrame();
+    m_impl->dockContext.beginFrame(*this);
 
     m_impl->profiler.beginSection("UI");
 }
@@ -172,7 +172,7 @@ void Context::endFrame() {
     m_impl->postRenderCommands.clear();
 
     // Cleanup drag and drop state if needed (and render preview)
-    EndDragDropFrame();
+    EndDragDropFrame(*this);
     
     // Render
     m_impl->drawList.mergeLayers();

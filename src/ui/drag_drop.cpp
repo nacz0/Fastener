@@ -12,6 +12,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <windows.h>
+#elif defined(__linux__)
+#include <X11/Xlib.h>
 #endif
 
 namespace fst {
@@ -39,7 +41,7 @@ static WidgetId s_potentialDragSource = INVALID_WIDGET_ID;
 //=============================================================================
 
 // Check GLOBAL mouse button state (works across all windows)
-static bool IsGlobalMouseButtonDown(MouseButton button) {
+static bool IsGlobalMouseButtonDown(Context* ctx, MouseButton button) {
 #ifdef _WIN32
     int vk = 0;
     switch (button) {
@@ -50,20 +52,39 @@ static bool IsGlobalMouseButtonDown(MouseButton button) {
     }
     // GetAsyncKeyState returns global state regardless of which window has focus
     return (::GetAsyncKeyState(vk) & 0x8000) != 0;
+#elif defined(__linux__)
+    Display* display = XOpenDisplay(nullptr);
+    if (!display) {
+        // Fallback to local state if can't open display
+        if (!ctx) return false;
+        return ctx->input().isMouseDown(button);
+    }
+    
+    ::Window root = DefaultRootWindow(display);
+    ::Window root_ret, child_ret;
+    int root_x, root_y, win_x, win_y;
+    unsigned int mask;
+    XQueryPointer(display, root, &root_ret, &child_ret, &root_x, &root_y, &win_x, &win_y, &mask);
+    XCloseDisplay(display);
+    
+    switch (button) {
+        case MouseButton::Left: return (mask & Button1Mask) != 0;
+        case MouseButton::Right: return (mask & Button3Mask) != 0;
+        case MouseButton::Middle: return (mask & Button2Mask) != 0;
+        default: return false;
+    }
 #else
     // Fallback for other platforms - use local state
-    auto* ctx = Context::current();
     if (!ctx) return false;
     return ctx->input().isMouseDown(button);
 #endif
 }
 
-static void renderDragPreview() {
-    auto* ctx = Context::current();
-    if (!ctx || !s_dragDropState.active) return;
+static void renderDragPreview(Context& ctx) {
+    if (!s_dragDropState.active) return;
     
-    IDrawList& dl = *ctx->activeDrawList();
-    const auto& theme = ctx->theme();
+    IDrawList& dl = *ctx.activeDrawList();
+    const auto& theme = ctx.theme();
     
     // Switch to overlay layer for preview
     DrawLayer prevLayer = dl.currentLayer();
@@ -71,14 +92,14 @@ static void renderDragPreview() {
     
     // For cross-window D&D: use global cursor converted to this window's local coordinates
     // This ensures preview appears at cursor even if drag started in different window
-    Vec2 pos = GetCursorPosInWindow(ctx->window()) + Vec2(15, 15);
+    Vec2 pos = GetCursorPosInWindow(ctx.window()) + Vec2(15, 15);
     
     std::string text = s_dragDropState.payload.displayText;
     if (text.empty()) {
         text = "[" + s_dragDropState.payload.type + "]";
     }
     
-    Font* font = ctx->font();
+    Font* font = ctx.font();
     float padding = 8.0f;
     Vec2 textSize = font ? font->measureText(text) : Vec2(80, 14);
     
@@ -192,7 +213,7 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
 }
 
 bool BeginDragDropSource(DragDropFlags flags) {
-    auto* ctx = fst::Context::current();
+    Context* ctx = Context::current();
     if (!ctx) return false;
     return fst::BeginDragDropSource(*ctx, flags);
 }
@@ -214,32 +235,35 @@ void SetDragDropDisplayText(const std::string& text) {
     s_dragDropState.payload.displayText = text;
 }
 
-void EndDragDropSource() {
+void EndDragDropSource(Context& ctx) {
     if (!s_inSourceBlock) return;
     
-    auto* ctx = Context::current();
-    if (ctx) {
-        const auto& input = ctx->input();
-        s_dragDropState.currentPos = input.mousePos();
-        // Always update global position - works even if cursor left this window
-        s_dragDropState.globalCurrentPos = GetGlobalCursorPos();
-        
-        // Check for drop (mouse released)
-        // Use global state only if we have a native handle (real window)
-        // For test stubs, use local input state since GetAsyncKeyState checks real mouse
-        bool hasNativeHandle = (ctx->window().nativeHandle() != nullptr);
-        bool mouseDown = hasNativeHandle 
-            ? IsGlobalMouseButtonDown(MouseButton::Left)
-            : input.isMouseDown(MouseButton::Left);
-        
-        if (!mouseDown && s_dragDropState.active) {
-            // Do NOT clear here immediately, as targets might be rendered later in the frame.
-            // Mark for clearing at end of frame.
-            s_dragDropState.pendingClear = true;
-        }
+    const auto& input = ctx.input();
+    s_dragDropState.currentPos = input.mousePos();
+    // Always update global position - works even if cursor left this window
+    s_dragDropState.globalCurrentPos = GetGlobalCursorPos();
+    
+    // Check for drop (mouse released)
+    // Use global state only if we have a native handle (real window)
+    // For test stubs, use local input state since GetAsyncKeyState checks real mouse
+    bool hasNativeHandle = (ctx.window().nativeHandle() != nullptr);
+    bool mouseDown = hasNativeHandle 
+        ? IsGlobalMouseButtonDown(&ctx, MouseButton::Left)
+        : input.isMouseDown(MouseButton::Left);
+    
+    if (!mouseDown && s_dragDropState.active) {
+        // Do NOT clear here immediately, as targets might be rendered later in the frame.
+        // Mark for clearing at end of frame.
+        s_dragDropState.pendingClear = true;
     }
     
     s_inSourceBlock = false;
+}
+
+void EndDragDropSource() {
+    Context* ctx = Context::current();
+    if (ctx) fst::EndDragDropSource(*ctx);
+    else s_inSourceBlock = false;
 }
 
 //=============================================================================
@@ -269,7 +293,7 @@ bool BeginDragDropTarget(Context& ctx) {
 }
 
 bool BeginDragDropTarget() {
-    auto* ctx = fst::Context::current();
+    Context* ctx = Context::current();
     if (!ctx) return false;
     return fst::BeginDragDropTarget(*ctx);
 }
@@ -296,7 +320,7 @@ bool BeginDragDropTarget(Context& ctx, const Rect& targetRect) {
 }
 
 bool BeginDragDropTarget(const Rect& targetRect) {
-    auto* ctx = fst::Context::current();
+    Context* ctx = Context::current();
     if (!ctx) return false;
     return fst::BeginDragDropTarget(*ctx, targetRect);
 }
@@ -325,7 +349,7 @@ const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
     
     // Check for drop using GLOBAL mouse state (works for cross-window D&D)
     // GetAsyncKeyState checks actual physical button state regardless of window focus
-    if (!IsGlobalMouseButtonDown(MouseButton::Left)) {
+    if (!IsGlobalMouseButtonDown(&ctx, MouseButton::Left)) {
         s_dragDropState.payload.isDelivered = true;
         // IMPORTANT: Clear activeWidget because after D&D reorder, the source widget's
         // ID may have changed (e.g., pushId(index) where index changes). If we don't
@@ -338,31 +362,34 @@ const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
 }
 
 const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags flags) {
-    auto* ctx = fst::Context::current();
+    Context* ctx = Context::current();
     if (!ctx) return nullptr;
     return fst::AcceptDragDropPayload(*ctx, type, flags);
 }
 
-void EndDragDropTarget() {
+void EndDragDropTarget(Context& ctx) {
     if (!s_inTargetBlock) return;
     
-    auto* ctx = Context::current();
-    if (ctx) {
-        const auto& input = ctx->input();
-        
-        // Clear state if drop occurred
-        if (s_dragDropState.payload.isDelivered) {
+    const auto& input = ctx.input();
+    
+    // Clear state if drop occurred
+    if (s_dragDropState.payload.isDelivered) {
+        s_dragDropState.clear();
+    }
+    // Clear state if mouse released outside valid target
+    else if (input.isMouseReleased(MouseButton::Left)) {
+        if (!s_dragDropState.isOverValidTarget) {
             s_dragDropState.clear();
-        }
-        // Clear state if mouse released outside valid target
-        else if (input.isMouseReleased(MouseButton::Left)) {
-            if (!s_dragDropState.isOverValidTarget) {
-                s_dragDropState.clear();
-            }
         }
     }
     
     s_inTargetBlock = false;
+}
+
+void EndDragDropTarget() {
+    Context* ctx = Context::current();
+    if (ctx) fst::EndDragDropTarget(*ctx);
+    else s_inTargetBlock = false;
 }
 
 //=============================================================================
@@ -385,10 +412,10 @@ void CancelDragDrop() {
     s_potentialDragSource = INVALID_WIDGET_ID;
 }
 
-void EndDragDropFrame() {
+void EndDragDropFrame(Context& ctx) {
     // Render preview at the end of the frame when all potential targets have updated isOverValidTarget
     if (s_dragDropState.active) {
-        renderDragPreview();
+        renderDragPreview(ctx);
     }
 
     // If pending clear was set (mouse released), and we reached end of frame,
@@ -400,6 +427,11 @@ void EndDragDropFrame() {
     
     // Reset frame-cumulative state
     s_dragDropState.isOverValidTarget = false;
+}
+
+void EndDragDropFrame() {
+    Context* ctx = Context::current();
+    if (ctx) fst::EndDragDropFrame(*ctx);
 }
 
 } // namespace fst

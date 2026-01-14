@@ -17,13 +17,8 @@ static struct {
 // DockBuilder Implementation
 //=============================================================================
 
-DockNode::Id DockBuilder::GetDockSpaceId(const std::string& name) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return DockNode::INVALID_ID;
-    }
-    
-    auto& docking = ctx->docking();
+DockNode::Id DockBuilder::GetDockSpaceId(Context& ctx, const std::string& name) {
+    auto& docking = ctx.docking();
     auto id = docking.getNodeIdFromString(name);
     
     if (id == DockNode::INVALID_ID) {
@@ -48,15 +43,15 @@ bool DockBuilder::IsBuilding() {
     return s_builderState.building;
 }
 
-DockNode::Id DockBuilder::SplitNode(DockNode::Id nodeId, 
+DockNode::Id DockBuilder::SplitNode(Context& ctx,
+                                     DockNode::Id nodeId, 
                                      DockDirection direction, 
                                      float sizeRatio) {
-    auto* ctx = Context::current();
-    if (!ctx || !s_builderState.building) {
+    if (!s_builderState.building) {
         return DockNode::INVALID_ID;
     }
     
-    auto& docking = ctx->docking();
+    auto& docking = ctx.docking();
     DockNode* node = docking.getDockNode(nodeId);
     
     if (!node) {
@@ -74,25 +69,19 @@ DockNode::Id DockBuilder::SplitNode(DockNode::Id nodeId,
     return DockNode::INVALID_ID;
 }
 
-void DockBuilder::DockWindow(const std::string& windowId, DockNode::Id nodeId) {
-    auto* ctx = Context::current();
-    if (!ctx || !s_builderState.building) {
+void DockBuilder::DockWindow(Context& ctx, const std::string& windowId, DockNode::Id nodeId) {
+    if (!s_builderState.building) {
         return;
     }
     
-    auto& docking = ctx->docking();
-    WidgetId widgetId = ctx->makeId(windowId.c_str());
+    auto& docking = ctx.docking();
+    WidgetId widgetId = ctx.makeId(windowId.c_str());
     
     docking.dockWindow(widgetId, nodeId, DockDirection::Center);
 }
 
-void DockBuilder::SetNodeFlags(DockNode::Id nodeId, DockNodeFlags flags) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return;
-    }
-    
-    auto& docking = ctx->docking();
+void DockBuilder::SetNodeFlags(Context& ctx, DockNode::Id nodeId, DockNodeFlags flags) {
+    auto& docking = ctx.docking();
     DockNode* node = docking.getDockNode(nodeId);
     
     if (node) {
@@ -100,13 +89,8 @@ void DockBuilder::SetNodeFlags(DockNode::Id nodeId, DockNodeFlags flags) {
     }
 }
 
-DockNode::Id DockBuilder::GetNode(DockNode::Id parentId, DockDirection direction) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return DockNode::INVALID_ID;
-    }
-    
-    auto& docking = ctx->docking();
+DockNode::Id DockBuilder::GetNode(Context& ctx, DockNode::Id parentId, DockDirection direction) {
+    auto& docking = ctx.docking();
     DockNode* parent = docking.getDockNode(parentId);
     
     if (!parent || !parent->isSplitNode()) {
@@ -124,13 +108,8 @@ DockNode::Id DockBuilder::GetNode(DockNode::Id parentId, DockDirection direction
     return parent->children[childIdx] ? parent->children[childIdx]->id : DockNode::INVALID_ID;
 }
 
-void DockBuilder::ClearDockSpace(DockNode::Id dockspaceId) {
-    auto* ctx = Context::current();
-    if (!ctx) {
-        return;
-    }
-    
-    auto& docking = ctx->docking();
+void DockBuilder::ClearDockSpace(Context& ctx, DockNode::Id dockspaceId) {
+    auto& docking = ctx.docking();
     DockNode* root = docking.getDockNode(dockspaceId);
     
     if (root) {

@@ -4,6 +4,8 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#elif defined(__linux__)
+#include <GL/glx.h>
 #endif
 #include <GL/gl.h>
 
@@ -109,6 +111,8 @@ struct Renderer::Impl {
 bool Renderer::Impl::loadFunctions() {
 #ifdef _WIN32
     #define LOAD_GL(name) name = (decltype(name))wglGetProcAddress(#name); if (!name) return false
+#elif defined(__linux__)
+    #define LOAD_GL(name) name = (decltype(name))glXGetProcAddressARB((const GLubyte*)#name); if (!name) return false
 #else
     #define LOAD_GL(name) // TODO: Other platforms
 #endif

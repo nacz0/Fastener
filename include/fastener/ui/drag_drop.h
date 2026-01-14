@@ -140,6 +140,7 @@ using FileDropCallback = std::function<void(const std::vector<std::string>& path
  * @return true if drag is active from this source
  */
 bool BeginDragDropSource(Context& ctx, DragDropFlags flags = DragDropFlags_None);
+[[deprecated("Use version with explicit Context")]]
 bool BeginDragDropSource(DragDropFlags flags = DragDropFlags_None);
 
 /**
@@ -159,6 +160,8 @@ void SetDragDropDisplayText(const std::string& text);
 /**
  * @brief End drag source block
  */
+void EndDragDropSource(Context& ctx);
+[[deprecated("Use version with explicit Context")]]
 void EndDragDropSource();
 
 //=============================================================================
@@ -170,6 +173,7 @@ void EndDragDropSource();
  * @return true if something is being dragged over this target
  */
 bool BeginDragDropTarget(Context& ctx);
+[[deprecated("Use version with explicit Context")]]
 bool BeginDragDropTarget();
 
 /**
@@ -178,6 +182,7 @@ bool BeginDragDropTarget();
  * @return true if something is being dragged over this target
  */
 bool BeginDragDropTarget(Context& ctx, const Rect& targetRect);
+[[deprecated("Use version with explicit Context")]]
 bool BeginDragDropTarget(const Rect& targetRect);
 
 /**
@@ -188,12 +193,15 @@ bool BeginDragDropTarget(const Rect& targetRect);
  */
 const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
                                           DragDropFlags flags = DragDropFlags_None);
+[[deprecated("Use version with explicit Context")]]
 const DragPayload* AcceptDragDropPayload(const std::string& type, 
                                           DragDropFlags flags = DragDropFlags_None);
 
 /**
  * @brief End drop target block
  */
+void EndDragDropTarget(Context& ctx);
+[[deprecated("Use version with explicit Context")]]
 void EndDragDropTarget();
 
 //=============================================================================
@@ -219,6 +227,8 @@ void CancelDragDrop();
  * @brief Ends the drag and drop frame, performing cleanup.
  *        Called internally by the Context.
  */
+void EndDragDropFrame(Context& ctx);
+[[deprecated("Use version with explicit Context")]]
 void EndDragDropFrame();
 
 } // namespace fst

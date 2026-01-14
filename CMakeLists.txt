@@ -43,6 +43,13 @@ if(WIN32)
         gdi32
         user32
     )
+elseif(UNIX AND NOT APPLE)
+    find_package(X11 REQUIRED)
+    target_link_libraries(fastener PUBLIC
+        ${X11_LIBRARIES}
+        GL
+    )
+    target_include_directories(fastener PRIVATE ${X11_INCLUDE_DIR})
 endif()
 
 # Examples

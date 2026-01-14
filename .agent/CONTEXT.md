@@ -19,6 +19,7 @@ while(window.isOpen()) {
 2. **ID uniqueness**: Use `ctx.pushId(i)/popId()` in loops.
 3. **Order matters**: `Tooltip()` AFTER widget it attaches to.
 4. **Drag-drop**: `BeginDragDropSource` → `SetDragDropPayload` → `EndDragDropSource`
+5. **C++17 Only**: Do NOT use designated initializers `{.field = value}` - requires C++20. Use explicit struct construction instead.
 
 ## Key Files
 | Purpose | Path |
@@ -30,3 +31,10 @@ while(window.isOpen()) {
 
 ## Common Widgets
 `Button`, `Checkbox`, `Slider`, `TextInput`, `Panel`, `ComboBox`, `TreeView`, `TabControl`
+
+## Common Pitfalls
+1. **Missing `widget.h`**: For `WidgetInteraction`, `WidgetState`, `handleWidgetInteraction()`, `getWidgetState()` - include `fastener/ui/widget.h`
+2. **Layout API**: Use `ctx.layout().beginContainer()` / `endContainer()`, NOT `pushLayout()`
+3. **Window size**: Use `ctx.window().width()` / `.height()`, NOT `ctx.windowSize()`
+4. **Mouse clicks**: Use `input.isMousePressed()`, NOT `mouseClicked()`
+5. **New source files**: After adding `.cpp` files, run `cmake ..` to reconfigure (GLOB_RECURSE needs refresh)

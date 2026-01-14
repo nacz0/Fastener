@@ -16,6 +16,7 @@
 #include <X11/cursorfont.h>
 #include <X11/keysym.h>
 #include <GL/glx.h>
+#include <unistd.h>
 #include <unordered_map>
 #include <cstring>
 

@@ -1,183 +1,107 @@
 # API Reference
 
-This document provides a technical reference for the core components of the Fastener library.
+This document summarizes the core public API of Fastener.
 
-## 📐 Core Types
+## Core Types (include/fastener/core/types.h)
 
-Found in `fastener/core/types.h`:
+- `Vec2`: 2D float vector with math helpers (`length`, `normalized`, `dot`).
+- `Vec4`: 4D vector used for padding/margins.
+- `Rect`: position + size with hit tests and geometry helpers.
+- `Color`: RGBA color with helpers (`fromHex`, `fromHSL`, `fromHSV`).
+- `WidgetId`: `uint64_t` widget identifiers.
+- Enums: `Alignment`, `Direction`, `Cursor`.
 
-### `struct Vec2`
-Basic 2D vector (float).
-- `x`, `y` coordinates.
-- Supports standard operators (`+`, `-`, `*`, `/`).
-- `length()`, `normalized()`, `dot()`.
+## Context and Lifecycle (include/fastener/core/context.h)
 
-### `struct Rect`
-Screen-space rectangle.
-- `pos` (Vec2) and `size` (Vec2).
-- `contains(Vec2)`: Hit testing.
-- `intersects(Rect)`: Collision testing.
-- `shrunk(padding)`, `expanded(amount)`: Geometric operations.
-- `clipped(Rect)`: Intersection with another rectangle.
+`fst::Context` manages frame lifecycle, state, and rendering:
 
-### `struct Color`
-RGBA Color (0-255).
-- `r`, `g`, `b`, `a` channels.
-- `fromHex(0xRRGGBB)`: Hex utility.
-- `fromHSL(h, s, l)`: Color space conversion.
-- `lighter(amount)`, `darker(amount)`: Modification helpers.
+- Frame: `beginFrame(IPlatformWindow&)`, `endFrame()`
+- Theme: `setTheme(Theme)`, `theme()`
+- Fonts: `loadFont(path, size)`, `font()`, `defaultFont()`
+- Input: `input()`
+- Drawing: `drawList()`, `renderer()`, `layout()`, `docking()`
+- Time: `deltaTime()`, `time()`
+- Focus/hover/active: `getFocusedWidget()`, `setFocusedWidget()`, etc.
+- ID stack: `pushId(...)`, `popId()`, `currentId()`
+- Deferred rendering: `deferRender(lambda)`
 
----
+Context stack helpers:
 
-## 🏗 Context & Lifecycle
+- `Context::pushContext(ctx)`, `Context::popContext()`
+- `Context::current()` is deprecated for new code.
+- `WidgetScope` (include/fastener/ui/widget_scope.h) is a RAII helper for push/pop.
 
-### `class Context`
-Manages the application state. One context is usually sufficient for an entire application.
+## Window and Input (include/fastener/platform/window.h)
 
-| Method | Description |
-|--------|-------------|
-| `beginFrame(Window&)` | Starts a new UI frame. |
-| `endFrame()` | Completes rendering for the current frame. |
-| `setTheme(Theme)` | Sets the global visual style. |
-| `loadFont(path, size)` | Loads a TTF/OTF font. |
-| `pushId(string)` | Enters a new ID namespace. |
-| `popId()` | Exits current ID namespace. |
-| `deferRender(lambda)` | Schedules a command to be drawn last (for popups). |
+`fst::Window` is the platform window implementation:
 
----
+- Lifecycle: `create`, `destroy`, `isOpen`, `close`
+- Events: `pollEvents`, `waitEvents`
+- Rendering: `swapBuffers`, `makeContextCurrent`
+- Size: `size`, `framebufferSize`, `dpiScale`, `setSize`
+- Clipboard: `getClipboardText`, `setClipboardText`
+- Cursor: `setCursor`, `hideCursor`, `showCursor`
+- Callbacks: resize, focus, close, file drop
 
-## 🖥 Window & Input
+Input is accessible via `Context::input()` or `Window::input()`.
 
-### `class Window`
-Platform abstraction for physical windows.
+## Layout (include/fastener/ui/layout.h)
 
-| Method | Description |
-|--------|-------------|
-| `pollEvents()` | Processes OS messages. |
-| `swapBuffers()` | Displays the rendered frame. |
-| `isOpen()` | Returns true if the window exists. |
-| `setCursor(Cursor)` | Changes OS mouse cursor. |
-| `dpiScale()` | Returns UI scale factor for high-DPI screens. |
+Low-level layout helpers:
 
-### `class InputState`
-Accessed via `ctx.input()`.
-- `isKeyDown(Key)`, `isKeyPressed(Key)`.
-- `mousePos()`, `mouseDelta()`, `scrollDelta()`.
-- `isMousePressed(MouseButton)`.
-- `modifiers()`: Access Ctrl, Shift, Alt state.
+- `BeginHorizontal(ctx, spacing)` / `EndHorizontal(ctx)`
+- `BeginVertical(ctx, spacing)` / `EndVertical(ctx)`
+- `Spacing(ctx, pixels)`
+- `Padding(ctx, top, right, bottom, left)`
+- `Allocate(ctx, width, height, flexGrow)`
+- `AllocateRemainingSpace(ctx)`
 
----
+## Flex Layout (include/fastener/ui/flex_layout.h)
 
-## 🎨 Graphics & Drawing
+Flex-style containers with RAII macros:
 
-### `class DrawList`
-The primary way to draw manual primitives.
+- `HStack(ctx, options) { ... }`
+- `VStack(ctx, options) { ... }`
+- `Grid(ctx, options) { ... }`
+- Helpers: `Spacer(ctx)`, `FixedSpacer(ctx, size)`, `Divider(ctx, options)`
 
-| Method | Description |
-|--------|-------------|
-| `addRect(Rect, Color, rounding)` | Draws an outline rectangle. |
-| `addRectFilled(Rect, Color, rounding)` | Draws a solid rectangle. |
-| `addText(Font*, pos, string, Color)` | Renders text. |
-| `addLine(p1, p2, Color, thickness)` | Draws a line segment. |
-| `addCircleFilled(center, radius, Color)` | Draws a filled circle. |
-| `addShadow(Rect, Color, size, rounding)` | Draws a soft drop-shadow. |
+## Drawing (include/fastener/graphics/draw_list.h)
 
----
+`DrawList` provides immediate drawing primitives such as:
 
-## 🎯 Drag and Drop System
+- `addRect`, `addRectFilled`, `addLine`, `addCircleFilled`, `addText`
+- Use `ctx.drawList()` to access the list each frame.
 
-Fastener provides a comprehensive drag-and-drop system for transferring data between widgets, with support for cross-window operations.
+## Drag and Drop (include/fastener/ui/drag_drop.h)
 
-### Core Types
+Drag and drop uses explicit Context overloads. Deprecated overloads without Context still exist for legacy code.
 
-#### `struct DragPayload`
-Data container for drag operations.
-- `type` (string): Type identifier (must match between source/target)
-- `data` (vector<uint8_t>): Serialized payload data
-- `displayText` (string): Preview text shown during drag
-- `sourceWidget` (WidgetId): Widget that initiated the drag
-- `sourceWindow` (IPlatformWindow*): Source window for cross-window drags
-- `isDelivered` (bool): Whether payload was accepted
+Core flow:
 
-Helper methods:
-```cpp
-payload.setData<int>(42);           // Set typed data
-int value = payload.getData<int>(); // Get typed data
-```
+- Source: `BeginDragDropSource(ctx)`, `SetDragDropPayload(...)`, `EndDragDropSource(ctx)`
+- Target: `BeginDragDropTarget(ctx)`, `AcceptDragDropPayload(ctx, type)`, `EndDragDropTarget(ctx)`
 
-#### `enum DragDropFlags_`
-Flags to customize drag-drop behavior:
-- `DragDropFlags_None`: Default behavior
-- `DragDropFlags_SourceNoPreviewTooltip`: Don't show preview tooltip
-- `DragDropFlags_SourceNoDisableHover`: Keep source widget hover
-- `DragDropFlags_SourceNoHoldToOpenOthers`: Don't open on hold
-- `DragDropFlags_AcceptNoHighlight`: Don't highlight target
-- `DragDropFlags_AcceptNoPreviewTooltip`: Don't show accept preview
-- `DragDropFlags_CrossWindow`: Allow drag between windows
+Utilities:
 
-### Workflow Patterns
+- `IsDragDropActive()`, `GetDragDropPayload()`, `CancelDragDrop()`
 
-**Source (Drag Initiator):**
-```cpp
-if (fst::BeginDragDropSource()) {
-    int itemIndex = 42;
-    fst::SetDragDropPayload("MY_TYPE", &itemIndex, sizeof(int));
-    fst::SetDragDropDisplayText("Dragging item 42");
-    fst::EndDragDropSource();
-}
-```
+## Theming and Style (include/fastener/ui/theme.h, style.h)
 
-**Target (Drop Receiver):**
-```cpp
-if (fst::BeginDragDropTarget()) {
-    if (const auto* payload = fst::AcceptDragDropPayload("MY_TYPE")) {
-        int droppedIndex = payload->getData<int>();
-        handleDrop(droppedIndex);
-    }
-    fst::EndDragDropTarget();
-}
-```
+- `Theme`, `ThemeColors`, `ThemeMetrics`
+- Built-in themes: `Theme::dark()`, `Theme::light()`
+- Per-widget overrides: `Style` (size, padding, background, border, flex, etc.)
 
-### API Functions
+## Localization (include/fastener/core/i18n.h)
 
-| Function | Description |
-|----------|-------------|
-| `BeginDragDropSource(flags)` | Start drag source block, returns true if dragging |
-| `SetDragDropPayload(type, data, size)` | Set typed payload data |
-| `SetDragDropDisplayText(text)` | Set preview text |
-| `EndDragDropSource()` | End drag source block |
-| `BeginDragDropTarget()` | Start drop target block |
-| `BeginDragDropTarget(rect)` | Start drop target with explicit bounds |
-| `AcceptDragDropPayload(type, flags)` | Accept payload of specific type |
-| `EndDragDropTarget()` | End drop target block |
-| `IsDragDropActive()` | Check if drag in progress |
-| `GetDragDropPayload()` | Peek at current payload |
-| `CancelDragDrop()` | Abort current drag operation |
+- `I18n::instance()` singleton
+- `loadFromFile`, `setLocale`, `translate`, `translatePlural`
+- Helpers: `i18n(key)`, `i18n(key, args)`, `i18n_plural(...)`
+
+## Profiling (include/fastener/core/profiler.h, widgets/profiler_widget.h)
+
+- `Profiler`: `beginFrame`, `endFrame`, `beginSection`, `endSection`
+- `ProfileScope` RAII helper
+- Widgets: `ShowProfilerOverlay(ctx)`, `ShowProfilerWindow(ctx, title)`
 
 ---
-
-## 🎭 Theming
-
-### `struct ThemeColors`
-Configurable palette used by all widgets.
-- `windowBackground`, `panelBackground`.
-- `primary`, `primaryHover`, `primaryActive`.
-- `text`, `textSecondary`, `textDisabled`.
-- `border`, `inputBackground`, `selection`.
-
-### `struct ThemeMetrics`
-Spacing and sizing constants.
-- `paddingSmall`, `paddingMedium`, `paddingLarge`.
-- `borderRadius`, `borderWidth`.
-- `buttonHeight`, `fontSize`, `scrollbarWidth`.
-
-### `class Style`
-Per-widget overrides. Many widgets accept a `Style` struct in their options.
-```cpp
-fst::Style myStyle;
-myStyle.withWidth(200).withBackground(fst::Color::red());
-fst::Button("Error", { myStyle });
-```
-
----
-[Next: Widget Catalog →](WIDGETS.md)
+Next: WIDGETS.md

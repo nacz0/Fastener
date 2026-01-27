@@ -34,6 +34,7 @@
 #include "fastener/widgets/tree_view.h"
 #include "fastener/widgets/tab_control.h"
 #include "fastener/widgets/menu.h"
+#include "fastener/widgets/command_palette.h"
 #include "fastener/widgets/scroll_area.h"
 #include "fastener/widgets/combo_box.h"
 #include "fastener/widgets/progress_bar.h"

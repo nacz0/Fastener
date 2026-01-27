@@ -181,6 +181,7 @@ int main() {
     
     // Create menu bar
     MenuBar menuBar;
+    CommandPalette commandPalette;
     std::string statusText = "Ready";
     
     std::unordered_map<std::string, TextEditor> editors;
@@ -362,6 +363,27 @@ int main() {
     menuBar.addMenu("Profiler", {
         MenuItem::checkbox("showOverlay", "Show Overlay", &showProfilerOverlay),
         MenuItem::checkbox("showWindow", "Show Detailed Window", &showProfilerWindow)
+    });
+
+    commandPalette.setCommands({
+        CommandPaletteCommand("file.new", "New File", [&]() {
+            static int n = 1;
+            std::string name = "untitled" + std::to_string(n++) + ".cpp";
+            tabs.addTab(name, name);
+            statusText = "Created: " + name;
+        }).withShortcut("Ctrl+N").withDescription("Create a new file"),
+        CommandPaletteCommand("file.save", "Save", [&]() {
+            statusText = "Saved!";
+        }).withShortcut("Ctrl+S"),
+        CommandPaletteCommand("view.toggle_profiler_overlay", "Toggle Profiler Overlay", [&]() {
+            showProfilerOverlay = !showProfilerOverlay;
+        }),
+        CommandPaletteCommand("view.toggle_profiler_window", "Toggle Profiler Window", [&]() {
+            showProfilerWindow = !showProfilerWindow;
+        }),
+        CommandPaletteCommand("app.exit", "Exit", [&]() {
+            window.close();
+        }).withShortcut("Alt+F4")
     });
     
     // Initialize default dock layout
@@ -1291,6 +1313,9 @@ int main() {
         
         menuBar.renderPopups(ctx);
         RenderContextMenu(ctx);
+        if (const CommandPaletteCommand* executed = commandPalette.render(ctx)) {
+            statusText = "Command: " + executed->label;
+        }
         
         // Render docking preview overlay at the end
         RenderDockPreview(ctx);

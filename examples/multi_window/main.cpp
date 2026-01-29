@@ -11,12 +11,65 @@
 #include "fastener/fastener.h"
 #include <iostream>
 #include <algorithm>
+#include <filesystem>
 
 #ifdef _WIN32
 #include <windows.h>
 #endif
 
 using namespace fst;
+
+namespace {
+
+std::filesystem::path findAssetPath(const std::filesystem::path& relativePath) {
+    namespace fs = std::filesystem;
+    fs::path base = fs::current_path();
+#ifdef _WIN32
+    wchar_t exePath[MAX_PATH] = {};
+    if (GetModuleFileNameW(nullptr, exePath, MAX_PATH) > 0) {
+        base = fs::path(exePath).parent_path();
+    }
+#endif
+
+    for (int i = 0; i < 6; ++i) {
+        fs::path candidate = base / relativePath;
+        if (fs::exists(candidate)) {
+            return candidate;
+        }
+        if (!base.has_parent_path()) break;
+        base = base.parent_path();
+    }
+
+    return {};
+}
+
+bool loadDemoFont(Context& ctx) {
+    namespace fs = std::filesystem;
+    fs::path assetFont = findAssetPath(fs::path("assets") / "arial.ttf");
+    if (!assetFont.empty() && ctx.loadFont(assetFont.string(), 14.0f)) {
+        return true;
+    }
+
+#ifdef _WIN32
+    fs::path systemArial = "C:/Windows/Fonts/arial.ttf";
+    if (fs::exists(systemArial)) {
+        return ctx.loadFont(systemArial.string(), 14.0f);
+    }
+#else
+    fs::path liberation = "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf";
+    if (fs::exists(liberation) && ctx.loadFont(liberation.string(), 14.0f)) {
+        return true;
+    }
+    fs::path dejavu = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+    if (fs::exists(dejavu)) {
+        return ctx.loadFont(dejavu.string(), 14.0f);
+    }
+#endif
+
+    return false;
+}
+
+} // namespace
 
 int main() {
     WindowManager wm;
@@ -50,17 +103,9 @@ int main() {
     Context ctx;
     ctx.setTheme(Theme::dark());
     
-#ifdef _WIN32
-    if (!ctx.loadFont("assets/arial.ttf", 14.0f)) {
-        ctx.loadFont("C:/Windows/Fonts/arial.ttf", 14.0f);
+    if (!loadDemoFont(ctx)) {
+        std::cerr << "Failed to load a font." << std::endl;
     }
-#else
-    if (!ctx.loadFont("assets/arial.ttf", 14.0f)) {
-        if (!ctx.loadFont("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 14.0f)) {
-            ctx.loadFont("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 14.0f);
-        }
-    }
-#endif
     
     // Stan współdzielony między oknami
     float sharedValue = 50.0f;
@@ -154,11 +199,6 @@ int main() {
         
         // === OKNO TOOLS ===
         if (toolsWindow && toolsWindow->isOpen() && !toolsWindow->isMinimized()) {
-            #ifdef _WIN32
-            HDC toolsDC = GetDC((HWND)toolsWindow->nativeHandle());
-            wglMakeCurrent(toolsDC, (HGLRC)mainWindow->glContext());
-            #endif
-            
             ctx.beginFrame(*toolsWindow);
             
             DrawList& dl = ctx.drawList();

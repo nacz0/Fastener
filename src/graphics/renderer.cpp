@@ -8,6 +8,7 @@
 #include <GL/glx.h>
 #endif
 #include <GL/gl.h>
+#include <unordered_map>
 
 // OpenGL 3.3 function types and constants
 typedef char GLchar;
@@ -68,6 +69,16 @@ bool hasCurrentGLContext() {
 #endif
 }
 
+void* currentGLContextHandle() {
+#ifdef _WIN32
+    return reinterpret_cast<void*>(wglGetCurrentContext());
+#elif defined(__linux__)
+    return reinterpret_cast<void*>(glXGetCurrentContext());
+#else
+    return nullptr;
+#endif
+}
+
 } // namespace
 
 struct Renderer::Impl {
@@ -76,6 +87,7 @@ struct Renderer::Impl {
     GLuint vbo = 0;
     GLuint ebo = 0;
     GLuint whiteTexture = 0;
+    std::unordered_map<void*, GLuint> vaoByContext;
     
     GLint locPosition = -1;
     GLint locTexCoord = -1;
@@ -120,6 +132,8 @@ struct Renderer::Impl {
     bool loadFunctions();
     bool createShader();
     void createWhiteTexture();
+    void setupVao(GLuint vao);
+    void ensureVaoForCurrentContext();
 };
 
 bool Renderer::Impl::loadFunctions() {
@@ -262,6 +276,51 @@ void Renderer::Impl::createWhiteTexture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void Renderer::Impl::setupVao(GLuint vao) {
+    if (!vao) return;
+
+    glBindVertexArray(vao);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+
+    // Position
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(DrawVertex),
+                          reinterpret_cast<void*>(offsetof(DrawVertex, pos)));
+
+    // TexCoord
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(DrawVertex),
+                          reinterpret_cast<void*>(offsetof(DrawVertex, uv)));
+
+    // Color (as normalized unsigned bytes)
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DrawVertex),
+                          reinterpret_cast<void*>(offsetof(DrawVertex, color)));
+
+    glBindVertexArray(0);
+}
+
+void Renderer::Impl::ensureVaoForCurrentContext() {
+    void* ctxHandle = currentGLContextHandle();
+    if (!ctxHandle) return;
+
+    auto it = vaoByContext.find(ctxHandle);
+    if (it == vaoByContext.end()) {
+        GLuint newVao = 0;
+        glGenVertexArrays(1, &newVao);
+        setupVao(newVao);
+        vaoByContext.emplace(ctxHandle, newVao);
+        vao = newVao;
+    } else {
+        vao = it->second;
+    }
+
+    if (vao) {
+        glBindVertexArray(vao);
+    }
+}
+
 Renderer::Renderer() : m_impl(std::make_unique<Impl>()) {}
 
 Renderer::~Renderer() {
@@ -272,10 +331,6 @@ bool Renderer::init() {
     if (!m_impl->loadFunctions()) return false;
     if (!m_impl->createShader()) return false;
     
-    // Create VAO
-    m_impl->glGenVertexArrays(1, &m_impl->vao);
-    m_impl->glBindVertexArray(m_impl->vao);
-    
     // Create VBO
     m_impl->glGenBuffers(1, &m_impl->vbo);
     m_impl->glBindBuffer(GL_ARRAY_BUFFER, m_impl->vbo);
@@ -283,24 +338,13 @@ bool Renderer::init() {
     // Create EBO
     m_impl->glGenBuffers(1, &m_impl->ebo);
     m_impl->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_impl->ebo);
-    
-    // Vertex attributes
-    // Position
-    m_impl->glEnableVertexAttribArray(0);
-    m_impl->glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(DrawVertex), 
-                                   reinterpret_cast<void*>(offsetof(DrawVertex, pos)));
-    
-    // TexCoord
-    m_impl->glEnableVertexAttribArray(1);
-    m_impl->glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(DrawVertex),
-                                   reinterpret_cast<void*>(offsetof(DrawVertex, uv)));
-    
-    // Color (as normalized unsigned bytes)
-    m_impl->glEnableVertexAttribArray(2);
-    m_impl->glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(DrawVertex),
-                                   reinterpret_cast<void*>(offsetof(DrawVertex, color)));
-    
-    m_impl->glBindVertexArray(0);
+
+    // Create VAO for the current context and configure attributes.
+    m_impl->glGenVertexArrays(1, &m_impl->vao);
+    m_impl->setupVao(m_impl->vao);
+    if (void* ctxHandle = currentGLContextHandle()) {
+        m_impl->vaoByContext.emplace(ctxHandle, m_impl->vao);
+    }
     
     // Create white texture for solid colors
     m_impl->createWhiteTexture();
@@ -316,15 +360,20 @@ void Renderer::shutdown() {
         m_impl->ebo = 0;
         m_impl->shaderProgram = 0;
         m_impl->whiteTexture = 0;
+        m_impl->vaoByContext.clear();
         return;
     }
 
-    if (m_impl->vao) {
-        if (m_impl->glDeleteVertexArrays) {
-            m_impl->glDeleteVertexArrays(1, &m_impl->vao);
+    if (m_impl->glDeleteVertexArrays) {
+        for (auto& entry : m_impl->vaoByContext) {
+            GLuint vao = entry.second;
+            if (vao) {
+                m_impl->glDeleteVertexArrays(1, &vao);
+            }
         }
-        m_impl->vao = 0;
     }
+    m_impl->vaoByContext.clear();
+    m_impl->vao = 0;
     if (m_impl->vbo) {
         if (m_impl->glDeleteBuffers) {
             m_impl->glDeleteBuffers(1, &m_impl->vbo);
@@ -354,11 +403,8 @@ void Renderer::beginFrame(int width, int height, float dpiScale) {
     m_impl->viewportHeight = height;
     m_impl->dpiScale = dpiScale;
     
-    // Rebind VAO since it may not be valid in shared contexts
-    // VAOs are NOT shared between GL contexts, only textures/buffers/shaders are
-    if (m_impl->vao) {
-        m_impl->glBindVertexArray(m_impl->vao);
-    }
+    // Ensure a VAO exists for the current GL context (VAOs are not shared)
+    m_impl->ensureVaoForCurrentContext();
     
     glViewport(0, 0, width, height);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);

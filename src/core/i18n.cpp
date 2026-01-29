@@ -18,6 +18,42 @@ namespace fst {
 
 namespace {
 
+void appendUtf8(std::string& out, uint32_t codepoint) {
+    if (codepoint <= 0x7F) {
+        out += static_cast<char>(codepoint);
+    } else if (codepoint <= 0x7FF) {
+        out += static_cast<char>(0xC0 | (codepoint >> 6));
+        out += static_cast<char>(0x80 | (codepoint & 0x3F));
+    } else if (codepoint <= 0xFFFF) {
+        out += static_cast<char>(0xE0 | (codepoint >> 12));
+        out += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        out += static_cast<char>(0x80 | (codepoint & 0x3F));
+    } else if (codepoint <= 0x10FFFF) {
+        out += static_cast<char>(0xF0 | (codepoint >> 18));
+        out += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
+        out += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+        out += static_cast<char>(0x80 | (codepoint & 0x3F));
+    } else {
+        appendUtf8(out, 0xFFFD);
+    }
+}
+
+bool parseHex4(const std::string& json, size_t& pos, uint16_t& out) {
+    if (pos + 4 > json.size()) return false;
+    uint16_t value = 0;
+    for (int i = 0; i < 4; ++i) {
+        char c = json[pos + i];
+        value <<= 4;
+        if (c >= '0' && c <= '9') value |= static_cast<uint16_t>(c - '0');
+        else if (c >= 'a' && c <= 'f') value |= static_cast<uint16_t>(c - 'a' + 10);
+        else if (c >= 'A' && c <= 'F') value |= static_cast<uint16_t>(c - 'A' + 10);
+        else return false;
+    }
+    pos += 4;
+    out = value;
+    return true;
+}
+
 // Skip whitespace
 void skipWhitespace(const std::string& json, size_t& pos) {
     while (pos < json.size() && std::isspace(static_cast<unsigned char>(json[pos]))) {
@@ -40,8 +76,41 @@ std::string parseString(const std::string& json, size_t& pos) {
                 case 'n': result += '\n'; break;
                 case 't': result += '\t'; break;
                 case 'r': result += '\r'; break;
+                case 'b': result += '\b'; break;
+                case 'f': result += '\f'; break;
                 case '"': result += '"'; break;
                 case '\\': result += '\\'; break;
+                case '/': result += '/'; break;
+                case 'u': {
+                    ++pos;
+                    uint16_t codeUnit = 0;
+                    if (!parseHex4(json, pos, codeUnit)) {
+                        appendUtf8(result, 0xFFFD);
+                        --pos;
+                        break;
+                    }
+                    
+                    uint32_t codepoint = codeUnit;
+                    
+                    // Handle surrogate pairs
+                    if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF) {
+                        if (pos + 2 < json.size() && json[pos] == '\\' && json[pos + 1] == 'u') {
+                            pos += 2;
+                            uint16_t low = 0;
+                            if (parseHex4(json, pos, low) && low >= 0xDC00 && low <= 0xDFFF) {
+                                codepoint = 0x10000 + (((codeUnit - 0xD800) << 10) | (low - 0xDC00));
+                            } else {
+                                appendUtf8(result, 0xFFFD);
+                                --pos;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    appendUtf8(result, codepoint);
+                    --pos;
+                    break;
+                }
                 default: result += json[pos]; break;
             }
         } else {

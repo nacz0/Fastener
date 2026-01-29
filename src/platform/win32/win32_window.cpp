@@ -144,6 +144,10 @@ struct Window::Impl {
     int fbWidth = 0;
     int fbHeight = 0;
     float dpiScale = 1.0f;
+    int minWidth = 0;
+    int minHeight = 0;
+    int maxWidth = 0;
+    int maxHeight = 0;
     
     InputState inputState;
     
@@ -431,6 +435,27 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             }
             break;
 
+        case WM_GETMINMAXINFO: {
+            MINMAXINFO* mmi = reinterpret_cast<MINMAXINFO*>(lParam);
+            DWORD style = static_cast<DWORD>(GetWindowLongW(hwnd, GWL_STYLE));
+            DWORD exStyle = static_cast<DWORD>(GetWindowLongW(hwnd, GWL_EXSTYLE));
+            
+            if (impl->minWidth > 0 || impl->minHeight > 0) {
+                RECT rect = {0, 0, impl->minWidth, impl->minHeight};
+                AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+                mmi->ptMinTrackSize.x = rect.right - rect.left;
+                mmi->ptMinTrackSize.y = rect.bottom - rect.top;
+            }
+            
+            if (impl->maxWidth > 0 || impl->maxHeight > 0) {
+                RECT rect = {0, 0, impl->maxWidth, impl->maxHeight};
+                AdjustWindowRectEx(&rect, style, FALSE, exStyle);
+                mmi->ptMaxTrackSize.x = rect.right - rect.left;
+                mmi->ptMaxTrackSize.y = rect.bottom - rect.top;
+            }
+            return 0;
+        }
+
         case WM_ENTERSIZEMOVE:
             impl->isModalLoop = true;
             SetTimer(hwnd, 1001, 16, nullptr); // ~60fps
@@ -711,11 +736,13 @@ void Window::setSize(int width, int height) {
 }
 
 void Window::setMinSize(int minWidth, int minHeight) {
-    // TODO: Implement via WM_GETMINMAXINFO
+    m_impl->minWidth = minWidth;
+    m_impl->minHeight = minHeight;
 }
 
 void Window::setMaxSize(int maxWidth, int maxHeight) {
-    // TODO: Implement via WM_GETMINMAXINFO
+    m_impl->maxWidth = maxWidth;
+    m_impl->maxHeight = maxHeight;
 }
 
 void Window::setPosition(int x, int y) {

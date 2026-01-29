@@ -13,7 +13,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #elif defined(__linux__)
-#include <GL/gl.h>
+#include <GL/glx.h>
 #endif
 #include <GL/gl.h>
 
@@ -29,6 +29,20 @@
 #endif
 
 namespace fst {
+
+namespace {
+
+bool hasCurrentGLContext() {
+#ifdef _WIN32
+    return wglGetCurrentContext() != nullptr;
+#elif defined(__linux__)
+    return glXGetCurrentContext() != nullptr;
+#else
+    return true;
+#endif
+}
+
+} // namespace
 
 Texture::Texture() = default;
 
@@ -98,7 +112,14 @@ bool Texture::create(int width, int height, const void* data, int channels) {
 
 bool Texture::loadFromFile(const std::string& path) {
     // Read file
+#ifdef _WIN32
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
+    std::wstring wpath(wlen, 0);
+    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wpath.data(), wlen);
+    FILE* f = _wfopen(wpath.c_str(), L"rb");
+#else
     FILE* f = fopen(path.c_str(), "rb");
+#endif
     if (!f) {
         FST_LOG_ERROR("Failed to open texture file");
         return false;
@@ -136,8 +157,12 @@ bool Texture::loadFromMemory(const void* data, size_t size) {
 
 void Texture::destroy() {
     if (m_handle != 0) {
-        GLuint tex = m_handle;
-        glDeleteTextures(1, &tex);
+        if (!hasCurrentGLContext()) {
+            FST_LOG_WARN("Texture::destroy called without a current GL context; skipping GL delete");
+        } else {
+            GLuint tex = m_handle;
+            glDeleteTextures(1, &tex);
+        }
         m_handle = 0;
     }
     m_width = 0;

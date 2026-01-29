@@ -58,8 +58,24 @@ bool BeginCard(Context& ctx, const std::string& id, const CardOptions& options) 
         }
     }
     
+    bool useBlur = options.style.blurRadius > 0.0f;
+    
+    Color bgColor = options.style.backgroundColor.a > 0
+        ? options.style.backgroundColor
+        : theme.colors.panelBackground;
+    if (useBlur) {
+        if (options.style.blurTint.a > 0) {
+            bgColor = options.style.blurTint;
+        } else if (bgColor.a == 255) {
+            bgColor = bgColor.withAlpha(static_cast<uint8_t>(200));
+        }
+    }
+    
     // Draw card background
-    dl.addRectFilled(bounds, theme.colors.panelBackground, theme.metrics.borderRadius);
+    if (useBlur) {
+        dl.addBlurRect(bounds, options.style.blurRadius, theme.metrics.borderRadius);
+    }
+    dl.addRectFilled(bounds, bgColor, theme.metrics.borderRadius);
     dl.addRect(bounds, theme.colors.border, theme.metrics.borderRadius);
     
     // Draw title bar if title exists
@@ -70,7 +86,7 @@ bool BeginCard(Context& ctx, const std::string& id, const CardOptions& options) 
         // Title bar background (slightly different shade)
         dl.addRectFilled(
             titleBarBounds,
-            theme.colors.panelBackground.lighter(0.05f),
+            bgColor.lighter(0.05f),
             theme.metrics.borderRadius
         );
         

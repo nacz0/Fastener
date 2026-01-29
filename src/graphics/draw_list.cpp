@@ -135,10 +135,12 @@ void DrawList::setTexture(uint32_t textureId) {
 void DrawList::updateCommand() {
     auto& data = currentData();
     if (data.commands.empty() || 
+        data.commands.back().type != DrawCommandType::Triangles ||
         data.commands.back().textureId != data.currentTexture ||
         data.commands.back().clipRect != currentClipRect()) {
         
         DrawCommand cmd;
+        cmd.type = DrawCommandType::Triangles;
         cmd.textureId = data.currentTexture;
         cmd.indexOffset = static_cast<uint32_t>(data.indices.size());
         cmd.indexCount = 0;
@@ -575,6 +577,38 @@ void DrawList::addImageRounded(const Texture* texture, const Rect& rect,
     addCorner({rect.right() - r, rect.y() + r}, -3.14159265f / 2); // Top-right
     addCorner({rect.right() - r, rect.bottom() - r}, 0.0f);        // Bottom-right
     addCorner({rect.x() + r, rect.bottom() - r}, 3.14159265f / 2); // Bottom-left
+}
+
+void DrawList::addBlurRect(const Rect& rect, float blurRadius, float rounding, Color tint) {
+    if (blurRadius <= 0.0f || rect.width() <= 0.0f || rect.height() <= 0.0f) return;
+    
+    auto& data = currentData();
+    
+    DrawCommand cmd;
+    cmd.type = DrawCommandType::Blur;
+    cmd.textureId = 0;
+    cmd.indexOffset = static_cast<uint32_t>(data.indices.size());
+    cmd.indexCount = 0;
+    cmd.clipRect = currentClipRect();
+    cmd.rect = rect;
+    cmd.blurRadius = blurRadius;
+    cmd.rounding = rounding;
+    data.commands.push_back(cmd);
+    
+    uint32_t idx = static_cast<uint32_t>(data.vertices.size());
+    Color finalColor = resolveColor(tint);
+    
+    addVertex(rect.topLeft(), {0, 0}, finalColor);
+    addVertex(rect.topRight(), {1, 0}, finalColor);
+    addVertex(rect.bottomRight(), {1, 1}, finalColor);
+    addVertex(rect.bottomLeft(), {0, 1}, finalColor);
+    
+    addIndex(idx + 0);
+    addIndex(idx + 1);
+    addIndex(idx + 2);
+    addIndex(idx + 0);
+    addIndex(idx + 2);
+    addIndex(idx + 3);
 }
 
 void DrawList::addShadow(const Rect& rect, Color color, float size, float rounding) {

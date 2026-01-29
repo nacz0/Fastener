@@ -40,6 +40,10 @@ struct Style {
     float shadowSize = 0.0f;
     Color shadowColor = Color::transparent();
     
+    // Blur
+    float blurRadius = 0.0f;           // 0 = disabled
+    Color blurTint = Color::transparent();
+    
     // Alignment
     Alignment horizontalAlign = Alignment::Start;
     Alignment verticalAlign = Alignment::Start;
@@ -91,6 +95,11 @@ struct Style {
         hasShadow = true;
         shadowSize = size;
         shadowColor = color;
+        return *this;
+    }
+    Style& withBlur(float radius = 8.0f, Color tint = Color::transparent()) {
+        blurRadius = radius;
+        blurTint = tint;
         return *this;
     }
     Style& withFlex(float grow = 1.0f, float shrink = 1.0f) {

@@ -171,6 +171,7 @@ int main() {
     tabs.addTab("input_demo", "Input Demo", true);
     tabs.addTab("new_widgets_demo", "New Widgets", true);
     tabs.addTab("table_demo", "Table Demo", true);
+    tabs.addTab("blur_demo", "Blur Demo", true);
     tabs.addTab("types.cpp", "types.cpp", true);
     tabs.addTab("context.cpp", "context.cpp", true);
     
@@ -549,8 +550,116 @@ int main() {
             
             if (tabs.selectedTab()) {
                 const std::string& tabId = tabs.selectedTab()->id;
-                TextEditor& editor = getOrCreateEditor(tabId);
-                editor.render(ctx, editorTabsRect);
+                if (tabId == "blur_demo") {
+                    Rect demoRect = editorTabsRect;
+                    dl.addRectFilledMultiColor(
+                        demoRect,
+                        Color(32, 90, 170),
+                        Color(120, 60, 190),
+                        Color(30, 160, 140),
+                        Color(18, 30, 60)
+                    );
+                    dl.addCircleFilled(
+                        Vec2(demoRect.x() + demoRect.width() * 0.25f, demoRect.y() + demoRect.height() * 0.35f),
+                        120.0f,
+                        Color(255, 120, 90, 120),
+                        48
+                    );
+                    dl.addCircleFilled(
+                        Vec2(demoRect.x() + demoRect.width() * 0.75f, demoRect.y() + demoRect.height() * 0.55f),
+                        160.0f,
+                        Color(80, 180, 255, 110),
+                        48
+                    );
+                    
+                    float panelPadding = 40.0f;
+                    Rect blurPanelRect(
+                        demoRect.x() + panelPadding,
+                        demoRect.y() + panelPadding,
+                        demoRect.width() - panelPadding * 2,
+                        demoRect.height() - panelPadding * 2
+                    );
+                    
+                    PanelOptions blurPanelOpts;
+                    blurPanelOpts.title = "Blur / Frosted Glass";
+                    blurPanelOpts.style = Style()
+                        .withPos(blurPanelRect.x(), blurPanelRect.y())
+                        .withSize(blurPanelRect.width(), blurPanelRect.height())
+                        .withBlur(16.0f, Color(255, 255, 255, 120))
+                        .withBorderRadius(16.0f)
+                        .withBorder(1.0f, Color(255, 255, 255, 90))
+                        .withShadow(14.0f, Color(0, 0, 0, 70));
+                    
+                    Panel(ctx, "BlurDemoPanel", blurPanelOpts) {
+                        LabelOptions titleOpts;
+                        titleOpts.color = Color(30, 60, 120);
+                        Label(ctx, "Frosted Glass Panels", titleOpts);
+                        Spacing(ctx, 8);
+                        
+                        LabelOptions infoOpts;
+                        infoOpts.color = Color(80, 80, 90);
+                        Label(ctx, "Blur radius and tint are controlled per-widget.", infoOpts);
+                        Spacing(ctx, 16);
+                        
+                        BeginHorizontal(ctx, 16);
+                            CardOptions softOpts;
+                            softOpts.style = Style().withSize(180, 110)
+                                .withBlur(6.0f, Color(255, 255, 255, 110))
+                                .withBorderRadius(12.0f)
+                                .withBorder(1.0f, Color(255, 255, 255, 80))
+                                .withShadow(10.0f, Color(0, 0, 0, 45));
+                            softOpts.title = "Soft";
+                            Card(ctx, "BlurSoft", softOpts) {
+                                LabelOptions cardText;
+                                cardText.color = Color(60, 60, 70);
+                                Label(ctx, "Radius: 6", cardText);
+                                Label(ctx, "Tint: 110", cardText);
+                            }
+                            
+                            CardOptions midOpts;
+                            midOpts.style = Style().withSize(180, 110)
+                                .withBlur(12.0f, Color(255, 255, 255, 125))
+                                .withBorderRadius(12.0f)
+                                .withBorder(1.0f, Color(255, 255, 255, 80))
+                                .withShadow(10.0f, Color(0, 0, 0, 45));
+                            midOpts.title = "Medium";
+                            Card(ctx, "BlurMedium", midOpts) {
+                                LabelOptions cardText;
+                                cardText.color = Color(60, 60, 70);
+                                Label(ctx, "Radius: 12", cardText);
+                                Label(ctx, "Tint: 125", cardText);
+                            }
+                            
+                            CardOptions heavyOpts;
+                            heavyOpts.style = Style().withSize(180, 110)
+                                .withBlur(18.0f, Color(255, 255, 255, 140))
+                                .withBorderRadius(12.0f)
+                                .withBorder(1.0f, Color(255, 255, 255, 80))
+                                .withShadow(10.0f, Color(0, 0, 0, 45));
+                            heavyOpts.title = "Heavy";
+                            Card(ctx, "BlurHeavy", heavyOpts) {
+                                LabelOptions cardText;
+                                cardText.color = Color(60, 60, 70);
+                                Label(ctx, "Radius: 18", cardText);
+                                Label(ctx, "Tint: 140", cardText);
+                            }
+                        EndHorizontal(ctx);
+                        
+                        Spacing(ctx, 18);
+                        Separator(ctx);
+                        Spacing(ctx, 12);
+                        
+                        BeginHorizontal(ctx, 12);
+                            ButtonOptions btnOpts;
+                            btnOpts.style = Style().withSize(120, 32);
+                            (void)Button(ctx, "Primary", btnOpts);
+                            (void)Button(ctx, "Secondary", btnOpts);
+                        EndHorizontal(ctx);
+                    }
+                } else {
+                    TextEditor& editor = getOrCreateEditor(tabId);
+                    editor.render(ctx, editorTabsRect);
+                }
             } else {
                 if (ctx.font()) {
                     dl.addText(ctx.font(), Vec2(editorTabsRect.x() + 20, editorTabsRect.y() + 20), "No file open", theme.colors.textSecondary);

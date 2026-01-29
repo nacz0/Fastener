@@ -53,6 +53,10 @@ public:
     MOCK_METHOD(void, addImageRounded, 
                 (const Texture* texture, const Rect& rect, float rounding, Color tint), (override));
     
+    // Blur
+    MOCK_METHOD(void, addBlurRect, 
+                (const Rect& rect, float blurRadius, float rounding, Color tint), (override));
+    
     // Shadow
     MOCK_METHOD(void, addShadow, (const Rect& rect, Color color, float size, float rounding), (override));
     

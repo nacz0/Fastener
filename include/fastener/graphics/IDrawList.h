@@ -67,6 +67,10 @@ public:
     virtual void addImageRounded(const Texture* texture, const Rect& rect, float rounding, 
                                  Color tint = Color::white()) = 0;
     
+    // Blur
+    virtual void addBlurRect(const Rect& rect, float blurRadius, float rounding = 0.0f, 
+                             Color tint = Color::none()) = 0;
+    
     // Shadow
     virtual void addShadow(const Rect& rect, Color color, float size, float rounding = 0.0f) = 0;
     

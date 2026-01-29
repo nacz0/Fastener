@@ -71,10 +71,19 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
     // Allocate bounds
     Rect bounds = allocateWidgetBounds(ctx, options.style, width, height);
     
+    bool useBlur = options.style.blurRadius > 0.0f;
+    
     // Determine background color
     Color bgColor = options.style.backgroundColor.a > 0 
         ? options.style.backgroundColor 
         : theme.colors.panelBackground;
+    if (useBlur) {
+        if (options.style.blurTint.a > 0) {
+            bgColor = options.style.blurTint;
+        } else if (bgColor.a == 255) {
+            bgColor = bgColor.withAlpha(static_cast<uint8_t>(200));
+        }
+    }
     
     float radius = options.style.borderRadius > 0 
         ? options.style.borderRadius 
@@ -86,6 +95,9 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
     }
     
     // Draw panel background
+    if (useBlur) {
+        dl.addBlurRect(bounds, options.style.blurRadius, radius);
+    }
     dl.addRectFilled(bounds, bgColor, radius);
     
     // Draw border if specified

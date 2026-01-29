@@ -21,11 +21,20 @@ struct DrawVertex {
 //=============================================================================
 // Draw Command
 //=============================================================================
+enum class DrawCommandType {
+    Triangles,
+    Blur
+};
+
 struct DrawCommand {
+    DrawCommandType type = DrawCommandType::Triangles;
     uint32_t textureId = 0;
     uint32_t indexOffset = 0;
     uint32_t indexCount = 0;
     Rect clipRect;
+    Rect rect;
+    float blurRadius = 0.0f;
+    float rounding = 0.0f;
 };
 
 //=============================================================================
@@ -76,6 +85,8 @@ public:
                   Color tint = Color::white()) override;
     void addImageRounded(const Texture* texture, const Rect& rect, float rounding, 
                          Color tint = Color::white()) override;
+    void addBlurRect(const Rect& rect, float blurRadius, float rounding = 0.0f, 
+                     Color tint = Color::none()) override;
     
     // Shadow (soft rectangle)
     void addShadow(const Rect& rect, Color color, float size, float rounding = 0.0f) override;

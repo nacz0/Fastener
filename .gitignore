@@ -1,5 +1,6 @@
 # Build directories
 build/
+build-tests/
 out/
 bin/
 lib/
@@ -92,4 +93,5 @@ desktop.ini
 *.orig
 *.tags
 tags
+
 

@@ -85,6 +85,8 @@ int main() {
 - Theme: set a theme or configure colors explicitly.
 - Fonts: at least one font must be loaded before text widgets.
 - Event loop: always call `window.pollEvents()` before `beginFrame()`.
+- Frame scope: `ctx.input()` and `ctx.window()` are only valid between `beginFrame()` and `endFrame()`.
+- GL context: renderer initialization and GL resource cleanup require a current context; keep a window/context alive when destroying Fastener resources.
 
 ---
 Next: ARCHITECTURE.md

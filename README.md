@@ -56,6 +56,10 @@ int main() {
 }
 ```
 
+Notes:
+- `ctx.input()` and `ctx.window()` are valid only between `beginFrame()` and `endFrame()`.
+- Renderer initialization and GL resource cleanup require a current OpenGL context.
+
 ## Building
 
 ### Requirements

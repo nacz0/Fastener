@@ -56,6 +56,20 @@ typedef void (APIENTRY *PFNGLACTIVETEXTUREPROC)(GLenum);
 
 namespace fst {
 
+namespace {
+
+bool hasCurrentGLContext() {
+#ifdef _WIN32
+    return wglGetCurrentContext() != nullptr;
+#elif defined(__linux__)
+    return glXGetCurrentContext() != nullptr;
+#else
+    return true;
+#endif
+}
+
+} // namespace
+
 struct Renderer::Impl {
     GLuint shaderProgram = 0;
     GLuint vao = 0;
@@ -295,20 +309,38 @@ bool Renderer::init() {
 }
 
 void Renderer::shutdown() {
+    if (!hasCurrentGLContext()) {
+        FST_LOG_WARN("Renderer::shutdown called without a current GL context; skipping GL deletes");
+        m_impl->vao = 0;
+        m_impl->vbo = 0;
+        m_impl->ebo = 0;
+        m_impl->shaderProgram = 0;
+        m_impl->whiteTexture = 0;
+        return;
+    }
+
     if (m_impl->vao) {
-        m_impl->glDeleteVertexArrays(1, &m_impl->vao);
+        if (m_impl->glDeleteVertexArrays) {
+            m_impl->glDeleteVertexArrays(1, &m_impl->vao);
+        }
         m_impl->vao = 0;
     }
     if (m_impl->vbo) {
-        m_impl->glDeleteBuffers(1, &m_impl->vbo);
+        if (m_impl->glDeleteBuffers) {
+            m_impl->glDeleteBuffers(1, &m_impl->vbo);
+        }
         m_impl->vbo = 0;
     }
     if (m_impl->ebo) {
-        m_impl->glDeleteBuffers(1, &m_impl->ebo);
+        if (m_impl->glDeleteBuffers) {
+            m_impl->glDeleteBuffers(1, &m_impl->ebo);
+        }
         m_impl->ebo = 0;
     }
     if (m_impl->shaderProgram) {
-        m_impl->glDeleteProgram(m_impl->shaderProgram);
+        if (m_impl->glDeleteProgram) {
+            m_impl->glDeleteProgram(m_impl->shaderProgram);
+        }
         m_impl->shaderProgram = 0;
     }
     if (m_impl->whiteTexture) {

@@ -20,6 +20,59 @@ namespace fst {
 static thread_local std::vector<Context*> s_contextStack;
 static IDrawList* s_testDrawList = nullptr;
 
+namespace {
+
+class NullWindow final : public IPlatformWindow {
+public:
+    explicit NullWindow(InputState& input) : m_input(input) {}
+
+    bool isOpen() const override { return false; }
+    void close() override {}
+
+    void pollEvents() override {}
+    void waitEvents() override {}
+
+    void swapBuffers() override {}
+    void makeContextCurrent() override {}
+
+    Vec2 size() const override { return {0.0f, 0.0f}; }
+    Vec2 framebufferSize() const override { return {0.0f, 0.0f}; }
+    float dpiScale() const override { return 1.0f; }
+
+    int width() const override { return 0; }
+    int height() const override { return 0; }
+
+    void setTitle(const std::string&) override {}
+    void setSize(int, int) override {}
+    void setPosition(int, int) override {}
+
+    void minimize() override {}
+    void maximize() override {}
+    void restore() override {}
+    void focus() override {}
+
+    bool isMinimized() const override { return false; }
+    bool isMaximized() const override { return false; }
+    bool isFocused() const override { return false; }
+
+    void setCursor(Cursor) override {}
+    void hideCursor() override {}
+    void showCursor() override {}
+
+    std::string getClipboardText() const override { return {}; }
+    void setClipboardText(const std::string&) override {}
+
+    InputState& input() override { return m_input; }
+    const InputState& input() const override { return m_input; }
+
+    void* nativeHandle() const override { return nullptr; }
+
+private:
+    InputState& m_input;
+};
+
+} // namespace
+
 struct Context::Impl {
     // Components
     Renderer renderer;
@@ -38,7 +91,9 @@ struct Context::Impl {
     // Input
     InputState* inputState = nullptr;
     IPlatformWindow* currentWindow = nullptr;
-    
+    InputState nullInput;
+    NullWindow nullWindow{nullInput};
+
     // Time
     std::chrono::steady_clock::time_point startTime;
     std::chrono::steady_clock::time_point lastFrameTime;
@@ -71,13 +126,12 @@ struct Context::Impl {
     std::vector<Rect> currentFloatingRects;
     std::vector<Rect> prevFloatingRects;
     bool rendererInitialized = false;
+    bool rendererEnabled = false;
+    bool frameActive = false;
 };
 
 Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
-    if (initializeRenderer) {
-        m_impl->renderer.init();
-        m_impl->rendererInitialized = true;
-    }
+    m_impl->rendererEnabled = initializeRenderer;
 }
 
 Context::~Context() {
@@ -90,6 +144,7 @@ Context::~Context() {
 
 void Context::beginFrame(IPlatformWindow& window) {
     pushContext(this);
+    m_impl->frameActive = true;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
     m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
@@ -113,6 +168,17 @@ void Context::beginFrame(IPlatformWindow& window) {
     m_impl->drawList.clear();
     
     // Begin rendering
+    if (m_impl->rendererEnabled) {
+        window.makeContextCurrent();
+        if (!m_impl->rendererInitialized) {
+            if (m_impl->renderer.init()) {
+                m_impl->rendererInitialized = true;
+            } else {
+                FST_LOG_ERROR("Context::beginFrame failed to initialize renderer");
+                m_impl->rendererEnabled = false;
+            }
+        }
+    }
     if (m_impl->rendererInitialized) {
         Vec2 fbSize = window.framebufferSize();
         m_impl->renderer.beginFrame(
@@ -185,6 +251,10 @@ void Context::endFrame() {
     m_impl->profiler.endSection(); // Frame
     m_impl->profiler.endFrame();
 
+    m_impl->inputState = nullptr;
+    m_impl->currentWindow = nullptr;
+    m_impl->frameActive = false;
+
     popContext();
 }
 
@@ -220,10 +290,18 @@ Font* Context::defaultFont() const {
 }
 
 [[nodiscard]] InputState& Context::input() {
+    if (!m_impl->inputState) {
+        FST_LOG_ERROR("Context::input called outside of beginFrame/endFrame");
+        return m_impl->nullInput;
+    }
     return *m_impl->inputState;
 }
 
 const InputState& Context::input() const {
+    if (!m_impl->inputState) {
+        FST_LOG_ERROR("Context::input called outside of beginFrame/endFrame");
+        return m_impl->nullInput;
+    }
     return *m_impl->inputState;
 }
 
@@ -245,6 +323,10 @@ LayoutContext& Context::layout() {
 }
 
 [[nodiscard]] IPlatformWindow& Context::window() const {
+    if (!m_impl->currentWindow) {
+        FST_LOG_ERROR("Context::window called outside of beginFrame/endFrame");
+        return m_impl->nullWindow;
+    }
     return *m_impl->currentWindow;
 }
 

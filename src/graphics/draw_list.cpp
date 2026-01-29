@@ -415,7 +415,7 @@ void DrawList::addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3,
     addIndex(idx + 2);
 }
 
-void DrawList::addText(const Font* font, const Vec2& pos, std::string_view text, Color color) {
+void DrawList::addText(Font* font, const Vec2& pos, std::string_view text, Color color) {
     if (!font || text.empty() || !font->isValid()) return;
     
     const char* textStart = text.data();
@@ -427,8 +427,6 @@ void DrawList::addText(const Font* font, const Vec2& pos, std::string_view text,
     float x = pos.x;
     float y = pos.y;
     uint32_t prevCodepoint = 0;
-    
-    Font* mutableFont = const_cast<Font*>(font);  // For lazy glyph loading
     
     const char* s = textStart;
     while (s < textEnd) {
@@ -464,7 +462,7 @@ void DrawList::addText(const Font* font, const Vec2& pos, std::string_view text,
             continue;
         }
         
-        const GlyphInfo* glyph = mutableFont->getGlyph(codepoint);
+        const GlyphInfo* glyph = font->getGlyph(codepoint);
         if (!glyph) continue;
         
         // Apply kerning
@@ -514,8 +512,69 @@ void DrawList::addImage(const Texture* texture, const Rect& rect,
 
 void DrawList::addImageRounded(const Texture* texture, const Rect& rect, 
                                 float rounding, Color tint) {
-    // TODO: Implement rounded image with masking
-    addImage(texture, rect, tint);
+    if (!texture || !texture->isValid()) return;
+    if (rounding <= 0.0f) {
+        addImage(texture, rect, tint);
+        return;
+    }
+    
+    float r = std::min(rounding, std::min(rect.width(), rect.height()) * 0.5f);
+    if (r <= 0.0f) {
+        addImage(texture, rect, tint);
+        return;
+    }
+    
+    setTexture(texture->handle());
+    
+    Vec2 uv0(0.0f, 0.0f);
+    Vec2 uv1(1.0f, 1.0f);
+    Vec2 size = rect.size;
+    Vec2 invSize = {size.x > 0.0f ? 1.0f / size.x : 0.0f, size.y > 0.0f ? 1.0f / size.y : 0.0f};
+    
+    auto uvForPos = [&](const Vec2& p) {
+        float u = (p.x - rect.x()) * invSize.x;
+        float v = (p.y - rect.y()) * invSize.y;
+        return Vec2(uv0.x + u * (uv1.x - uv0.x), uv0.y + v * (uv1.y - uv0.y));
+    };
+    
+    auto addImageQuad = [&](const Rect& part) {
+        addQuad(
+            part.topLeft(), part.topRight(), part.bottomRight(), part.bottomLeft(),
+            uvForPos(part.topLeft()), uvForPos(part.topRight()),
+            uvForPos(part.bottomRight()), uvForPos(part.bottomLeft()),
+            tint
+        );
+    };
+    
+    // Center and edges
+    addImageQuad(rect.shrunk(Vec4(r, r, r, r)));
+    addImageQuad(Rect(rect.x() + r, rect.y(), rect.width() - 2 * r, r));                 // Top
+    addImageQuad(Rect(rect.x() + r, rect.bottom() - r, rect.width() - 2 * r, r));       // Bottom
+    addImageQuad(Rect(rect.x(), rect.y() + r, r, rect.height() - 2 * r));               // Left
+    addImageQuad(Rect(rect.right() - r, rect.y() + r, r, rect.height() - 2 * r));       // Right
+    
+    // Corners
+    int segments = std::max(4, static_cast<int>(r * 0.5f));
+    auto addCorner = [&](const Vec2& center, float startAngle) {
+        updateCommand();
+        uint32_t centerIdx = static_cast<uint32_t>(currentData().vertices.size());
+        addVertex(center, uvForPos(center), tint);
+        for (int i = 0; i <= segments; ++i) {
+            float angle = startAngle + (3.14159265f / 2.0f) * i / segments;
+            Vec2 p = center + Vec2(std::cos(angle), std::sin(angle)) * r;
+            addVertex(p, uvForPos(p), tint);
+            if (i > 0) {
+                addIndex(centerIdx);
+                addIndex(centerIdx + i);
+                addIndex(centerIdx + i + 1);
+            }
+        }
+    };
+    
+    addCorner({rect.x() + r, rect.y() + r}, 3.14159265f);          // Top-left
+    addCorner({rect.right() - r, rect.y() + r}, -3.14159265f / 2); // Top-right
+    addCorner({rect.right() - r, rect.bottom() - r}, 0.0f);        // Bottom-right
+    addCorner({rect.x() + r, rect.bottom() - r}, 3.14159265f / 2); // Bottom-left
 }
 
 void DrawList::addShadow(const Rect& rect, Color color, float size, float rounding) {

@@ -68,7 +68,7 @@ public:
     void addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none()) override;
     
     // Text
-    void addText(const Font* font, const Vec2& pos, std::string_view text, Color color = Color::none()) override;
+    void addText(Font* font, const Vec2& pos, std::string_view text, Color color = Color::none()) override;
     
     // Images
     void addImage(const Texture* texture, const Rect& rect, Color tint = Color::white()) override;

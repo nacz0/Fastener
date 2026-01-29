@@ -3,6 +3,7 @@
 #include "stb_truetype.h"
 #include "fastener/graphics/font.h"
 #include "fastener/core/log.h"
+#include "fastener/core/constants.h"
 #include <fstream>
 #include <cstring>
 #include <cmath>
@@ -113,8 +114,8 @@ bool Font::loadFromMemory(const void* data, size_t dataSize, float size) {
     m_atlasData.resize(m_atlasWidth * m_atlasHeight);
     std::memset(m_atlasData.data(), 0, m_atlasData.size());
     
-    m_packX = 1;
-    m_packY = 1;
+    m_packX = constants::ATLAS_GLYPH_PADDING;
+    m_packY = constants::ATLAS_GLYPH_PADDING;
     m_packRowHeight = 0;
     
     // Pre-bake ASCII characters
@@ -182,6 +183,7 @@ bool Font::bakeGlyph(uint32_t codepoint) {
     if (!m_fontInfo) return false;
     
     stbtt_fontinfo* info = static_cast<stbtt_fontinfo*>(m_fontInfo);
+    const int padding = constants::ATLAS_GLYPH_PADDING;
     
     // Get glyph metrics
     int glyphIndex = stbtt_FindGlyphIndex(info, codepoint);
@@ -200,16 +202,59 @@ bool Font::bakeGlyph(uint32_t codepoint) {
     int glyphHeight = y1 - y0;
     
     // Check if we need to move to next row
-    if (m_packX + glyphWidth + 1 >= m_atlasWidth) {
-        m_packX = 1;
-        m_packY += m_packRowHeight + 1;
+    if (m_packX + glyphWidth + padding >= m_atlasWidth) {
+        m_packX = padding;
+        m_packY += m_packRowHeight + padding;
         m_packRowHeight = 0;
     }
     
     // Check if atlas is full
-    if (m_packY + glyphHeight + 1 >= m_atlasHeight) {
-        // TODO: Expand atlas or use multiple pages
-        return false;
+    if (m_packY + glyphHeight + padding >= m_atlasHeight ||
+        m_packX + glyphWidth + padding >= m_atlasWidth) {
+        int newWidth = m_atlasWidth;
+        int newHeight = m_atlasHeight;
+        if (m_packX + glyphWidth + padding >= m_atlasWidth) {
+            newWidth = std::min(m_atlasWidth * 2, constants::MAX_ATLAS_SIZE);
+        }
+        if (m_packY + glyphHeight + padding >= m_atlasHeight) {
+            newHeight = std::min(m_atlasHeight * 2, constants::MAX_ATLAS_SIZE);
+        }
+        if (newWidth == m_atlasWidth && newHeight == m_atlasHeight) {
+            return false;
+        }
+        
+        std::vector<uint8_t> newData(newWidth * newHeight);
+        std::memset(newData.data(), 0, newData.size());
+        for (int row = 0; row < m_atlasHeight; ++row) {
+            std::memcpy(
+                newData.data() + row * newWidth,
+                m_atlasData.data() + row * m_atlasWidth,
+                m_atlasWidth
+            );
+        }
+        
+        m_atlasData.swap(newData);
+        m_atlasWidth = newWidth;
+        m_atlasHeight = newHeight;
+        
+        for (auto& kv : m_glyphs) {
+            GlyphInfo& glyph = kv.second;
+            glyph.uvX0 = static_cast<float>(glyph.atlasX) / m_atlasWidth;
+            glyph.uvY0 = static_cast<float>(glyph.atlasY) / m_atlasHeight;
+            glyph.uvX1 = static_cast<float>(glyph.atlasX + glyph.atlasW) / m_atlasWidth;
+            glyph.uvY1 = static_cast<float>(glyph.atlasY + glyph.atlasH) / m_atlasHeight;
+        }
+        
+        std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
+        for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
+            rgbaData[i * 4 + 0] = 255;
+            rgbaData[i * 4 + 1] = 255;
+            rgbaData[i * 4 + 2] = 255;
+            rgbaData[i * 4 + 3] = m_atlasData[i];
+        }
+        
+        m_atlas.destroy();
+        m_atlas.create(m_atlasWidth, m_atlasHeight, rgbaData.data(), 4);
     }
     
     // Render glyph to atlas
@@ -242,7 +287,7 @@ bool Font::bakeGlyph(uint32_t codepoint) {
     m_glyphs[codepoint] = glyph;
     
     // Advance pack position
-    m_packX += glyphWidth + 1;
+    m_packX += glyphWidth + padding;
     m_packRowHeight = std::max(m_packRowHeight, glyphHeight);
     
     return true;
@@ -309,17 +354,20 @@ Vec2 Font::measureText(std::string_view text) const {
             continue;
         }
         
-        // Get glyph info (need const_cast for lazy loading)
+        // Get glyph info (fallback to metrics if not baked)
         auto it = m_glyphs.find(codepoint);
+        if (prevCodepoint != 0) {
+            x += getKerning(prevCodepoint, codepoint);
+        }
         if (it != m_glyphs.end()) {
             const GlyphInfo& glyph = it->second;
-            
-            // Apply kerning
-            if (prevCodepoint != 0) {
-                x += getKerning(prevCodepoint, codepoint);
-            }
-            
             x += glyph.xAdvance;
+        } else if (m_fontInfo) {
+            int advanceWidth = 0;
+            int leftSideBearing = 0;
+            stbtt_fontinfo* info = static_cast<stbtt_fontinfo*>(m_fontInfo);
+            stbtt_GetCodepointHMetrics(info, codepoint, &advanceWidth, &leftSideBearing);
+            x += advanceWidth * m_scale;
         }
         
         prevCodepoint = codepoint;

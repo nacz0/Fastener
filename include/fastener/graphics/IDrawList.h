@@ -58,7 +58,7 @@ public:
     virtual void addTriangleFilled(const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color = Color::none()) = 0;
     
     // Text
-    virtual void addText(const Font* font, const Vec2& pos, std::string_view text, Color color = Color::none()) = 0;
+    virtual void addText(Font* font, const Vec2& pos, std::string_view text, Color color = Color::none()) = 0;
     
     // Images
     virtual void addImage(const Texture* texture, const Rect& rect, Color tint = Color::white()) = 0;

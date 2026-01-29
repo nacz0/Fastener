@@ -43,7 +43,7 @@ public:
     MOCK_METHOD(void, addTriangleFilled, (const Vec2& p1, const Vec2& p2, const Vec2& p3, Color color), (override));
     
     // Text
-    MOCK_METHOD(void, addText, (const Font* font, const Vec2& pos, std::string_view text, Color color), (override));
+    MOCK_METHOD(void, addText, (Font* font, const Vec2& pos, std::string_view text, Color color), (override));
     
     // Images
     MOCK_METHOD(void, addImage, (const Texture* texture, const Rect& rect, Color tint), (override));

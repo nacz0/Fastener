@@ -30,6 +30,9 @@ typedef ptrdiff_t GLintptr;
 #ifndef GL_TEXTURE_WRAP_T
 #define GL_TEXTURE_WRAP_T                 0x2803
 #endif
+#ifndef GL_MULTISAMPLE
+#define GL_MULTISAMPLE                    0x809D
+#endif
 
 // Function pointer types
 typedef void (APIENTRY *PFNGLATTACHSHADERPROC)(GLuint, GLuint);
@@ -594,6 +597,9 @@ void Renderer::beginFrame(int width, int height, float dpiScale) {
     // Ensure a VAO exists for the current GL context (VAOs are not shared)
     m_impl->ensureVaoForCurrentContext();
     
+    // MSAA improves edge smoothing when a multisample framebuffer is available.
+    glEnable(GL_MULTISAMPLE);
+
     glViewport(0, 0, width, height);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

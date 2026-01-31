@@ -15,6 +15,7 @@ int main() {
     config.width = 1280;
     config.height = 720;
     config.vsync = true;
+    config.msaaSamples = 16;
     
     Window window(config);
     if (!window.isOpen()) {

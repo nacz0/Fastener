@@ -5,6 +5,16 @@
 #include <cmath>
 #include <cstring>
 
+namespace {
+
+int cornerSegments(float radius) {
+    int segments = static_cast<int>(radius * 1.25f);
+    segments = std::max(16, segments);
+    return std::min(segments, 160);
+}
+
+} // namespace
+
 namespace fst {
 
 DrawList::DrawList() {
@@ -248,7 +258,7 @@ void DrawList::primRectFilled(const Rect& rect, Color color, float rounding) {
         return;
     }
     
-    const int segments = 8;
+    const int segments = cornerSegments(rounding);
     
     // Draw center rect
     addQuadFilled(Rect(rect.x() + rounding, rect.y(), 
@@ -319,7 +329,7 @@ void DrawList::primRect(const Rect& rect, Color color, float rounding) {
             
     // Arcs for corners
     auto drawCornerArc = [&](Vec2 center, float startAngle) {
-        const int segments = 8;
+        const int segments = cornerSegments(rounding);
         float r = rounding - thickness * 0.5f;
         for (int i = 0; i < segments; ++i) {
             float a1 = startAngle + (3.14159265f / 2.0f) * (float)i / segments;
@@ -556,7 +566,7 @@ void DrawList::addImageRounded(const Texture* texture, const Rect& rect,
     addImageQuad(Rect(rect.right() - r, rect.y() + r, r, rect.height() - 2 * r));       // Right
     
     // Corners
-    int segments = std::max(4, static_cast<int>(r * 0.5f));
+    int segments = cornerSegments(r);
     auto addCorner = [&](const Vec2& center, float startAngle) {
         updateCommand();
         uint32_t centerIdx = static_cast<uint32_t>(currentData().vertices.size());

@@ -197,6 +197,8 @@ int main() {
     float progressVal = 0.45f;
     float indeterminateProgress = 0.0f;
     Color pickerColor = Color::fromHex(0x3498DB);
+    Date demoDate = {2026, 1, 31};
+    TimeOfDay demoTime = {14, 30, 0};
     
     // Slider state
     float sliderValue1 = 50.0f;
@@ -532,6 +534,20 @@ int main() {
                 BeginVertical(ctx, 10);
                     Label(ctx, "Color Selection:", sectionOpts);
                     ColorPicker(ctx, "Accent Color", pickerColor);
+                EndVertical(ctx);
+
+                Spacing(ctx, 20);
+
+                BeginVertical(ctx, 10);
+                    Label(ctx, "Schedule:", sectionOpts);
+                    DatePickerOptions dateOpts;
+                    dateOpts.format = DateFormat::ISO;
+                    (void)DatePicker(ctx, "Start Date", demoDate, dateOpts);
+
+                    TimePickerOptions timeOpts;
+                    timeOpts.showSeconds = true;
+                    timeOpts.use24Hour = true;
+                    (void)TimePicker(ctx, "Start Time", demoTime, timeOpts);
                 EndVertical(ctx);
             }
             

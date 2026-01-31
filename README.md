@@ -21,6 +21,7 @@ Fastener is designed for creating polished end-user apps like IDEs, file explore
 | Widget | Description |
 |--------|-------------|
 | `Button`, `Label`, `TextInput` | Core inputs and text |
+| `DatePicker`, `TimePicker` | Date and time selection controls |
 | `Checkbox`, `ToggleSwitch`, `RadioButton` | Boolean and choice controls |
 | `Slider`, `InputNumber`, `ProgressBar` | Numeric and progress controls |
 | `Panel`, `Card`, `ScrollArea`, `Splitter` | Containers and layout helpers |

@@ -46,6 +46,8 @@
 #include "fastener/widgets/text_area.h"
 #include "fastener/widgets/radio_button.h"
 #include "fastener/widgets/input_number.h"
+#include "fastener/widgets/date_picker.h"
+#include "fastener/widgets/time_picker.h"
 #include "fastener/widgets/collapsing_header.h"
 #include "fastener/widgets/image.h"
 #include "fastener/widgets/separator.h"

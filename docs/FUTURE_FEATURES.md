@@ -9,7 +9,6 @@ This list tracks potential enhancements that are not implemented yet.
 
 ## Widgets
 
-- DatePicker / TimePicker
 - SearchBar with history and suggestions
 - TagInput with removable chips
 - Stepper / Wizard

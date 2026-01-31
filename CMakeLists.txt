@@ -85,6 +85,7 @@ if(FST_BUILD_TESTS)
     enable_testing()
     add_executable(fastener_tests 
         tests/test_types.cpp
+        tests/test_date_time.cpp
         tests/test_widget_utils.cpp
         tests/test_layout.cpp
         tests/test_input.cpp

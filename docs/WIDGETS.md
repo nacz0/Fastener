@@ -55,6 +55,15 @@ int count = 10;
 fst::InputNumberInt(ctx, "Count", count, 0, 100);
 ```
 
+### DatePicker and TimePicker
+```cpp
+fst::Date startDate{2026, 1, 31};
+fst::DatePicker(ctx, "Start Date", startDate);
+
+fst::TimeOfDay startTime{14, 30, 0};
+fst::TimePicker(ctx, "Start Time", startTime, { .showSeconds = true });
+```
+
 ## Containers and Layout
 
 ### Panel

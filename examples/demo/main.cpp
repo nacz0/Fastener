@@ -171,6 +171,7 @@ int main() {
     tabs.addTab("settings_demo", "Settings", true);
     tabs.addTab("input_demo", "Input Demo", true);
     tabs.addTab("new_widgets_demo", "New Widgets", true);
+    tabs.addTab("svg_demo", "SVG Demo", true);
     tabs.addTab("rich_text_demo", "Rich Text", true);
     tabs.addTab("table_demo", "Table Demo", true);
     tabs.addTab("blur_demo", "Blur Demo", true);
@@ -274,6 +275,25 @@ int main() {
     int badgeCount = 5;
     bool showModal = false;
     std::vector<std::string> breadcrumbPath = {"Home", "Documents", "Projects", "Fastener"};
+    SvgDocument demoSvg;
+    const bool svgLoaded = demoSvg.loadFromMemory(R"svg(
+        <svg viewBox="0 0 64 64">
+            <rect x="6" y="6" width="52" height="52" rx="10" fill="#1abc9c"/>
+            <polygon points="32,14 39,28 54,30 42,40 45,54 32,46 19,54 22,40 10,30 25,28" fill="#ffffff"/>
+        </svg>
+    )svg");
+    SvgDocument demoSvgAdvanced;
+    const bool svgAdvancedLoaded = demoSvgAdvanced.loadFromMemory(R"svg(
+        <svg viewBox="0 0 160 100">
+            <rect x="6" y="6" width="148" height="88" rx="12" fill="#2c3e50"/>
+            <path d="M20 70 C 40 10 120 90 140 30" stroke="#e67e22" stroke-width="4" fill="none"/>
+            <path d="M20 30 A 20 20 0 0 1 60 30" stroke="#f1c40f" stroke-width="3" fill="none"/>
+            <path d="M80 20 L120 20 L120 60 L80 60 Z M92 32 L108 32 L108 48 L92 48 Z"
+                  fill="#1abc9c" fill-rule="evenodd"/>
+            <line x1="20" y1="85" x2="140" y2="85" stroke="#ecf0f1" stroke-width="3" stroke-dasharray="6 4"/>
+            <rect x="0" y="0" width="12" height="12" fill="#9b59b6" transform="translate(130 12) rotate(15)"/>
+        </svg>
+    )svg");
 
     // Rich Text Preview state
     std::string markdownPreviewText =
@@ -427,6 +447,7 @@ int main() {
         DockBuilder::DockWindow(ctx, "Schedule", centralNode);
         DockBuilder::DockWindow(ctx, "Input Demo", centralNode);
         DockBuilder::DockWindow(ctx, "New Widgets", centralNode);
+        DockBuilder::DockWindow(ctx, "SVG Demo", centralNode);
         DockBuilder::DockWindow(ctx, "Drag & Drop Demo", centralNode);
         DockBuilder::DockWindow(ctx, "Layout Demo", centralNode);
         DockBuilder::DockWindow(ctx, "Localization", centralNode);
@@ -814,6 +835,23 @@ int main() {
                             Label(ctx, "After text separator");
                         EndVertical(ctx);
                     EndVertical(ctx);
+                EndHorizontal(ctx);
+
+                Spacing(ctx, 10);
+                Separator(ctx);
+                Spacing(ctx, 10);
+
+                Label(ctx, "SVG Image:", sectionOpts);
+                BeginHorizontal(ctx, 20);
+                    SvgImageOptions svgOpts;
+                    svgOpts.style = Style().withSize(64, 64);
+                    SvgImage(ctx, svgLoaded ? &demoSvg : nullptr, svgOpts);
+
+                    SvgImageOptions svgOptsLarge;
+                    svgOptsLarge.style = Style().withSize(96, 64);
+                    svgOptsLarge.preserveAspectRatio = false;
+                    svgOptsLarge.tint = theme.colors.primary;
+                    SvgImage(ctx, svgLoaded ? &demoSvg : nullptr, svgOptsLarge);
                 EndHorizontal(ctx);
                 
                 Separator(ctx);
@@ -1497,6 +1535,52 @@ int main() {
                 htmlOpts.height = 200.0f;
                 htmlOpts.format = RichTextFormat::Html;
                 RichTextPreview(ctx, "HtmlPreview", htmlPreviewText, htmlOpts);
+            }
+
+            ctx.layout().endContainer();
+        }
+
+        // SVG Demo Window
+        DockableWindow(ctx, "SVG Demo") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+
+            PanelOptions svgPanelOpts;
+            svgPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+
+            Panel(ctx, "SvgDemoPanel", svgPanelOpts) {
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label(ctx, "SVG DEMO", titleOpts);
+                Spacing(ctx, 10);
+
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
+                Label(ctx, "Rendered via SvgImage widget:", sectionOpts);
+                Spacing(ctx, 10);
+                
+                BeginHorizontal(ctx, 20);
+                    SvgImageOptions svgOpts;
+                    svgOpts.style = Style().withSize(80, 80);
+                    SvgImage(ctx, svgLoaded ? &demoSvg : nullptr, svgOpts);
+
+                    SvgImageOptions svgTinted;
+                    svgTinted.style = Style().withSize(120, 80);
+                    svgTinted.preserveAspectRatio = false;
+                    svgTinted.tint = theme.colors.primary;
+                    SvgImage(ctx, svgLoaded ? &demoSvg : nullptr, svgTinted);
+                EndHorizontal(ctx);
+
+                Spacing(ctx, 12);
+                Separator(ctx);
+                Spacing(ctx, 10);
+                Label(ctx, "Advanced SVG features (curves, arcs, dash, transform, even-odd):", sectionOpts);
+                Spacing(ctx, 8);
+
+                SvgImageOptions svgAdvancedOpts;
+                svgAdvancedOpts.style = Style().withSize(260, 160);
+                svgAdvancedOpts.preserveAspectRatio = true;
+                SvgImage(ctx, svgAdvancedLoaded ? &demoSvgAdvanced : nullptr, svgAdvancedOpts);
             }
 
             ctx.layout().endContainer();

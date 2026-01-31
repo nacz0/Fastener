@@ -14,6 +14,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/graphics/texture.h"
+#include "fastener/graphics/svg.h"
 
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
@@ -51,6 +52,7 @@
 #include "fastener/widgets/time_picker.h"
 #include "fastener/widgets/collapsing_header.h"
 #include "fastener/widgets/image.h"
+#include "fastener/widgets/svg_image.h"
 #include "fastener/widgets/separator.h"
 #include "fastener/widgets/table.h"
 

@@ -62,7 +62,7 @@ WidgetState getWidgetState(Context& ctx, WidgetId id) {
 }
 
 WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable,
-                                          bool ignoreOcclusion) {
+                                          bool ignoreOcclusion, bool ignoreConsumed) {
     WidgetInteraction result;
     const InputState& input = ctx.input();
     
@@ -75,6 +75,9 @@ WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect&
     bool captured = ctx.isInputCaptured() && !ctx.isCapturedBy(id);
     bool occluded = ignoreOcclusion ? false : ctx.isOccluded(mousePos);
     bool consumed = ctx.input().isMouseConsumed();
+    if (ignoreConsumed) {
+        consumed = false;
+    }
     
     if (isHovered && !clipped && !captured && !occluded && !consumed) {
         ctx.setHoveredWidget(id);
@@ -91,7 +94,9 @@ WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect&
     
     if (ctx.getActiveWidget() == id) {
         if (input.isMouseReleased(MouseButton::Left)) {
-            if (isHovered) {
+            // Only register click if still hovered AND not blocked by overlays
+            // This prevents click-through when an overlay (toast, modal) now covers the widget
+            if (isHovered && !occluded && !consumed) {
                 result.clicked = true;
             }
             ctx.clearActiveWidget();

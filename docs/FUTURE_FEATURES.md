@@ -14,7 +14,6 @@ This list tracks potential enhancements that are not implemented yet.
 - Stepper / Wizard
 - Accordion
 - Toolbar
-- Notification / Toast system
 - RangeSlider (two-handle)
 - RichTextPreview (Markdown/HTML)
 - Chart widget (line, bar, pie)

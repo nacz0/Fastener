@@ -63,6 +63,7 @@
 #include "fastener/widgets/status_bar.h"
 #include "fastener/widgets/breadcrumb.h"
 #include "fastener/widgets/modal.h"
+#include "fastener/widgets/toast.h"
 
 // Docking
 #include "fastener/ui/dock_node.h"

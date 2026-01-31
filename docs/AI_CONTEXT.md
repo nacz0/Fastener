@@ -72,6 +72,7 @@ All widget functions take `Context& ctx` as the first parameter.
 | Modal | `BeginModal(ctx, id, bool& open, options)` | Centered dialog |
 | StatusBar | `BeginStatusBar(ctx)` + `StatusBarSection(ctx, text)` | Bottom bar |
 | Badge | `Badge(ctx, count/text, options)` | Notification badge |
+| Toast | `ShowToast(ctx, message, options)` + `RenderToasts(ctx)` | Temporary notifications |
 | Docking | `DockSpace(ctx, id, bounds)` + `DockableWindow(ctx, id)` | Docking system |
 
 ## Layout Helpers

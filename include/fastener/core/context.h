@@ -97,6 +97,7 @@ public:
 
     // Occlusion handling
     void addFloatingWindowRect(const Rect& rect);
+    void addGlobalOcclusionRect(const Rect& rect);  // Blocks input on all layers
     bool isOccluded(const Vec2& pos) const;
     const std::vector<Rect>& currentFloatingRects() const;
     const std::vector<Rect>& prevFloatingRects() const;

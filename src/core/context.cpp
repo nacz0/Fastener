@@ -125,6 +125,8 @@ struct Context::Impl {
     // Floating window occlusion
     std::vector<Rect> currentFloatingRects;
     std::vector<Rect> prevFloatingRects;
+    std::vector<Rect> currentGlobalOcclusionRects;
+    std::vector<Rect> prevGlobalOcclusionRects;
     bool rendererInitialized = false;
     bool rendererEnabled = false;
     bool frameActive = false;
@@ -204,6 +206,20 @@ void Context::beginFrame(IPlatformWindow& window) {
     // Swap floating rects for occlusion testing
     m_impl->prevFloatingRects = m_impl->currentFloatingRects;
     m_impl->currentFloatingRects.clear();
+    m_impl->prevGlobalOcclusionRects = m_impl->currentGlobalOcclusionRects;
+    m_impl->currentGlobalOcclusionRects.clear();
+
+    // If the mouse is over a previous-frame occluder, consume input early so
+    // widgets rendered before overlays don't steal the click.
+    if (m_impl->inputState) {
+        Vec2 mousePos = m_impl->inputState->mousePos();
+        for (const auto& r : m_impl->prevGlobalOcclusionRects) {
+            if (r.contains(mousePos)) {
+                m_impl->inputState->consumeMouse();
+                break;
+            }
+        }
+    }
     
     // Begin docking frame
     m_impl->dockContext.beginFrame(*this);
@@ -412,6 +428,10 @@ void Context::addFloatingWindowRect(const Rect& rect) {
     m_impl->currentFloatingRects.push_back(rect);
 }
 
+void Context::addGlobalOcclusionRect(const Rect& rect) {
+    m_impl->currentGlobalOcclusionRects.push_back(rect);
+}
+
 bool Context::isOccluded(const Vec2& pos) const {
     float windowW = static_cast<float>(m_impl->currentWindow ? m_impl->currentWindow->width() : 1);
     float windowH = static_cast<float>(m_impl->currentWindow ? m_impl->currentWindow->height() : 1);
@@ -430,6 +450,18 @@ bool Context::isOccluded(const Vec2& pos) const {
     for (const auto& r : m_impl->prevFloatingRects) {
         if (isFullscreen(r) && r.contains(pos)) {
             return true;  // Fullscreen modal blocks everything
+        }
+    }
+
+    // Global occlusion rects block all layers
+    for (const auto& r : m_impl->currentGlobalOcclusionRects) {
+        if (r.contains(pos)) {
+            return true;
+        }
+    }
+    for (const auto& r : m_impl->prevGlobalOcclusionRects) {
+        if (r.contains(pos)) {
+            return true;
         }
     }
     

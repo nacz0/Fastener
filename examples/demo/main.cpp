@@ -901,6 +901,37 @@ int main() {
                         }
                     EndVertical(ctx);
                 EndHorizontal(ctx);
+                
+                Spacing(ctx, 10);
+                Separator(ctx);
+                Spacing(ctx, 10);
+                
+                // Toast Demo Section
+                Label(ctx, "TOAST NOTIFICATIONS", titleOpts);
+                Spacing(ctx, 10);
+                Label(ctx, "Click buttons to show different toast types:", sectionOpts);
+                Spacing(ctx, 10);
+                
+                BeginHorizontal(ctx, 10);
+                    ButtonOptions toastBtn; toastBtn.style = Style().withSize(80, 28);
+                    if (Button(ctx, "Info", toastBtn)) {
+                        ShowToast(ctx, "Information", "This is an info toast message.",
+                                 ToastOptions(ToastType::Info));
+                    }
+                    if (Button(ctx, "Success", toastBtn)) {
+                        ShowToast(ctx, "Success!", "Operation completed successfully.",
+                                 ToastOptions(ToastType::Success));
+                    }
+                    if (Button(ctx, "Warning", toastBtn)) {
+                        ShowToast(ctx, "Warning", "Please review your settings.",
+                                 ToastOptions(ToastType::Warning));
+                    }
+                    if (Button(ctx, "Error", toastBtn)) {
+                        ToastOptions errorOpts(ToastType::Error);
+                        errorOpts.duration = 5.0f;
+                        ShowToast(ctx, "Error", "Something went wrong!", errorOpts);
+                    }
+                EndHorizontal(ctx);
             }
             
             ctx.layout().endContainer();
@@ -1611,6 +1642,9 @@ int main() {
         
         // Render docking preview overlay at the end
         RenderDockPreview(ctx);
+        
+        // Render toast notifications (must be after all other UI)
+        RenderToasts(ctx);
         
         ctx.endFrame();
         window.swapBuffers();

@@ -53,6 +53,7 @@ namespace date_utils {
     bool isAfter(const Date& a, const Date& b);
     bool isWithinRange(const Date& date, const Date& minDate, const Date& maxDate);
 
+    Date addMonths(const Date& date, int months);
     std::string formatDate(const Date& date, DateFormat format);
 } // namespace date_utils
 
@@ -69,8 +70,8 @@ struct DatePickerOptions {
     bool closeOnSelect = true;
     int firstDayOfWeek = 0; // 0=Sunday
     DateFormat format = DateFormat::ISO;
-    Date minDate{};
-    Date maxDate{};
+    Date minDate{0, 0, 0};
+    Date maxDate{0, 0, 0};
     float cellSize = 0.0f;
     float popupWidth = 0.0f;
 };

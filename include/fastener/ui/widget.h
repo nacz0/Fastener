@@ -41,7 +41,8 @@ struct WidgetInteraction {
 WidgetState getWidgetState(Context& ctx, WidgetId id);
 
 // Handle basic widget interaction (hover, click, focus)
-WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable = true);
+WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable = true,
+                                          bool ignoreOcclusion = false);
 
 // Draw common widget background
 void drawWidgetBackground(Context& ctx, const Rect& bounds, const Style& style, const WidgetState& state);

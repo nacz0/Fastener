@@ -61,7 +61,8 @@ WidgetState getWidgetState(Context& ctx, WidgetId id) {
     return state;
 }
 
-WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable) {
+WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable,
+                                          bool ignoreOcclusion) {
     WidgetInteraction result;
     const InputState& input = ctx.input();
     
@@ -72,7 +73,7 @@ WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect&
     // Check for clipping and existing capture (exclude ourselves if we are already active)
     bool clipped = ctx.isPointClipped(mousePos);
     bool captured = ctx.isInputCaptured() && !ctx.isCapturedBy(id);
-    bool occluded = ctx.isOccluded(mousePos);
+    bool occluded = ignoreOcclusion ? false : ctx.isOccluded(mousePos);
     bool consumed = ctx.input().isMouseConsumed();
     
     if (isHovered && !clipped && !captured && !occluded && !consumed) {

@@ -38,6 +38,31 @@ TimeOfDay clampTime(const TimeOfDay& time) {
     return result;
 }
 
+static TimeOfDay addTotalSeconds(const TimeOfDay& time, int deltaSeconds) {
+    int total = time.hour * 3600 + time.minute * 60 + time.second + deltaSeconds;
+    int day = 24 * 3600;
+    total %= day;
+    if (total < 0) total += day;
+    TimeOfDay result{};
+    result.hour = total / 3600;
+    total %= 3600;
+    result.minute = total / 60;
+    result.second = total % 60;
+    return result;
+}
+
+TimeOfDay addHours(const TimeOfDay& time, int hours) {
+    return addTotalSeconds(time, hours * 3600);
+}
+
+TimeOfDay addMinutes(const TimeOfDay& time, int minutes) {
+    return addTotalSeconds(time, minutes * 60);
+}
+
+TimeOfDay addSeconds(const TimeOfDay& time, int seconds) {
+    return addTotalSeconds(time, seconds);
+}
+
 std::string formatTime(const TimeOfDay& time, TimeFormat format, bool showSeconds) {
     char buffer[32];
     if (format == TimeFormat::H12) {
@@ -175,10 +200,6 @@ bool TimePicker(Context& ctx, std::string_view label, TimeOfDay& time, const Tim
     WidgetId nowId = combineIds(id, hashString("now"));
 
     if (state.isOpen) {
-        if (popupRect.contains(input.mousePos())) {
-            input.consumeMouse();
-        }
-
         float columnsX = popupRect.x() + (popupWidth - contentWidth) * 0.5f;
         float columnsY = popupRect.y() + padding + headerHeight;
 
@@ -209,21 +230,41 @@ bool TimePicker(Context& ctx, std::string_view label, TimeOfDay& time, const Tim
             ampmCol = columnRect(columnIndex++);
         }
 
-        WidgetInteraction hourUp = handleWidgetInteraction(ctx, hourUpId, upRect(hourCol), false);
-        WidgetInteraction hourDown = handleWidgetInteraction(ctx, hourDownId, downRect(hourCol), false);
-        WidgetInteraction minUp = handleWidgetInteraction(ctx, minUpId, upRect(minCol), false);
-        WidgetInteraction minDown = handleWidgetInteraction(ctx, minDownId, downRect(minCol), false);
+        if (!options.disabled && popupRect.contains(input.mousePos()) && input.scrollDelta().y != 0.0f) {
+            float scroll = input.scrollDelta().y;
+            int direction = scroll > 0.0f ? -1 : 1;
+            Vec2 mousePos = input.mousePos();
+
+            if (hourCol.contains(mousePos)) {
+                time = time_utils::addHours(time, direction * hourStep);
+                changed = true;
+            } else if (minCol.contains(mousePos)) {
+                time = time_utils::addMinutes(time, direction * minuteStep);
+                changed = true;
+            } else if (options.showSeconds && secCol.contains(mousePos)) {
+                time = time_utils::addSeconds(time, direction * secondStep);
+                changed = true;
+            } else if (showAmPm && ampmCol.contains(mousePos)) {
+                time = time_utils::addHours(time, direction * 12);
+                changed = true;
+            }
+        }
+
+        WidgetInteraction hourUp = handleWidgetInteraction(ctx, hourUpId, upRect(hourCol), false, true);
+        WidgetInteraction hourDown = handleWidgetInteraction(ctx, hourDownId, downRect(hourCol), false, true);
+        WidgetInteraction minUp = handleWidgetInteraction(ctx, minUpId, upRect(minCol), false, true);
+        WidgetInteraction minDown = handleWidgetInteraction(ctx, minDownId, downRect(minCol), false, true);
 
         WidgetInteraction secUp{};
         WidgetInteraction secDown{};
         if (options.showSeconds) {
-            secUp = handleWidgetInteraction(ctx, secUpId, upRect(secCol), false);
-            secDown = handleWidgetInteraction(ctx, secDownId, downRect(secCol), false);
+            secUp = handleWidgetInteraction(ctx, secUpId, upRect(secCol), false, true);
+            secDown = handleWidgetInteraction(ctx, secDownId, downRect(secCol), false, true);
         }
 
         WidgetInteraction ampmInteract{};
         if (showAmPm) {
-            ampmInteract = handleWidgetInteraction(ctx, ampmId, valueRect(ampmCol), false);
+            ampmInteract = handleWidgetInteraction(ctx, ampmId, valueRect(ampmCol), false, true);
         }
 
         if (!options.disabled) {
@@ -262,11 +303,15 @@ bool TimePicker(Context& ctx, std::string_view label, TimeOfDay& time, const Tim
         if (options.showNowButton) {
             Rect nowRect(popupRect.x() + padding, popupRect.y() + padding + headerHeight + columnHeight + padding,
                          popupWidth - padding * 2.0f, controlHeight);
-            WidgetInteraction nowInteract = handleWidgetInteraction(ctx, nowId, nowRect, true);
+            WidgetInteraction nowInteract = handleWidgetInteraction(ctx, nowId, nowRect, true, true);
             if (!options.disabled && nowInteract.clicked) {
                 time = getNowLocal();
                 changed = true;
             }
+        }
+
+        if (popupRect.contains(input.mousePos())) {
+            input.consumeMouse();
         }
     }
 

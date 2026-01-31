@@ -42,6 +42,9 @@ enum class TimeFormat : uint8_t {
 namespace time_utils {
     bool isValidTime(const TimeOfDay& time);
     TimeOfDay clampTime(const TimeOfDay& time);
+    TimeOfDay addHours(const TimeOfDay& time, int hours);
+    TimeOfDay addMinutes(const TimeOfDay& time, int minutes);
+    TimeOfDay addSeconds(const TimeOfDay& time, int seconds);
     std::string formatTime(const TimeOfDay& time, TimeFormat format, bool showSeconds);
 } // namespace time_utils
 

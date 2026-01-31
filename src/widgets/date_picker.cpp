@@ -82,6 +82,17 @@ bool isWithinRange(const Date& date, const Date& minDate, const Date& maxDate) {
     return true;
 }
 
+Date addMonths(const Date& date, int months) {
+    if (!isValidDate(date)) return date;
+    int totalMonths = (date.year * 12 + (date.month - 1)) + months;
+    if (totalMonths < 12) totalMonths = 12;
+    int newYear = totalMonths / 12;
+    int newMonth = totalMonths % 12 + 1;
+    int dim = daysInMonth(newYear, newMonth);
+    int newDay = std::clamp(date.day, 1, dim);
+    return Date{newYear, newMonth, newDay};
+}
+
 std::string formatDate(const Date& date, DateFormat format) {
     char buffer[32];
     switch (format) {
@@ -137,18 +148,10 @@ static Date getTodayLocal() {
 }
 
 static void stepMonth(DatePickerState& state, int delta) {
-    int month = state.displayMonth + delta;
-    int year = state.displayYear;
-    if (month < 1) {
-        month = 12;
-        year -= 1;
-    } else if (month > 12) {
-        month = 1;
-        year += 1;
-    }
-    if (year < 1) year = 1;
-    state.displayMonth = month;
-    state.displayYear = year;
+    Date base{state.displayYear, state.displayMonth, 1};
+    Date next = date_utils::addMonths(base, delta);
+    state.displayYear = next.year;
+    state.displayMonth = next.month;
 }
 
 static std::array<CalendarCell, 42> buildCells(const DatePickerOptions& options, int year, int month) {
@@ -266,10 +269,6 @@ bool DatePicker(Context& ctx, std::string_view label, Date& date, const DatePick
     std::array<CalendarCell, 42> cells = buildCells(options, state.displayYear, state.displayMonth);
 
     if (state.isOpen) {
-        if (popupRect.contains(input.mousePos())) {
-            input.consumeMouse();
-        }
-
         Rect headerRect(popupRect.x() + padding, popupRect.y() + padding,
                         popupWidth - padding * 2.0f, headerHeight);
         float navSize = headerHeight - padding;
@@ -277,8 +276,8 @@ bool DatePicker(Context& ctx, std::string_view label, Date& date, const DatePick
         Rect nextRect(headerRect.right() - navSize, headerRect.y() + (headerHeight - navSize) * 0.5f, navSize, navSize);
         WidgetId prevId = combineIds(id, hashString("prev"));
         WidgetId nextId = combineIds(id, hashString("next"));
-        WidgetInteraction prevInteract = handleWidgetInteraction(ctx, prevId, prevRect, false);
-        WidgetInteraction nextInteract = handleWidgetInteraction(ctx, nextId, nextRect, false);
+        WidgetInteraction prevInteract = handleWidgetInteraction(ctx, prevId, prevRect, false, true);
+        WidgetInteraction nextInteract = handleWidgetInteraction(ctx, nextId, nextRect, false, true);
 
         if (!options.disabled) {
             if (prevInteract.clicked) {
@@ -320,12 +319,19 @@ bool DatePicker(Context& ctx, std::string_view label, Date& date, const DatePick
             }
         }
 
+        if (popupRect.contains(input.mousePos()) && input.scrollDelta().y != 0.0f) {
+            float scroll = input.scrollDelta().y;
+            int direction = scroll > 0.0f ? -1 : 1;
+            stepMonth(state, direction);
+            cells = buildCells(options, state.displayYear, state.displayMonth);
+        }
+
         if (options.showTodayButton) {
             float footerY = gridRect.bottom() + padding;
             Rect todayRect(popupRect.x() + padding, footerY, popupWidth - padding * 2.0f,
                            theme.metrics.inputHeight);
             WidgetId todayId = combineIds(id, hashString("today"));
-            WidgetInteraction todayInteract = handleWidgetInteraction(ctx, todayId, todayRect, true);
+            WidgetInteraction todayInteract = handleWidgetInteraction(ctx, todayId, todayRect, true, true);
             if (!options.disabled && todayInteract.clicked) {
                 Date today = getTodayLocal();
                 if (date_utils::isWithinRange(today, options.minDate, options.maxDate)) {
@@ -337,8 +343,12 @@ bool DatePicker(Context& ctx, std::string_view label, Date& date, const DatePick
                         state.isOpen = false;
                     }
                     cells = buildCells(options, state.displayYear, state.displayMonth);
-                }
+                    }
             }
+        }
+
+        if (popupRect.contains(input.mousePos())) {
+            input.consumeMouse();
         }
     }
 

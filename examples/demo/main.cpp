@@ -409,6 +409,7 @@ int main() {
         DockBuilder::DockWindow(ctx, "Terminal", bottomNode);
         DockBuilder::DockWindow(ctx, "Editor", centralNode);
         DockBuilder::DockWindow(ctx, "Settings", centralNode);
+        DockBuilder::DockWindow(ctx, "Schedule", centralNode);
         DockBuilder::DockWindow(ctx, "Input Demo", centralNode);
         DockBuilder::DockWindow(ctx, "New Widgets", centralNode);
         DockBuilder::DockWindow(ctx, "Drag & Drop Demo", centralNode);
@@ -535,11 +536,25 @@ int main() {
                     Label(ctx, "Color Selection:", sectionOpts);
                     ColorPicker(ctx, "Accent Color", pickerColor);
                 EndVertical(ctx);
+            }
+            
+            ctx.layout().endContainer();
+        }
 
-                Spacing(ctx, 20);
+        // Schedule Window
+        DockableWindow(ctx, "Schedule") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+
+            PanelOptions schedulePanelOpts;
+            schedulePanelOpts.title = "Schedule";
+            schedulePanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+            Panel(ctx, "SchedulePanel", schedulePanelOpts) {
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
 
                 BeginVertical(ctx, 10);
-                    Label(ctx, "Schedule:", sectionOpts);
+                    Label(ctx, "Date & Time:", sectionOpts);
                     DatePickerOptions dateOpts;
                     dateOpts.format = DateFormat::ISO;
                     (void)DatePicker(ctx, "Start Date", demoDate, dateOpts);
@@ -550,7 +565,7 @@ int main() {
                     (void)TimePicker(ctx, "Start Time", demoTime, timeOpts);
                 EndVertical(ctx);
             }
-            
+
             ctx.layout().endContainer();
         }
 

@@ -93,6 +93,8 @@ if(FST_BUILD_TESTS)
         tests/test_widget_rendering.cpp
         tests/test_context_di.cpp
         tests/test_i18n.cpp
+        tests/test_rich_text_preview.cpp
+        tests/test_text_area.cpp
     )
     target_link_libraries(fastener_tests PRIVATE fastener GTest::gtest_main GTest::gmock)
     include(GoogleTest)

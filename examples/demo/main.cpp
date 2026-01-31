@@ -171,6 +171,7 @@ int main() {
     tabs.addTab("settings_demo", "Settings", true);
     tabs.addTab("input_demo", "Input Demo", true);
     tabs.addTab("new_widgets_demo", "New Widgets", true);
+    tabs.addTab("rich_text_demo", "Rich Text", true);
     tabs.addTab("table_demo", "Table Demo", true);
     tabs.addTab("blur_demo", "Blur Demo", true);
     tabs.addTab("types.cpp", "types.cpp", true);
@@ -273,6 +274,20 @@ int main() {
     int badgeCount = 5;
     bool showModal = false;
     std::vector<std::string> breadcrumbPath = {"Home", "Documents", "Projects", "Fastener"};
+
+    // Rich Text Preview state
+    std::string markdownPreviewText =
+        "# Rich Text Preview\n"
+        "Fastener can render **Markdown** with *inline styles*, `code`, and lists.\n\n"
+        "- Bold and italic styles\n"
+        "- Inline code snippets\n"
+        "- [Links](https://example.com)\n\n"
+        "> Quotes stand out with a subtle bar.\n";
+    std::string htmlPreviewText =
+        "<h2>HTML Preview</h2>"
+        "<p>This is a <strong>rich</strong> preview of <em>HTML</em> with "
+        "<a href=\"https://example.com\">links</a>.</p>"
+        "<ul><li>Lists</li><li>Inline styles</li><li>Headings</li></ul>";
 
     auto getOrCreateEditor = [&](const std::string& id) -> TextEditor& {
         auto it = editors.find(id);
@@ -415,6 +430,7 @@ int main() {
         DockBuilder::DockWindow(ctx, "Drag & Drop Demo", centralNode);
         DockBuilder::DockWindow(ctx, "Layout Demo", centralNode);
         DockBuilder::DockWindow(ctx, "Localization", centralNode);
+        DockBuilder::DockWindow(ctx, "Rich Text", centralNode);
         
         DockBuilder::Finish();
         layoutInitialized = true;
@@ -1432,6 +1448,57 @@ int main() {
                 EndHorizontal(ctx);
             }
             
+            ctx.layout().endContainer();
+        }
+
+        // Rich Text Preview Window
+        DockableWindow(ctx, "Rich Text") {
+            Rect contentRect = ctx.layout().currentBounds();
+            ctx.layout().beginContainer(contentRect);
+
+            PanelOptions richPanelOpts;
+            richPanelOpts.style = Style().withSize(contentRect.width(), contentRect.height());
+
+            Panel(ctx, "RichTextPanel", richPanelOpts) {
+                LabelOptions titleOpts;
+                titleOpts.color = theme.colors.primary;
+                Label(ctx, "RICH TEXT PREVIEW", titleOpts);
+                Spacing(ctx, 10);
+
+                LabelOptions sectionOpts;
+                sectionOpts.color = theme.colors.textSecondary;
+
+                Label(ctx, "Markdown", sectionOpts);
+                Label(ctx, "Markdown Source", sectionOpts);
+                TextAreaOptions mdTextOpts;
+                mdTextOpts.style = Style().withWidth(contentRect.width() - theme.metrics.paddingLarge * 2);
+                mdTextOpts.height = 120.0f;
+                TextArea(ctx, "MarkdownSource", markdownPreviewText, mdTextOpts);
+                Spacing(ctx, 8);
+                RichTextPreviewOptions mdOpts;
+                mdOpts.style = Style().withWidth(contentRect.width() - theme.metrics.paddingLarge * 2);
+                mdOpts.height = 220.0f;
+                mdOpts.format = RichTextFormat::Markdown;
+                RichTextPreview(ctx, "MarkdownPreview", markdownPreviewText, mdOpts);
+
+                Spacing(ctx, 15);
+                Separator(ctx);
+                Spacing(ctx, 10);
+
+                Label(ctx, "HTML", sectionOpts);
+                Label(ctx, "HTML Source", sectionOpts);
+                TextAreaOptions htmlTextOpts;
+                htmlTextOpts.style = Style().withWidth(contentRect.width() - theme.metrics.paddingLarge * 2);
+                htmlTextOpts.height = 100.0f;
+                TextArea(ctx, "HtmlSource", htmlPreviewText, htmlTextOpts);
+                Spacing(ctx, 8);
+                RichTextPreviewOptions htmlOpts;
+                htmlOpts.style = Style().withWidth(contentRect.width() - theme.metrics.paddingLarge * 2);
+                htmlOpts.height = 200.0f;
+                htmlOpts.format = RichTextFormat::Html;
+                RichTextPreview(ctx, "HtmlPreview", htmlPreviewText, htmlOpts);
+            }
+
             ctx.layout().endContainer();
         }
 

@@ -119,7 +119,7 @@ bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, 
     // Track active splitter for drag
     static WidgetId s_activeSplitter = INVALID_WIDGET_ID;
     
-    bool isHovered = splitterRect.contains(input.mousePos());
+    bool isHovered = splitterRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos()) && !input.isMouseConsumed();
     bool isDragging = false;
     
     // Start drag on mouse press
@@ -204,7 +204,7 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
     for (int i = 0; i < tabCount; ++i) {
         Rect tabRect(tabX, tabBarRect.y(), tabWidth - 2.0f, tabHeight);
         bool isSelected = (i == node->selectedTabIndex);
-        bool isHovered = tabRect.contains(input.mousePos());
+        bool isHovered = tabRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos()) && !input.isMouseConsumed();
         
         // Track active tab for drag detection
         static WidgetId s_activeDockTab = INVALID_WIDGET_ID;

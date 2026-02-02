@@ -108,6 +108,17 @@ int ShowToast(Context& ctx, std::string_view title, std::string_view message, co
 void RenderToasts(Context& ctx, const ToastContainerOptions& options = {});
 
 /**
+ * @brief Pre-register toast input blocking. Call at START of frame, before other widgets.
+ * 
+ * This ensures toast close buttons receive input priority over widgets behind them.
+ * Must be called with the same container options as RenderToasts.
+ * 
+ * @param ctx The context.
+ * @param options Container/positioning options (must match RenderToasts call).
+ */
+void UpdateToastInput(Context& ctx, const ToastContainerOptions& options = {});
+
+/**
  * @brief Dismiss a specific toast by ID.
  * @param toastId The ID returned by ShowToast().
  */

@@ -470,6 +470,9 @@ int main() {
         if (!layoutInitialized) {
             initDockLayout();
         }
+        
+        // Pre-register toast input blocking (MUST be before other widgets)
+        UpdateToastInput(ctx);
 
         DrawList& dl = ctx.drawList();
         const Theme& theme = ctx.theme();

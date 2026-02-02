@@ -285,32 +285,9 @@ void RenderToasts(Context& ctx, const ToastContainerOptions& options) {
     float windowW = static_cast<float>(ctx.window().width());
     float windowH = static_cast<float>(ctx.window().height());
     
-    // EARLY CONSUMPTION: Consume mouse if it's over ANY toast BEFORE processing
-    // This prevents widgets rendered earlier in the frame from getting clicks
-    Vec2 mousePos = ctx.input().mousePos();
-    int tempVisibleCount = 0;
-    for (const auto& toast : s_toasts) {
-        if (tempVisibleCount >= options.maxVisible) break;
-        
-        float contentHeight = lineHeight;
-        if (!toast.title.empty()) {
-            contentHeight += lineHeight + TITLE_MARGIN;
-        }
-        float toastH = contentHeight + TOAST_PADDING * 2;
-        
-        Vec2 pos = calculateToastPosition(
-            options, windowW, windowH,
-            toast.options.width, toastH,
-            tempVisibleCount, toast.animationProgress
-        );
-        
-        Rect toastBounds(pos.x, pos.y, toast.options.width, toastH);
-        if (toastBounds.contains(mousePos)) {
-            ctx.input().consumeMouse();
-            break;
-        }
-        tempVisibleCount++;
-    }
+    // NOTE: Mouse consumption is handled in renderToast AFTER the close button
+    // processes its interaction. This ensures the close button can receive clicks
+    // while still blocking widgets behind the toast.
     
     float deltaTime = ctx.deltaTime();
 
@@ -394,6 +371,53 @@ void DismissToast(int toastId) {
 
 void DismissAllToasts() {
     s_toasts.clear();
+}
+
+void UpdateToastInput(Context& ctx, const ToastContainerOptions& options) {
+    if (s_toasts.empty()) return;
+    
+    Font* font = ctx.font();
+    if (!font) return;
+    
+    float lineHeight = font->lineHeight();
+    float windowW = static_cast<float>(ctx.window().width());
+    float windowH = static_cast<float>(ctx.window().height());
+    Vec2 mousePos = ctx.input().mousePos();
+    
+    // Pre-register all visible toast bounds as floating windows for input blocking
+    // This MUST be called at the start of the frame, before other widgets process input
+    int visibleCount = 0;
+    for (const auto& toast : s_toasts) {
+        if (visibleCount >= options.maxVisible) break;
+        
+        float contentHeight = lineHeight;
+        if (!toast.title.empty()) {
+            contentHeight += lineHeight + TITLE_MARGIN;
+        }
+        float toastH = contentHeight + TOAST_PADDING * 2;
+        
+        Vec2 pos = calculateToastPosition(
+            options, windowW, windowH,
+            toast.options.width, toastH,
+            visibleCount, toast.animationProgress
+        );
+        
+        Rect toastBounds(pos.x, pos.y, toast.options.width, toastH);
+        
+        // Register as floating window to block widgets behind
+        ctx.addFloatingWindowRect(toastBounds);
+        
+        // Also register as global occlusion to block ALL widgets (the toast's own
+        // close button uses ignoreOcclusion=true so it can still receive clicks)
+        ctx.addGlobalOcclusionRect(toastBounds);
+        
+        // If mouse is over this toast, consume mouse input immediately
+        if (toastBounds.contains(mousePos)) {
+            ctx.input().consumeMouse();
+        }
+        
+        visibleCount++;
+    }
 }
 
 //=============================================================================

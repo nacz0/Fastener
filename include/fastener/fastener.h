@@ -55,6 +55,7 @@
 #include "fastener/widgets/svg_image.h"
 #include "fastener/widgets/separator.h"
 #include "fastener/widgets/table.h"
+#include "fastener/widgets/chart.h"
 
 // New Widgets
 #include "fastener/widgets/toggle_switch.h"

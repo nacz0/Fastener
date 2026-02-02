@@ -16,7 +16,6 @@ This list tracks potential enhancements that are not implemented yet.
 - Toolbar
 - RangeSlider (two-handle)
 - RichTextPreview (Markdown/HTML)
-- Chart widget (line, bar, pie)
 - DataGrid with sorting/filtering/pagination
 - PropertyGrid (key/value editor)
 - VirtualList for very large data sets

@@ -255,6 +255,14 @@
       "returns": "varies"
     },
     {
+      "name": "Chart",
+      "header": "fastener/widgets/chart.h",
+      "signatures": [
+        "void Chart(Context& ctx, std::string_view id, const std::vector<float>& values, const ChartOptions& options = {})"
+      ],
+      "returns": "void"
+    },
+    {
       "name": "Menu",
       "header": "fastener/widgets/menu.h",
       "signatures": [

@@ -60,6 +60,7 @@ All widget functions take `Context& ctx` as the first parameter.
 | Listbox | `bool Listbox(ctx, label, int&, items)` | `ListboxMulti` |
 | Selectable | `bool Selectable(ctx, label, bool&, options)` | List item |
 | Table | `table.begin(ctx, id, bounds)` | Also immediate-mode API |
+| Chart | `void Chart(ctx, id, values, options)` | Line/Bar/Pie via `ChartType`, optional `labels`, `showLegend`, `showLabels`, `showTooltips` |
 | ProgressBar | `void ProgressBar(ctx, value, options)` | 0.0 to 1.0 |
 | Spinner | `void Spinner(ctx, id, options)` | Animated indicator |
 | Tooltip | `void Tooltip(ctx, text, options)` | Call after widget |

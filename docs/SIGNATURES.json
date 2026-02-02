@@ -255,6 +255,14 @@
       "returns": "varies"
     },
     {
+      "name": "Chart",
+      "header": "fastener/widgets/chart.h",
+      "signatures": [
+        "void Chart(Context& ctx, std::string_view id, const std::vector<float>& values, const ChartOptions& options = {})"
+      ],
+      "returns": "void"
+    },
+    {
       "name": "Menu",
       "header": "fastener/widgets/menu.h",
       "signatures": [
@@ -340,6 +348,32 @@
         "void ShowProfilerWindow(Context& ctx, const char* title, bool* open = nullptr)"
       ],
       "returns": "void"
+    },
+    {
+      "name": "Toast",
+      "header": "fastener/widgets/toast.h",
+      "signatures": [
+        "int ShowToast(Context& ctx, std::string_view message, const ToastOptions& options = {})",
+        "int ShowToast(Context& ctx, std::string_view title, std::string_view message, const ToastOptions& options = {})",
+        "void RenderToasts(Context& ctx, const ToastContainerOptions& options = {})",
+        "void DismissToast(int toastId)",
+        "void DismissAllToasts()"
+      ],
+      "returns": "int (toast ID) or void",
+      "options": {
+        "ToastOptions": {
+          "type": "ToastType (Info, Success, Warning, Error)",
+          "duration": "float (seconds, 0 = manual)",
+          "dismissible": "bool",
+          "width": "float"
+        },
+        "ToastContainerOptions": {
+          "position": "ToastPosition (TopRight, TopLeft, BottomRight, BottomLeft, TopCenter, BottomCenter)",
+          "margin": "float",
+          "spacing": "float",
+          "maxVisible": "int"
+        }
+      }
     }
   ],
   "dragDrop": {

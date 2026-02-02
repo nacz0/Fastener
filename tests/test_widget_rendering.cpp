@@ -172,6 +172,21 @@ TEST_F(WidgetRenderingTest, Context_OcclusionWorking) {
     ctx->endFrame();
 }
 
+TEST_F(WidgetRenderingTest, Context_GlobalOcclusionBlocksOverlay) {
+    // Ensure occlusion rect persists into next frame (prev list).
+    ctx->beginFrame(window);
+    ctx->addGlobalOcclusionRect(Rect(0, 0, 100, 100));
+    ctx->endFrame();
+
+    ctx->beginFrame(window);
+    // Simulate overlay layer; global occlusion should still block.
+    ON_CALL(mockDl, currentLayer())
+        .WillByDefault(Return(DrawLayer::Overlay));
+    EXPECT_TRUE(ctx->isOccluded(Vec2(50, 50)));
+    EXPECT_FALSE(ctx->isOccluded(Vec2(150, 150)));
+    ctx->endFrame();
+}
+
 TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     // Step 0: Ensure clean state
     CancelDragDrop(); 

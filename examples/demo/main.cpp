@@ -275,6 +275,8 @@ int main() {
     int badgeCount = 5;
     bool showModal = false;
     std::vector<std::string> breadcrumbPath = {"Home", "Documents", "Projects", "Fastener"};
+    std::vector<float> chartValues = {12.0f, 18.0f, 9.0f, 15.0f, 21.0f};
+    std::vector<std::string> chartLabels = {"Mon", "Tue", "Wed", "Thu", "Fri"};
     SvgDocument demoSvg;
     const bool svgLoaded = demoSvg.loadFromMemory(R"svg(
         <svg viewBox="0 0 64 64">
@@ -470,6 +472,9 @@ int main() {
         if (!layoutInitialized) {
             initDockLayout();
         }
+        
+        // Pre-register toast input blocking (MUST be before other widgets)
+        UpdateToastInput(ctx);
 
         DrawList& dl = ctx.drawList();
         const Theme& theme = ctx.theme();
@@ -854,6 +859,46 @@ int main() {
                     SvgImage(ctx, svgLoaded ? &demoSvg : nullptr, svgOptsLarge);
                 EndHorizontal(ctx);
                 
+                Spacing(ctx, 10);
+                Separator(ctx);
+                Spacing(ctx, 10);
+
+                Label(ctx, "Charts:", sectionOpts);
+                BeginHorizontal(ctx, 20);
+                    BeginVertical(ctx, 6);
+                        Label(ctx, "Line", sectionOpts);
+                        ChartOptions lineOpts;
+                        lineOpts.type = ChartType::Line;
+                        lineOpts.showTooltips = true;
+                        lineOpts.showLabels = true;
+                        lineOpts.labels = chartLabels;
+                        lineOpts.style = Style().withSize(180, 120);
+                        Chart(ctx, "demo_line_chart", chartValues, lineOpts);
+                    EndVertical(ctx);
+
+                    BeginVertical(ctx, 6);
+                        Label(ctx, "Bar", sectionOpts);
+                        ChartOptions barOpts;
+                        barOpts.type = ChartType::Bar;
+                        barOpts.showTooltips = true;
+                        barOpts.showLabels = true;
+                        barOpts.labels = chartLabels;
+                        barOpts.style = Style().withSize(180, 120);
+                        Chart(ctx, "demo_bar_chart", chartValues, barOpts);
+                    EndVertical(ctx);
+
+                    BeginVertical(ctx, 6);
+                        Label(ctx, "Pie", sectionOpts);
+                        ChartOptions pieOpts;
+                        pieOpts.type = ChartType::Pie;
+                        pieOpts.showTooltips = true;
+                        pieOpts.showLegend = true;
+                        pieOpts.labels = chartLabels;
+                        pieOpts.style = Style().withSize(220, 120);
+                        Chart(ctx, "demo_pie_chart", chartValues, pieOpts);
+                    EndVertical(ctx);
+                EndHorizontal(ctx);
+
                 Separator(ctx);
                 Spacing(ctx, 10);
                 
@@ -900,6 +945,37 @@ int main() {
                             showModal = true;
                         }
                     EndVertical(ctx);
+                EndHorizontal(ctx);
+                
+                Spacing(ctx, 10);
+                Separator(ctx);
+                Spacing(ctx, 10);
+                
+                // Toast Demo Section
+                Label(ctx, "TOAST NOTIFICATIONS", titleOpts);
+                Spacing(ctx, 10);
+                Label(ctx, "Click buttons to show different toast types:", sectionOpts);
+                Spacing(ctx, 10);
+                
+                BeginHorizontal(ctx, 10);
+                    ButtonOptions toastBtn; toastBtn.style = Style().withSize(80, 28);
+                    if (Button(ctx, "Info", toastBtn)) {
+                        ShowToast(ctx, "Information", "This is an info toast message.",
+                                 ToastOptions(ToastType::Info));
+                    }
+                    if (Button(ctx, "Success", toastBtn)) {
+                        ShowToast(ctx, "Success!", "Operation completed successfully.",
+                                 ToastOptions(ToastType::Success));
+                    }
+                    if (Button(ctx, "Warning", toastBtn)) {
+                        ShowToast(ctx, "Warning", "Please review your settings.",
+                                 ToastOptions(ToastType::Warning));
+                    }
+                    if (Button(ctx, "Error", toastBtn)) {
+                        ToastOptions errorOpts(ToastType::Error);
+                        errorOpts.duration = 5.0f;
+                        ShowToast(ctx, "Error", "Something went wrong!", errorOpts);
+                    }
                 EndHorizontal(ctx);
             }
             
@@ -1611,6 +1687,9 @@ int main() {
         
         // Render docking preview overlay at the end
         RenderDockPreview(ctx);
+        
+        // Render toast notifications (must be after all other UI)
+        RenderToasts(ctx);
         
         ctx.endFrame();
         window.swapBuffers();

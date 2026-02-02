@@ -121,9 +121,14 @@ public:
     
     // Mouse buttons
     bool isMouseDown(MouseButton button) const;
-    bool isMousePressed(MouseButton button) const;
-    bool isMouseReleased(MouseButton button) const;
-    bool isMouseDoubleClicked(MouseButton button) const;
+    bool isMousePressed(MouseButton button) const;    // Returns false if consumed
+    bool isMouseReleased(MouseButton button) const;   // Returns false if consumed
+    bool isMouseDoubleClicked(MouseButton button) const; // Returns false if consumed
+    
+    // Raw mouse button checks (ignore consumption flag)
+    bool isMousePressedRaw(MouseButton button) const;
+    bool isMouseReleasedRaw(MouseButton button) const;
+    bool isMouseDoubleClickedRaw(MouseButton button) const;
     
     // Mouse position & movement
     Vec2 mousePos() const { return m_mousePos; }

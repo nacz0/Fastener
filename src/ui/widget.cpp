@@ -62,7 +62,7 @@ WidgetState getWidgetState(Context& ctx, WidgetId id) {
 }
 
 WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect& bounds, bool focusable,
-                                          bool ignoreOcclusion) {
+                                          bool ignoreOcclusion, bool ignoreConsumed) {
     WidgetInteraction result;
     const InputState& input = ctx.input();
     
@@ -75,14 +75,31 @@ WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect&
     bool captured = ctx.isInputCaptured() && !ctx.isCapturedBy(id);
     bool occluded = ignoreOcclusion ? false : ctx.isOccluded(mousePos);
     bool consumed = ctx.input().isMouseConsumed();
+    if (ignoreConsumed) {
+        consumed = false;
+    }
     
     if (isHovered && !clipped && !captured && !occluded && !consumed) {
         ctx.setHoveredWidget(id);
         result.hovered = true;
     }
 
-    // Handle mouse clicks
-    if (isHovered && !clipped && !captured && !occluded && !consumed && input.isMousePressed(MouseButton::Left)) {
+    // Handle mouse clicks - use Raw versions when ignoring consumed since
+    // isMousePressed/Released now check consumption internally
+    bool mousePressed = ignoreConsumed 
+        ? input.isMousePressedRaw(MouseButton::Left)
+        : input.isMousePressed(MouseButton::Left);
+    bool mouseReleased = ignoreConsumed
+        ? input.isMouseReleasedRaw(MouseButton::Left)
+        : input.isMouseReleased(MouseButton::Left);
+    bool mouseDoubleClicked = ignoreConsumed
+        ? input.isMouseDoubleClickedRaw(MouseButton::Left)
+        : input.isMouseDoubleClicked(MouseButton::Left);
+    bool rightPressed = ignoreConsumed
+        ? input.isMousePressedRaw(MouseButton::Right)
+        : input.isMousePressed(MouseButton::Right);
+    
+    if (isHovered && !clipped && !captured && !occluded && !consumed && mousePressed) {
         ctx.setActiveWidget(id);
         if (focusable) {
             ctx.setFocusedWidget(id);
@@ -90,8 +107,10 @@ WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect&
     }
     
     if (ctx.getActiveWidget() == id) {
-        if (input.isMouseReleased(MouseButton::Left)) {
-            if (isHovered) {
+        if (mouseReleased) {
+            // Only register click if still hovered AND not blocked by overlays
+            // This prevents click-through when an overlay (toast, modal) now covers the widget
+            if (isHovered && !occluded && !consumed) {
                 result.clicked = true;
             }
             ctx.clearActiveWidget();
@@ -104,12 +123,12 @@ WidgetInteraction handleWidgetInteraction(Context& ctx, WidgetId id, const Rect&
     }
     
     // Double click
-    if (isHovered && !occluded && !consumed && input.isMouseDoubleClicked(MouseButton::Left)) {
+    if (isHovered && !occluded && !consumed && mouseDoubleClicked) {
         result.doubleClicked = true;
     }
     
     // Right click
-    if (isHovered && !occluded && !consumed && input.isMousePressed(MouseButton::Right)) {
+    if (isHovered && !occluded && !consumed && rightPressed) {
         result.rightClicked = true;
     }
     

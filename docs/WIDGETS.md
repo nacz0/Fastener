@@ -165,6 +165,32 @@ table.row(ctx, {"main.cpp", "12 KB"});
 table.end(ctx);
 ```
 
+### Chart
+```cpp
+std::vector<float> values = {1.0f, 2.5f, 1.8f, 3.2f};
+std::vector<std::string> labels = {"Q1", "Q2", "Q3", "Q4"};
+
+fst::Chart(ctx, "line_chart", values, {
+    .type = fst::ChartType::Line,
+    .showTooltips = true,
+    .showLabels = true,
+    .labels = labels
+});
+
+fst::Chart(ctx, "bar_chart", values, {
+    .type = fst::ChartType::Bar,
+    .showLegend = true,
+    .labels = labels
+});
+
+fst::Chart(ctx, "pie_chart", values, {
+    .type = fst::ChartType::Pie,
+    .showLegend = true,
+    .showTooltips = true,
+    .labels = labels
+});
+```
+
 ## Status and Feedback
 
 ### ProgressBar and Spinner

@@ -55,6 +55,7 @@
 #include "fastener/widgets/svg_image.h"
 #include "fastener/widgets/separator.h"
 #include "fastener/widgets/table.h"
+#include "fastener/widgets/chart.h"
 
 // New Widgets
 #include "fastener/widgets/toggle_switch.h"
@@ -63,6 +64,7 @@
 #include "fastener/widgets/status_bar.h"
 #include "fastener/widgets/breadcrumb.h"
 #include "fastener/widgets/modal.h"
+#include "fastener/widgets/toast.h"
 
 // Docking
 #include "fastener/ui/dock_node.h"

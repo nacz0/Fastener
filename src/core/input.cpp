@@ -28,18 +28,42 @@ bool InputState::isMouseDown(MouseButton button) const {
 }
 
 bool InputState::isMousePressed(MouseButton button) const {
+    // Return false if mouse input was consumed (e.g., by toast/overlay)
+    if (m_mouseConsumed) return false;
+    int idx = static_cast<int>(button);
+    if (idx < 0 || idx >= static_cast<int>(MouseButton::MaxButton)) return false;
+    return m_mousePressed[idx];
+}
+
+bool InputState::isMousePressedRaw(MouseButton button) const {
     int idx = static_cast<int>(button);
     if (idx < 0 || idx >= static_cast<int>(MouseButton::MaxButton)) return false;
     return m_mousePressed[idx];
 }
 
 bool InputState::isMouseReleased(MouseButton button) const {
+    // Return false if mouse input was consumed (e.g., by toast/overlay)
+    if (m_mouseConsumed) return false;
+    int idx = static_cast<int>(button);
+    if (idx < 0 || idx >= static_cast<int>(MouseButton::MaxButton)) return false;
+    return m_mouseReleased[idx];
+}
+
+bool InputState::isMouseReleasedRaw(MouseButton button) const {
     int idx = static_cast<int>(button);
     if (idx < 0 || idx >= static_cast<int>(MouseButton::MaxButton)) return false;
     return m_mouseReleased[idx];
 }
 
 bool InputState::isMouseDoubleClicked(MouseButton button) const {
+    // Return false if mouse input was consumed (e.g., by toast/overlay)
+    if (m_mouseConsumed) return false;
+    int idx = static_cast<int>(button);
+    if (idx < 0 || idx >= static_cast<int>(MouseButton::MaxButton)) return false;
+    return m_mouseDoubleClicked[idx];
+}
+
+bool InputState::isMouseDoubleClickedRaw(MouseButton button) const {
     int idx = static_cast<int>(button);
     if (idx < 0 || idx >= static_cast<int>(MouseButton::MaxButton)) return false;
     return m_mouseDoubleClicked[idx];

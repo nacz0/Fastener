@@ -197,7 +197,7 @@ Rect TabControl::render(Context& ctx, const std::string& id, const Rect& bounds,
         float addX = tabBarRect.right() - 32.0f;
         Rect addRect(addX, tabBarRect.y(), 32.0f, tabBarHeight);
         
-        bool addHovered = addRect.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos());
+        bool addHovered = addRect.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos()) && !ctx.input().isMouseConsumed();
 
         if (addHovered) {
             dl.addRectFilled(addRect, theme.colors.buttonHover);
@@ -223,7 +223,7 @@ Rect TabControl::render(Context& ctx, const std::string& id, const Rect& bounds,
                      theme.colors.border);
     
     // Handle scroll with mouse wheel
-    if (tabBarRect.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos())) {
+    if (tabBarRect.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos()) && !ctx.input().isMouseConsumed()) {
         float scroll = ctx.input().scrollDelta().y;
 
         m_scrollOffset -= scroll * 30.0f;
@@ -250,7 +250,7 @@ void TabControl::drawTab(Context& ctx, int index, const Rect& tabRect,
     
     const TabItem& tab = m_tabs[index];
     bool isSelected = (index == m_selectedIndex);
-    bool isHovered = tabRect.contains(ctx.input().mousePos()) && !fst::IsMouseOverAnyMenu(ctx) && !ctx.isOccluded(ctx.input().mousePos());
+    bool isHovered = tabRect.contains(ctx.input().mousePos()) && !fst::IsMouseOverAnyMenu(ctx) && !ctx.isOccluded(ctx.input().mousePos()) && !ctx.input().isMouseConsumed();
 
     
     if (isHovered) {
@@ -314,7 +314,7 @@ void TabControl::drawTab(Context& ctx, int index, const Rect& tabRect,
                        tabRect.center().y - closeSize / 2,
                        closeSize, closeSize);
         
-        bool closeHovered = closeRect.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos());
+        bool closeHovered = closeRect.contains(ctx.input().mousePos()) && !ctx.isOccluded(ctx.input().mousePos()) && !ctx.input().isMouseConsumed();
 
         if (closeHovered) {
             m_hoveredClose = index;

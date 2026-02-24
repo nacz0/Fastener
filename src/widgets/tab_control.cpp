@@ -291,10 +291,12 @@ void TabControl::drawTab(Context& ctx, int index, const Rect& tabRect,
         textX += 10;
     }
     
+    const bool showCloseButton = tab.closable && options.showCloseButtons && (isSelected || isHovered);
+
     // Tab label
     if (font) {
         float maxTextWidth = tabRect.width() - 20;
-        if (tab.closable && options.showCloseButtons) {
+        if (showCloseButton) {
             maxTextWidth -= 20;
         }
         
@@ -308,7 +310,7 @@ void TabControl::drawTab(Context& ctx, int index, const Rect& tabRect,
     }
     
     // Close button
-    if (tab.closable && options.showCloseButtons) {
+    if (showCloseButton) {
         float closeSize = 14.0f;
         Rect closeRect(tabRect.right() - closeSize - 6, 
                        tabRect.center().y - closeSize / 2,

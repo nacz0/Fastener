@@ -18,6 +18,8 @@ struct DockableWindowOptions {
     bool* open = nullptr;           // Optional pointer to visibility flag
     bool allowDocking = true;       // Can be docked
     bool allowFloating = true;      // Can be undocked
+    bool draggable = true;          // Can be dragged when floating
+    bool showTitleBar = true;       // Render floating title bar
     bool noTabBar = false;          // Hide tab when only window in node
     WidgetId dockFamilyId = 0;      // Restrict to window family
 };

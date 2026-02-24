@@ -61,6 +61,7 @@ struct TextEditorOptions {
     float fontSize = 14.0f;
     bool showLineNumbers = true;
     bool readOnly = false;
+    bool suppressNavigationKeys = false;
     bool wordWrap = false;
     float lineHeight = 1.2f;  // Relative to font height
 };
@@ -109,8 +110,15 @@ private:
     bool m_isUndoingRedoing = false;
 
     // Internal helpers
-    void handleInput(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
-    void handleKeyboard(Context& ctx, const Rect& bounds, float rowHeight, float deltaTime);
+    void handleInput(
+        Context& ctx,
+        const Rect& bounds,
+        float rowHeight,
+        float charWidth,
+        float gutterWidth,
+        bool focused,
+        bool suppressNavigationKeys);
+    void handleKeyboard(Context& ctx, const Rect& bounds, float rowHeight, float deltaTime, bool suppressNavigationKeys);
     void handleMouse(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth);
     
     void insertText(const std::string& text);

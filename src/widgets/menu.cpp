@@ -13,6 +13,11 @@
 
 namespace fst {
 
+namespace {
+constexpr float kMenuPopupRadius = 0.0f;
+constexpr float kMenuHoverRadius = 0.0f;
+}
+
 // Local context menu instance (data storage, not shared state)
 static ContextMenu g_contextMenu;
 
@@ -178,13 +183,10 @@ void MenuBar::renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos)
     // Reset texture to white texture for solid color background
     dl.setTexture(0);
     
-    // Shadow
-    dl.addShadow(dropdownRect, theme.colors.shadow, 8.0f, 4.0f);
-    
     // Background - solid opaque fill
     dl.setTexture(0);
-    dl.addRectFilled(dropdownRect, theme.colors.popupBackground, 4.0f);
-    dl.addRect(dropdownRect, theme.colors.border, 4.0f);
+    dl.addRectFilled(dropdownRect, theme.colors.popupBackground, kMenuPopupRadius);
+    dl.addRect(dropdownRect, theme.colors.border.withAlpha(static_cast<uint8_t>(120)), kMenuPopupRadius);
     
     // Items
     float y = pos.y + padding;
@@ -211,7 +213,7 @@ void MenuBar::renderDropdown(Context& ctx, const TopMenu& menu, const Vec2& pos)
         // Hover background
         if (isHovered && item.enabled) {
             Rect hoverRect(pos.x + 2, y, maxWidth - 4, itemHeight);
-            dl.addRectFilled(hoverRect, theme.colors.selection, 2.0f);
+            dl.addRectFilled(hoverRect, theme.colors.selection, kMenuHoverRadius);
         }
         
         Color textColor = item.enabled ? 
@@ -313,9 +315,8 @@ void MenuBar::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<Menu
 
     
     dl.setTexture(0);
-    dl.addShadow(subRect, theme.colors.shadow, 8.0f, 4.0f);
-    dl.addRectFilled(subRect, theme.colors.popupBackground, 4.0f);
-    dl.addRect(subRect, theme.colors.border, 4.0f);
+    dl.addRectFilled(subRect, theme.colors.popupBackground, kMenuPopupRadius);
+    dl.addRect(subRect, theme.colors.border.withAlpha(static_cast<uint8_t>(120)), kMenuPopupRadius);
     
     float y = pos.y + padding;
     for (const auto& item : items) {
@@ -323,7 +324,7 @@ void MenuBar::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<Menu
         bool isHovered = itemRect.contains(ctx.input().mousePos());
         
         if (isHovered && item->enabled) {
-            dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
+            dl.addRectFilled(itemRect, theme.colors.selection, kMenuHoverRadius);
         }
         
         Color textColor = item->enabled ? 
@@ -439,10 +440,9 @@ float ContextMenu::renderItems(Context& ctx, const std::vector<MenuItem>& items,
     // Reset texture to solid
     dl.setTexture(0);
     
-    // Shadow & background
-    dl.addShadow(menuRect, theme.colors.shadow, 6.0f, 4.0f);
-    dl.addRectFilled(menuRect, theme.colors.popupBackground, 4.0f);
-    dl.addRect(menuRect, theme.colors.border, 4.0f);
+    // Background
+    dl.addRectFilled(menuRect, theme.colors.popupBackground, kMenuPopupRadius);
+    dl.addRect(menuRect, theme.colors.border.withAlpha(static_cast<uint8_t>(120)), kMenuPopupRadius);
     
     // Items
     float y = pos.y + padding;
@@ -464,7 +464,7 @@ float ContextMenu::renderItems(Context& ctx, const std::vector<MenuItem>& items,
         
         if (isHovered && item.enabled) {
             anyHovered = true;
-            dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
+            dl.addRectFilled(itemRect, theme.colors.selection, kMenuHoverRadius);
         }
         
         Color textColor = item.enabled ? 
@@ -568,9 +568,8 @@ void ContextMenu::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<
 
     
     dl.setTexture(0);
-    dl.addShadow(subRect, theme.colors.shadow, 6.0f, 4.0f);
-    dl.addRectFilled(subRect, theme.colors.popupBackground, 4.0f);
-    dl.addRect(subRect, theme.colors.border, 4.0f);
+    dl.addRectFilled(subRect, theme.colors.popupBackground, kMenuPopupRadius);
+    dl.addRect(subRect, theme.colors.border.withAlpha(static_cast<uint8_t>(120)), kMenuPopupRadius);
     
     float y = pos.y + padding;
     for (const auto& item : items) {
@@ -579,7 +578,7 @@ void ContextMenu::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<
 
         
         if (isHovered && item->enabled) {
-            dl.addRectFilled(itemRect, theme.colors.selection, 2.0f);
+            dl.addRectFilled(itemRect, theme.colors.selection, kMenuHoverRadius);
         }
         
         Color textColor = item->enabled ? 

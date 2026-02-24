@@ -10,12 +10,14 @@
 #include "fastener/core/context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
+#include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 
 #include "fastener/platform/window.h"
 #include <sstream>
 #include <algorithm>
+#include <cstdint>
 
 namespace fst {
 
@@ -76,6 +78,11 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
     
     InputState& input = ctx.input();
 
+    const std::string widgetKey = "text_editor_" + std::to_string(reinterpret_cast<std::uintptr_t>(this));
+    const WidgetId widgetId = ctx.makeId(widgetKey);
+    (void)handleWidgetInteraction(ctx, widgetId, bounds, true);
+    const WidgetState widgetState = getWidgetState(ctx, widgetId);
+
 
 
     dl.addRectFilled(bounds, theme.colors.windowBackground);
@@ -85,7 +92,7 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
     float charWidth = font->measureText("M").x; 
     float gutterWidth = options.showLineNumbers ? 50.0f : 0.0f;
 
-    handleInput(ctx, bounds, rowHeight, charWidth, gutterWidth);
+    handleInput(ctx, bounds, rowHeight, charWidth, gutterWidth, widgetState.focused, options.suppressNavigationKeys);
 
     dl.pushClipRect(bounds);
 
@@ -130,7 +137,7 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
 
         if (i == m_cursor.line) {
             dl.addRectFilled(Rect(textBounds.x(), y, textBounds.width(), rowHeight), Color(255, 255, 255, 10));
-            if (ctx.window().isFocused() && static_cast<int>(ctx.time() * 2) % 2 == 0) {
+            if (widgetState.focused && ctx.window().isFocused() && static_cast<int>(ctx.time() * 2) % 2 == 0) {
                 float cx = textBounds.x() + 5 + font->measureText(m_lines[i].substr(0, m_cursor.column)).x;
                 dl.addLine(Vec2(cx, y + 2), Vec2(cx, y + rowHeight - 2), theme.colors.primary, 2.0f);
             }
@@ -258,11 +265,20 @@ void TextEditor::setCursor(const TextPosition& pos) {
     m_cursor.column = std::clamp(pos.column, 0, static_cast<int>(m_lines[m_cursor.line].length()));
 }
 
-void TextEditor::handleInput(Context& ctx, const Rect& bounds, float rowHeight, float charWidth, float gutterWidth) {
+void TextEditor::handleInput(
+    Context& ctx,
+    const Rect& bounds,
+    float rowHeight,
+    float charWidth,
+    float gutterWidth,
+    bool focused,
+    bool suppressNavigationKeys) {
     float dt = ctx.deltaTime();
     
-    handleKeyboard(ctx, bounds, rowHeight, dt);
     handleMouse(ctx, bounds, rowHeight, charWidth, gutterWidth);
+    if (focused) {
+        handleKeyboard(ctx, bounds, rowHeight, dt, suppressNavigationKeys);
+    }
     
     InputState& input = ctx.input();
     if (bounds.contains(input.mousePos())) {
@@ -272,7 +288,7 @@ void TextEditor::handleInput(Context& ctx, const Rect& bounds, float rowHeight, 
 
 
 
-void TextEditor::handleKeyboard(Context& ctx, const Rect& bounds, float rowHeight, float deltaTime) {
+void TextEditor::handleKeyboard(Context& ctx, const Rect& bounds, float rowHeight, float deltaTime, bool suppressNavigationKeys) {
     InputState& input = ctx.input();
     bool shift = input.modifiers().shift;
     bool ctrl = input.modifiers().ctrl;
@@ -306,17 +322,19 @@ void TextEditor::handleKeyboard(Context& ctx, const Rect& bounds, float rowHeigh
         return false;
     };
 
-    if (shouldTrigger(Key::Down)) {
-        TextPosition p = m_cursor;
-        p.line = std::min(p.line + 1, (int)m_lines.size() - 1);
-        p.column = std::min(p.column, (int)m_lines[p.line].length());
-        move(p, shift);
-    }
-    if (shouldTrigger(Key::Up)) {
-        TextPosition p = m_cursor;
-        p.line = std::max(p.line - 1, 0);
-        p.column = std::min(p.column, (int)m_lines[p.line].length());
-        move(p, shift);
+    if (!suppressNavigationKeys) {
+        if (shouldTrigger(Key::Down)) {
+            TextPosition p = m_cursor;
+            p.line = std::min(p.line + 1, (int)m_lines.size() - 1);
+            p.column = std::min(p.column, (int)m_lines[p.line].length());
+            move(p, shift);
+        }
+        if (shouldTrigger(Key::Up)) {
+            TextPosition p = m_cursor;
+            p.line = std::max(p.line - 1, 0);
+            p.column = std::min(p.column, (int)m_lines[p.line].length());
+            move(p, shift);
+        }
     }
     if (shouldTrigger(Key::Left)) {
         TextPosition p = m_cursor;
@@ -369,7 +387,7 @@ void TextEditor::handleKeyboard(Context& ctx, const Rect& bounds, float rowHeigh
         }
         ensureCursorVisible(bounds, rowHeight);
     }
-    if (input.isKeyPressed(Key::Enter)) {
+    if (!suppressNavigationKeys && input.isKeyPressed(Key::Enter)) {
         if (!m_selection.isEmpty()) deleteSelection();
         enter();
         ensureCursorVisible(bounds, rowHeight);

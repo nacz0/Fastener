@@ -103,7 +103,7 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
 
     
     Rect contentBounds;
-    const float titleBarHeight = 28.0f;
+    const float titleBarHeight = options.showTitleBar ? 28.0f : 0.0f;
     
     // Switch to appropriate draw layer
     state.prevLayer = dl.currentLayer();
@@ -141,6 +141,10 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
         
     } else if (options.allowFloating) {
         // FLOATING MODE
+        if (!options.draggable) {
+            state.isDragging = false;
+        }
+
         if (state.isDragging) {
             if (input.isMouseReleased(MouseButton::Left)) {
                 state.isDragging = false;
@@ -165,28 +169,33 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
         }
         
         contentBounds = state.floatingBounds;
-        
-        // Draw shadow
-        Rect shadowRect = contentBounds.expanded(4.0f);
-        dl.addRectFilled(shadowRect, theme.colors.shadow, 8.0f);
-        
-        // Draw window background
-        dl.addRectFilled(contentBounds, theme.colors.panelBackground, 8.0f);
-        
-        // Draw title bar
-        Rect titleBarRect(contentBounds.x(), contentBounds.y(), 
-                         contentBounds.width(), titleBarHeight);
-        dl.addRectFilled(titleBarRect, theme.colors.panelBackground.darker(0.1f), 8.0f);
-        
-        // Draw title
-        if (ctx.font()) {
-            Vec2 titlePos(titleBarRect.x() + 8.0f, 
-                         titleBarRect.y() + (titleBarHeight - 14.0f) * 0.5f);
-            dl.addText(ctx.font(), titlePos, state.title, theme.colors.text);
+        const bool compactFloatingPopup = !options.showTitleBar;
+        const float windowRadius = compactFloatingPopup ? theme.metrics.borderRadiusSmall : 8.0f;
+
+        Rect titleBarRect;
+        if (!compactFloatingPopup) {
+            // Draw shadow
+            Rect shadowRect = contentBounds.expanded(4.0f);
+            dl.addRectFilled(shadowRect, theme.colors.shadow, windowRadius);
+
+            // Draw window background
+            dl.addRectFilled(contentBounds, theme.colors.panelBackground, windowRadius);
+
+            // Draw title bar
+            titleBarRect = Rect(contentBounds.x(), contentBounds.y(),
+                                contentBounds.width(), titleBarHeight);
+            dl.addRectFilled(titleBarRect, theme.colors.panelBackground.darker(0.1f), windowRadius);
+
+            // Draw title
+            if (ctx.font()) {
+                Vec2 titlePos(titleBarRect.x() + 8.0f,
+                              titleBarRect.y() + (titleBarHeight - 14.0f) * 0.5f);
+                dl.addText(ctx.font(), titlePos, state.title, theme.colors.text);
+            }
         }
         
         // Handle dragging via title bar
-        if (!state.isDragging && !beingDragged) {
+        if (options.draggable && options.showTitleBar && !state.isDragging && !beingDragged) {
             bool titleHovered = titleBarRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos());
             if (titleHovered && input.isMousePressed(MouseButton::Left)) {
                 state.isDragging = true;
@@ -197,11 +206,13 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
         }
 
         // Draw border
-        dl.addRect(contentBounds, theme.colors.border, 8.0f);
+        if (!compactFloatingPopup) {
+            dl.addRect(contentBounds, theme.colors.border, windowRadius);
+        }
         
         // Update content bounds for body
         contentBounds = Rect(contentBounds.x(), contentBounds.y() + titleBarHeight,
-                            contentBounds.width(), contentBounds.height() - titleBarHeight);
+                             contentBounds.width(), contentBounds.height() - titleBarHeight);
 
         // Register occlusion
         ctx.addFloatingWindowRect(state.floatingBounds);

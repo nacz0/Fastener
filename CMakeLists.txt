@@ -99,6 +99,7 @@ if(FST_BUILD_TESTS)
         tests/test_svg_widget.cpp
         tests/test_chart_widget.cpp
         tests/test_toast.cpp
+        tests/test_pill_widget.cpp
     )
     target_link_libraries(fastener_tests PRIVATE fastener GTest::gtest_main GTest::gmock)
     include(GoogleTest)

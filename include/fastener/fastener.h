@@ -60,6 +60,7 @@
 // New Widgets
 #include "fastener/widgets/toggle_switch.h"
 #include "fastener/widgets/badge.h"
+#include "fastener/widgets/pill.h"
 #include "fastener/widgets/card.h"
 #include "fastener/widgets/status_bar.h"
 #include "fastener/widgets/breadcrumb.h"

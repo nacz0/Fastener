@@ -13,6 +13,7 @@
 #include "TestContext.h"
 #include <fastener/widgets/toast.h>
 #include <fastener/core/context.h>
+#include <fastener/graphics/font.h>
 
 using namespace fst;
 using namespace fst::testing;

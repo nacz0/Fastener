@@ -70,6 +70,17 @@ void TextEditor::clear() {
     m_redoStack.clear();
 }
 
+void TextEditor::setLineAnnotations(std::vector<TextLineAnnotation> annotations) {
+    m_lineAnnotations = std::move(annotations);
+    std::sort(m_lineAnnotations.begin(), m_lineAnnotations.end(), [](const TextLineAnnotation& a, const TextLineAnnotation& b) {
+        return a.line < b.line;
+    });
+}
+
+void TextEditor::clearLineAnnotations() {
+    m_lineAnnotations.clear();
+}
+
 void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOptions& options) {
     IDrawList& dl = *ctx.activeDrawList();
     const Theme& theme = ctx.theme();
@@ -110,10 +121,36 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
     int startLine = static_cast<int>(m_scrollOffset.y / rowHeight);
     int visibleLines = static_cast<int>(bounds.height() / rowHeight) + 1;
     int endLine = std::min(static_cast<int>(m_lines.size()), startLine + visibleLines);
+    const auto findLineAnnotation = [&](int line) -> const TextLineAnnotation* {
+        auto it = std::lower_bound(
+            m_lineAnnotations.begin(),
+            m_lineAnnotations.end(),
+            line,
+            [](const TextLineAnnotation& annotation, int expectedLine) {
+                return annotation.line < expectedLine;
+            });
+        if (it != m_lineAnnotations.end() && it->line == line) {
+            return &(*it);
+        }
+        return nullptr;
+    };
+    const Vec2 mousePos = input.mousePos();
+    const bool isMouseInside = bounds.contains(mousePos);
+    const int hoveredLine = isMouseInside
+        ? std::clamp(static_cast<int>((mousePos.y - bounds.y() + m_scrollOffset.y) / rowHeight), 0, static_cast<int>(m_lines.size() - 1))
+        : -1;
+    const TextLineAnnotation* hoveredAnnotation = nullptr;
 
     for (int i = startLine; i < endLine; ++i) {
         float y = bounds.y() + (i * rowHeight) - m_scrollOffset.y;
         if (y + rowHeight < bounds.y() || y > bounds.bottom()) continue;
+
+        if (const TextLineAnnotation* annotation = findLineAnnotation(i)) {
+            dl.addRectFilled(Rect(bounds.x(), y, bounds.width(), rowHeight), annotation->highlightColor);
+            if (i == hoveredLine) {
+                hoveredAnnotation = annotation;
+            }
+        }
 
         if (options.showLineNumbers) {
             std::string lineNum = std::to_string(i + 1);
@@ -156,26 +193,56 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
                 return a.startColumn < b.startColumn;
             });
 
+            // Draw segment backgrounds first so syntax colors remain unchanged.
+            for (const auto& segment : segments) {
+                if (segment.background.a == 0) {
+                    continue;
+                }
+
+                const int start = std::clamp(segment.startColumn, 0, static_cast<int>(lineText.length()));
+                const int end = std::clamp(segment.endColumn, 0, static_cast<int>(lineText.length()));
+                if (end <= start) {
+                    continue;
+                }
+
+                const std::string before = lineText.substr(0, static_cast<size_t>(start));
+                const std::string highlighted = lineText.substr(
+                    static_cast<size_t>(start),
+                    static_cast<size_t>(end - start));
+                const float x1 = textPos.x + font->measureText(before).x;
+                const float width = std::max(1.0f, font->measureText(highlighted).x);
+                const Rect highlightRect(
+                    x1,
+                    y + rowHeight * 0.14f,
+                    width,
+                    rowHeight * 0.72f);
+                dl.addRectFilled(highlightRect, segment.background, 2.0f);
+            }
+
             int currentColumn = 0;
             float currentX = textPos.x;
 
             for (const auto& segment : segments) {
+                const int start = std::clamp(segment.startColumn, 0, static_cast<int>(lineText.length()));
+                const int end = std::clamp(segment.endColumn, 0, static_cast<int>(lineText.length()));
+                if (end <= start) {
+                    continue;
+                }
+
                 // Render unstyled text before this segment
-                if (segment.startColumn > currentColumn) {
-                    std::string plain = lineText.substr(currentColumn, segment.startColumn - currentColumn);
+                if (start > currentColumn) {
+                    std::string plain = lineText.substr(currentColumn, start - currentColumn);
                     dl.addText(font, Vec2(currentX, textPos.y), plain, theme.colors.text);
                     currentX += font->measureText(plain).x;
                 }
 
                 // Render styled segment
-                if (segment.endColumn > segment.startColumn) {
-                    int len = segment.endColumn - segment.startColumn;
-                    std::string styled = lineText.substr(segment.startColumn, len);
-                    dl.addText(font, Vec2(currentX, textPos.y), styled, segment.color);
-                    currentX += font->measureText(styled).x;
-                }
+                const int len = end - start;
+                std::string styled = lineText.substr(start, len);
+                dl.addText(font, Vec2(currentX, textPos.y), styled, segment.color);
+                currentX += font->measureText(styled).x;
 
-                currentColumn = std::max(currentColumn, segment.endColumn);
+                currentColumn = std::max(currentColumn, end);
             }
 
             // Render remaining unstyled text
@@ -189,6 +256,61 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
     }
 
     dl.popClipRect();
+
+    if (hoveredAnnotation &&
+        (!hoveredAnnotation->tooltipTitle.empty() || !hoveredAnnotation->tooltipMessage.empty())) {
+        const float tooltipPadding = 8.0f;
+        const float tooltipSpacing = 3.0f;
+        const Vec2 titleSize = hoveredAnnotation->tooltipTitle.empty()
+            ? Vec2::zero()
+            : font->measureText(hoveredAnnotation->tooltipTitle);
+        const Vec2 messageSize = hoveredAnnotation->tooltipMessage.empty()
+            ? Vec2::zero()
+            : font->measureText(hoveredAnnotation->tooltipMessage);
+
+        float contentHeight = 0.0f;
+        if (!hoveredAnnotation->tooltipTitle.empty()) {
+            contentHeight += font->lineHeight();
+        }
+        if (!hoveredAnnotation->tooltipMessage.empty()) {
+            if (!hoveredAnnotation->tooltipTitle.empty()) {
+                contentHeight += tooltipSpacing;
+            }
+            contentHeight += font->lineHeight();
+        }
+
+        const float tooltipMouseGap = 10.0f;
+        Rect tooltipRect(
+            mousePos.x + tooltipMouseGap,
+            mousePos.y + tooltipMouseGap,
+            std::max(titleSize.x, messageSize.x) + tooltipPadding * 2.0f,
+            contentHeight + tooltipPadding * 2.0f);
+
+        const float rightLimit = bounds.right() - 4.0f;
+        const float bottomLimit = bounds.bottom() - 4.0f;
+        if (tooltipRect.right() > rightLimit) {
+            tooltipRect.pos.x = rightLimit - tooltipRect.width();
+        }
+        if (tooltipRect.bottom() > bottomLimit) {
+            tooltipRect.pos.y = mousePos.y - tooltipRect.height() - tooltipMouseGap;
+        }
+        tooltipRect.pos.x = std::max(bounds.x() + 4.0f, tooltipRect.x());
+        tooltipRect.pos.y = std::max(bounds.y() + 4.0f, tooltipRect.y());
+
+        Color tooltipBg = theme.colors.tooltipBackground;
+        tooltipBg.a = std::min<uint8_t>(tooltipBg.a, 235);
+        dl.addRectFilled(tooltipRect, tooltipBg);
+        dl.addRect(tooltipRect, theme.colors.tooltipBorder);
+
+        Vec2 textCursor = tooltipRect.topLeft() + Vec2(tooltipPadding, tooltipPadding);
+        if (!hoveredAnnotation->tooltipTitle.empty()) {
+            dl.addText(font, textCursor, hoveredAnnotation->tooltipTitle, theme.colors.error);
+            textCursor.y += font->lineHeight() + tooltipSpacing;
+        }
+        if (!hoveredAnnotation->tooltipMessage.empty()) {
+            dl.addText(font, textCursor, hoveredAnnotation->tooltipMessage, theme.colors.warning);
+        }
+    }
 }
 
 

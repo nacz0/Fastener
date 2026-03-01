@@ -82,7 +82,7 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
     }
 
     // Close on click outside
-    if (state.isOpen && input.isMousePressed(MouseButton::Left) && !boxBounds.contains(input.mousePos())) {
+    if (state.isOpen && input.isMousePressedRaw(MouseButton::Left) && !boxBounds.contains(input.mousePos())) {
         // Check if clicking in dropdown
         float itemHeight = font ? font->lineHeight() + theme.metrics.paddingSmall * 2 : 24.0f;
         float dropdownHeight = std::min(options.dropdownMaxHeight, itemHeight * (float)items.size());
@@ -110,7 +110,7 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
                 state.hoveredIndex = hoveredItem;
                 
                 // Handle click on item
-                if (input.isMousePressed(MouseButton::Left)) {
+                if (input.isMousePressedRaw(MouseButton::Left)) {
                     if (selectedIndex != hoveredItem) {
                         selectedIndex = hoveredItem;
                         changed = true;

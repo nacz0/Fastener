@@ -39,6 +39,14 @@ struct TextSegment {
     int startColumn;
     int endColumn;
     Color color;
+    Color background = Color::transparent();
+};
+
+struct TextLineAnnotation {
+    int line = 0;
+    Color highlightColor = Color(220, 32, 32, 110);
+    std::string tooltipTitle;
+    std::string tooltipMessage;
 };
 
 using StyleProvider = std::function<std::vector<TextSegment>(int lineIndex, const std::string& text)>;
@@ -83,6 +91,8 @@ public:
     void setCursor(const TextPosition& pos);
     
     void setStyleProvider(StyleProvider provider) { m_styleProvider = std::move(provider); }
+    void setLineAnnotations(std::vector<TextLineAnnotation> annotations);
+    void clearLineAnnotations();
 
     void undo();
     void redo();
@@ -92,6 +102,7 @@ public:
 private:
     std::vector<std::string> m_lines;
     StyleProvider m_styleProvider;
+    std::vector<TextLineAnnotation> m_lineAnnotations;
     TextPosition m_cursor;
     TextSelection m_selection;
     bool m_isSelecting = false;

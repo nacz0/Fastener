@@ -102,6 +102,8 @@ void TextEditor::render(Context& ctx, const Rect& bounds, const TextEditorOption
     float rowHeight = font->lineHeight() * options.lineHeight;
     float charWidth = font->measureText("M").x; 
     float gutterWidth = options.showLineNumbers ? 50.0f : 0.0f;
+    m_lastRowHeight = rowHeight;
+    m_lastViewportHeight = bounds.height();
 
     handleInput(ctx, bounds, rowHeight, charWidth, gutterWidth, widgetState.focused, options.suppressNavigationKeys);
 
@@ -385,6 +387,40 @@ void TextEditor::applyAction(const EditAction& action, bool undo) {
 void TextEditor::setCursor(const TextPosition& pos) {
     m_cursor.line = std::clamp(pos.line, 0, static_cast<int>(m_lines.size() - 1));
     m_cursor.column = std::clamp(pos.column, 0, static_cast<int>(m_lines[m_cursor.line].length()));
+}
+
+int TextEditor::firstVisibleLine() const {
+    if (m_lines.empty() || m_lastRowHeight <= 0.0f) {
+        return 0;
+    }
+    const int line = static_cast<int>(m_scrollOffset.y / m_lastRowHeight);
+    return std::clamp(line, 0, static_cast<int>(m_lines.size() - 1));
+}
+
+int TextEditor::visibleLineCount() const {
+    if (m_lastRowHeight <= 0.0f || m_lastViewportHeight <= 0.0f) {
+        return 1;
+    }
+    return std::max(1, static_cast<int>(m_lastViewportHeight / m_lastRowHeight) + 1);
+}
+
+void TextEditor::centerViewOnLine(int line) {
+    if (m_lines.empty()) {
+        return;
+    }
+
+    const int clampedLine = std::clamp(line, 0, static_cast<int>(m_lines.size() - 1));
+    m_cursor.line = clampedLine;
+    m_cursor.column = std::clamp(m_cursor.column, 0, static_cast<int>(m_lines[m_cursor.line].length()));
+
+    if (m_lastRowHeight <= 0.0f || m_lastViewportHeight <= 0.0f) {
+        return;
+    }
+
+    const float visibleLines = std::max(1.0f, m_lastViewportHeight / m_lastRowHeight);
+    const float maxTopLine = std::max(0.0f, static_cast<float>(m_lines.size()) - visibleLines);
+    const float targetTopLine = std::clamp(static_cast<float>(clampedLine) - visibleLines * 0.5f, 0.0f, maxTopLine);
+    m_scrollOffset.y = targetTopLine * m_lastRowHeight;
 }
 
 void TextEditor::handleInput(

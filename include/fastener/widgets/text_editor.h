@@ -89,6 +89,10 @@ public:
     // State access
     const TextPosition& cursor() const { return m_cursor; }
     void setCursor(const TextPosition& pos);
+    int lineCount() const { return static_cast<int>(m_lines.size()); }
+    int firstVisibleLine() const;
+    int visibleLineCount() const;
+    void centerViewOnLine(int line);
     
     void setStyleProvider(StyleProvider provider) { m_styleProvider = std::move(provider); }
     void setLineAnnotations(std::vector<TextLineAnnotation> annotations);
@@ -114,6 +118,8 @@ private:
     Vec2 m_scrollOffset = {0, 0};
     float m_contentWidth = 0;
     float m_contentHeight = 0;
+    float m_lastRowHeight = 0;
+    float m_lastViewportHeight = 0;
 
     std::vector<EditAction> m_undoStack;
     std::vector<EditAction> m_redoStack;

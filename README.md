@@ -114,6 +114,16 @@ Docs live in the `docs/` folder:
 - `docs/THEMING.md`
 - `docs/AI_CONTEXT.md`
 
+## Development Methodology
+
+This project was built using an agentic coding workflow with AI assistance (Codex).
+AI tools were used to help generate and iterate on implementation details,
+while the overall system architecture, API design, project structure,
+and debugging were managed manually.
+
+This approach allowed faster experimentation and iteration during development.
+
 ## License
 
 MIT
+

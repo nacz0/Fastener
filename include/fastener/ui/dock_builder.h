@@ -18,14 +18,14 @@ class Context;
  * @code
  * auto dockspaceId = fst::DockBuilder::GetDockSpaceId(ctx, "MainDockSpace");
  * 
- * fst::DockBuilder::Begin(dockspaceId);
+ * fst::DockBuilder::Begin(ctx, dockspaceId);
  * auto left = fst::DockBuilder::SplitNode(ctx, dockspaceId, DockDirection::Left, 0.25f);
  * auto bottom = fst::DockBuilder::SplitNode(ctx, dockspaceId, DockDirection::Bottom, 0.3f);
  * 
  * fst::DockBuilder::DockWindow(ctx, "Hierarchy", left);
  * fst::DockBuilder::DockWindow(ctx, "Console", bottom);
  * fst::DockBuilder::DockWindow(ctx, "Scene", dockspaceId);  // Central
- * fst::DockBuilder::Finish();
+ * fst::DockBuilder::Finish(ctx);
  * @endcode
  */
 class DockBuilder {
@@ -40,18 +40,18 @@ public:
      * Begins building a dock layout.
      * Must be called before any other DockBuilder operations.
      */
-    static void Begin(DockNode::Id dockspaceId);
+    static void Begin(Context& ctx, DockNode::Id dockspaceId);
     
     /**
      * Finishes building the dock layout.
      * Commits all pending changes.
      */
-    static void Finish();
+    static void Finish(Context& ctx);
     
     /**
      * Checks if currently in build mode.
      */
-    static bool IsBuilding();
+    static bool IsBuilding(Context& ctx);
     
     /**
      * Splits a node and returns the ID of the new node.

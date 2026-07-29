@@ -11,6 +11,7 @@
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <sstream>
 #include <vector>
@@ -50,14 +51,12 @@ std::vector<std::string> wrapText(const Font* font, const std::string& text, flo
 
 namespace internal {
 
-static TooltipState s_tooltipState;
-
-TooltipState& getTooltipState() {
-    return s_tooltipState;
+TooltipState& getTooltipState(Context& ctx) {
+    return detail::widgetStates(ctx).get<TooltipState>();
 }
 
 void registerHoveredWidget(Context& ctx, WidgetId id, const Rect& bounds) {
-    TooltipState& state = s_tooltipState;
+    TooltipState& state = getTooltipState(ctx);
     
     if (state.hoveredWidget != id) {
         // New widget being hovered
@@ -69,9 +68,9 @@ void registerHoveredWidget(Context& ctx, WidgetId id, const Rect& bounds) {
     }
 }
 
-void resetTooltipState() {
+void resetTooltipState(Context& ctx) {
     // Reset at frame start - will be re-registered if still hovered
-    s_tooltipState.hoveredWidget = INVALID_WIDGET_ID;
+    getTooltipState(ctx).hoveredWidget = INVALID_WIDGET_ID;
 }
 
 void renderActiveTooltip() {
@@ -89,7 +88,7 @@ void Tooltip(Context& ctx, const char* text, const TooltipOptions& options) {
     WidgetId hoveredId = ctx.getHoveredWidget();
     if (hoveredId == INVALID_WIDGET_ID) return;
     
-    internal::TooltipState& state = internal::s_tooltipState;
+    internal::TooltipState& state = internal::getTooltipState(ctx);
     
     // Track this hover
     if (state.hoveredWidget != hoveredId) {

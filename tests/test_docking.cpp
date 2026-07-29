@@ -267,3 +267,25 @@ TEST_F(DockingTest, DockTabDragRemainsBoundToItsContext) {
     EXPECT_EQ(first.context().docking().dragState().windowId, firstWindow);
     first.endFrame();
 }
+
+TEST_F(DockingTest, FinishingOneBuilderDoesNotEndAnotherContextsSession) {
+    Context first(false);
+    Context second(false);
+    DockNode::Id firstRoot =
+        DockBuilder::GetDockSpaceId(first, "FirstBuilderDockSpace");
+    DockNode::Id secondRoot =
+        DockBuilder::GetDockSpaceId(second, "SecondBuilderDockSpace");
+
+    DockBuilder::Begin(first, firstRoot);
+    DockBuilder::Begin(second, secondRoot);
+    DockBuilder::Finish(second);
+
+    DockNode::Id firstChild =
+        DockBuilder::SplitNode(first, firstRoot, DockDirection::Left, 0.5f);
+
+    EXPECT_NE(firstChild, DockNode::INVALID_ID);
+    EXPECT_TRUE(DockBuilder::IsBuilding(first));
+    EXPECT_FALSE(DockBuilder::IsBuilding(second));
+
+    DockBuilder::Finish(first);
+}

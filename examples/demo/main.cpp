@@ -431,7 +431,7 @@ int main() {
     static bool layoutInitialized = false;
     auto initDockLayout = [&]() {
         DockNode::Id mainDockId = DockBuilder::GetDockSpaceId(ctx, "##MainDockSpace");
-        DockBuilder::Begin(mainDockId);
+        DockBuilder::Begin(ctx, mainDockId);
         DockBuilder::ClearDockSpace(ctx, mainDockId);
         
         // Split Root into Left and Right
@@ -455,7 +455,7 @@ int main() {
         DockBuilder::DockWindow(ctx, "Localization", centralNode);
         DockBuilder::DockWindow(ctx, "Rich Text", centralNode);
         
-        DockBuilder::Finish();
+        DockBuilder::Finish(ctx);
         layoutInitialized = true;
     };
     

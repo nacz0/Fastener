@@ -1,18 +1,40 @@
 #include "fastener/ui/dock_builder.h"
 #include "fastener/ui/dock_context.h"
 #include "fastener/core/context.h"
+#include "../core/widget_state_registry.h"
 #include <vector>
 
 namespace fst {
 
 //=============================================================================
-// Static state for builder
+// Context-owned state for builder
 //=============================================================================
 
-static struct {
+namespace {
+
+struct DockBuilderContextState {
     bool building = false;
     DockNode::Id currentDockSpaceId = DockNode::INVALID_ID;
-} s_builderState;
+};
+
+DockBuilderContextState& getBuilderState(Context& ctx) {
+    return detail::widgetStates(ctx).get<DockBuilderContextState>();
+}
+
+bool isNodeInCurrentDockSpace(Context& ctx,
+                              const DockBuilderContextState& state,
+                              DockNode::Id nodeId) {
+    if (!state.building ||
+        state.currentDockSpaceId == DockNode::INVALID_ID ||
+        nodeId == DockNode::INVALID_ID) {
+        return false;
+    }
+
+    const DockNode* root = ctx.docking().getDockNode(state.currentDockSpaceId);
+    return root && root->findNodeById(nodeId);
+}
+
+} // namespace
 
 //=============================================================================
 // DockBuilder Implementation
@@ -30,25 +52,29 @@ DockNode::Id DockBuilder::GetDockSpaceId(Context& ctx, const std::string& name) 
     return id;
 }
 
-void DockBuilder::Begin(DockNode::Id dockspaceId) {
-    s_builderState.building = true;
-    s_builderState.currentDockSpaceId = dockspaceId;
+void DockBuilder::Begin(Context& ctx, DockNode::Id dockspaceId) {
+    auto& state = getBuilderState(ctx);
+    state.building = ctx.docking().getDockNode(dockspaceId) != nullptr;
+    state.currentDockSpaceId =
+        state.building ? dockspaceId : DockNode::INVALID_ID;
 }
 
-void DockBuilder::Finish() {
-    s_builderState.building = false;
-    s_builderState.currentDockSpaceId = DockNode::INVALID_ID;
+void DockBuilder::Finish(Context& ctx) {
+    auto& state = getBuilderState(ctx);
+    state.building = false;
+    state.currentDockSpaceId = DockNode::INVALID_ID;
 }
 
-bool DockBuilder::IsBuilding() {
-    return s_builderState.building;
+bool DockBuilder::IsBuilding(Context& ctx) {
+    return getBuilderState(ctx).building;
 }
 
 DockNode::Id DockBuilder::SplitNode(Context& ctx,
                                      DockNode::Id nodeId, 
                                      DockDirection direction, 
                                      float sizeRatio) {
-    if (!s_builderState.building) {
+    const auto& state = getBuilderState(ctx);
+    if (!isNodeInCurrentDockSpace(ctx, state, nodeId)) {
         return DockNode::INVALID_ID;
     }
     
@@ -71,7 +97,8 @@ DockNode::Id DockBuilder::SplitNode(Context& ctx,
 }
 
 void DockBuilder::DockWindow(Context& ctx, const std::string& windowId, DockNode::Id nodeId) {
-    if (!s_builderState.building) {
+    const auto& state = getBuilderState(ctx);
+    if (!isNodeInCurrentDockSpace(ctx, state, nodeId)) {
         return;
     }
     

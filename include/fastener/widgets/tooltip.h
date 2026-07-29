@@ -44,10 +44,10 @@ struct TooltipState {
     float showAlpha = 0.0f;
 };
 
-TooltipState& getTooltipState();
-void registerHoveredWidget(WidgetId id, const Rect& bounds);
+TooltipState& getTooltipState(Context& ctx);
+void registerHoveredWidget(Context& ctx, WidgetId id, const Rect& bounds);
 void renderActiveTooltip();
-void resetTooltipState();
+void resetTooltipState(Context& ctx);
 
 } // namespace internal
 

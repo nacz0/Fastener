@@ -5,6 +5,7 @@
 #include <fastener/widgets/modal.h>
 #include <fastener/widgets/panel.h>
 #include <fastener/widgets/status_bar.h>
+#include <fastener/widgets/tooltip.h>
 #include "TestContext.h"
 #include <filesystem>
 
@@ -140,4 +141,16 @@ TEST(GridContextStateTest, AllocationUsesTheCallingContextsActiveGrid) {
     second.endFrame();
     EndGrid(first);
     first.endFrame();
+}
+
+TEST(TooltipContextStateTest, HoverTrackingIsIndependentForEachContext) {
+    Context first(false);
+    Context second(false);
+    constexpr WidgetId sharedWidgetId = 42;
+
+    first.setHoveredWidget(sharedWidgetId);
+    Tooltip(first, "First tooltip");
+
+    EXPECT_EQ(internal::getTooltipState(first).hoveredWidget, sharedWidgetId);
+    EXPECT_EQ(internal::getTooltipState(second).hoveredWidget, INVALID_WIDGET_ID);
 }

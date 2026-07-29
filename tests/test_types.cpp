@@ -3,6 +3,26 @@
 
 using namespace fst;
 
+TEST(WidgetIdTest, HierarchicalCombinationIsOrderSensitive) {
+    constexpr WidgetId parent = hashString("Parent");
+    constexpr WidgetId child = hashString("Child");
+
+    constexpr WidgetId parentThenChild =
+        combineIds(combineIds(0, parent), child);
+    constexpr WidgetId childThenParent =
+        combineIds(combineIds(0, child), parent);
+
+    EXPECT_NE(parentThenChild, childThenParent);
+}
+
+TEST(WidgetIdTest, RepeatedScopeDoesNotProduceInvalidId) {
+    constexpr WidgetId repeated = hashString("Repeated");
+    constexpr WidgetId nested =
+        combineIds(combineIds(0, repeated), repeated);
+
+    EXPECT_NE(nested, INVALID_WIDGET_ID);
+}
+
 //=============================================================================
 // Vec2 Tests
 //=============================================================================

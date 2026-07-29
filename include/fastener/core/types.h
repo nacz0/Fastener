@@ -314,9 +314,18 @@ constexpr WidgetId operator""_id(const char* str, size_t len) {
     return hashString(std::string_view(str, len));
 }
 
-// Combine IDs (for hierarchical widgets)
+// Combine IDs for hierarchical widgets. The parent participates
+// asymmetrically so scope order matters, and zero remains reserved as invalid.
 constexpr WidgetId combineIds(WidgetId parent, WidgetId child) {
-    return parent ^ (child * 1099511628211ULL);
+    WidgetId combined =
+        parent ^ (child + 0x9e3779b97f4a7c15ULL +
+                  (parent << 6) + (parent >> 2));
+    combined = (combined ^ (combined >> 30)) * 0xbf58476d1ce4e5b9ULL;
+    combined = (combined ^ (combined >> 27)) * 0x94d049bb133111ebULL;
+    combined ^= combined >> 31;
+    return combined == INVALID_WIDGET_ID
+        ? 0x9e3779b97f4a7c15ULL
+        : combined;
 }
 
 //=============================================================================

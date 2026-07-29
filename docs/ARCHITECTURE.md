@@ -71,7 +71,8 @@ Fastener uses an OpenGL 3.3 pipeline:
 Widgets are identified via a hash-based ID system:
 
 - A string ID (e.g., "login_button") is hashed into a `WidgetId`.
-- The ID stack combines parent/child IDs (pushId/popId).
+- The ID stack combines parent/child IDs in order (pushId/popId), so `A/B`
+  and `B/A` are distinct and no valid hierarchy produces the reserved zero ID.
 - This allows widgets like TextInput to keep cursor state across frames.
 
 ---

@@ -57,6 +57,8 @@ int main() {
         ctx.endFrame();
         window.swapBuffers();
     }
+
+    (void)ctx.shutdown(window);
     return 0;
 }
 ```

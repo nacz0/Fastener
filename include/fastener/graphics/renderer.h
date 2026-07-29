@@ -24,6 +24,12 @@ public:
     // Initialization
     bool init();
     void shutdown();
+
+    /**
+     * Release objects that belong only to the current GL context (currently
+     * the VAO). Shared resources remain alive until shutdown().
+     */
+    [[nodiscard]] bool releaseCurrentContextResources();
     
     // Frame
     void beginFrame(int width, int height, float dpiScale);

@@ -161,7 +161,18 @@ struct Renderer::Impl {
     void ensureScreenTexture(int width, int height);
     void setupVao(GLuint vao);
     void ensureVaoForCurrentContext();
+    bool hasResources() const;
 };
+
+bool Renderer::Impl::hasResources() const {
+    return shaderProgram != 0 ||
+           blurShaderProgram != 0 ||
+           vbo != 0 ||
+           ebo != 0 ||
+           whiteTexture != 0 ||
+           screenTexture != 0 ||
+           !vaoByContext.empty();
+}
 
 bool Renderer::Impl::loadFunctions() {
 #ifdef _WIN32
@@ -527,30 +538,23 @@ bool Renderer::init() {
 }
 
 void Renderer::shutdown() {
+    if (!m_impl->hasResources()) {
+        return;
+    }
     if (!hasCurrentGLContext()) {
         FST_LOG_WARN("Renderer::shutdown called without a current GL context; skipping GL deletes");
-        m_impl->vao = 0;
-        m_impl->vbo = 0;
-        m_impl->ebo = 0;
-        m_impl->shaderProgram = 0;
-        m_impl->blurShaderProgram = 0;
-        m_impl->whiteTexture = 0;
-        m_impl->screenTexture = 0;
-        m_impl->screenTexWidth = 0;
-        m_impl->screenTexHeight = 0;
-        m_impl->vaoByContext.clear();
         return;
     }
 
-    if (m_impl->glDeleteVertexArrays) {
-        for (auto& entry : m_impl->vaoByContext) {
-            GLuint vao = entry.second;
-            if (vao) {
-                m_impl->glDeleteVertexArrays(1, &vao);
-            }
-        }
+    (void)releaseCurrentContextResources();
+    if (!m_impl->vaoByContext.empty()) {
+        FST_LOG_WARN(
+            "Renderer::shutdown has VAOs owned by other GL contexts; "
+            "release each window before shared shutdown");
+        // VAOs are context-local and must never be deleted while a different
+        // context is current. Their owning GL contexts will reclaim them.
+        m_impl->vaoByContext.clear();
     }
-    m_impl->vaoByContext.clear();
     m_impl->vao = 0;
     if (m_impl->vbo) {
         if (m_impl->glDeleteBuffers) {
@@ -586,6 +590,34 @@ void Renderer::shutdown() {
         m_impl->screenTexWidth = 0;
         m_impl->screenTexHeight = 0;
     }
+}
+
+bool Renderer::releaseCurrentContextResources() {
+    if (m_impl->vaoByContext.empty()) {
+        m_impl->vao = 0;
+        return true;
+    }
+
+    void* contextHandle = currentGLContextHandle();
+    if (!contextHandle) {
+        FST_LOG_WARN(
+            "Renderer::releaseCurrentContextResources called without a current GL context");
+        return false;
+    }
+
+    auto it = m_impl->vaoByContext.find(contextHandle);
+    if (it == m_impl->vaoByContext.end()) {
+        m_impl->vao = 0;
+        return true;
+    }
+
+    GLuint vao = it->second;
+    if (vao != 0 && m_impl->glDeleteVertexArrays) {
+        m_impl->glDeleteVertexArrays(1, &vao);
+    }
+    m_impl->vaoByContext.erase(it);
+    m_impl->vao = 0;
+    return true;
 }
 
 void Renderer::beginFrame(int width, int height, float dpiScale) {

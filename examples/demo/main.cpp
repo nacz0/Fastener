@@ -1706,6 +1706,7 @@ int main() {
         }
         renderFrame();
     }
-    
+
+    (void)ctx.shutdown(window);
     return 0;
 }

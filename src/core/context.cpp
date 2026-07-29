@@ -341,6 +341,33 @@ bool Context::isFrameActive() const {
     return m_impl->frameActive;
 }
 
+bool Context::releaseWindowResources(IPlatformWindow& window) {
+    if (m_impl->frameActive) {
+        FST_LOG_ERROR(
+            "Context::releaseWindowResources called during an active frame");
+        return false;
+    }
+
+    window.makeContextCurrent();
+    return m_impl->renderer.releaseCurrentContextResources();
+}
+
+bool Context::shutdown(IPlatformWindow& window) {
+    if (m_impl->frameActive) {
+        FST_LOG_ERROR("Context::shutdown called during an active frame");
+        return false;
+    }
+
+    window.makeContextCurrent();
+
+    m_impl->currentFont = nullptr;
+    m_impl->defaultFont.reset();
+    (void)m_impl->renderer.releaseCurrentContextResources();
+    m_impl->renderer.shutdown();
+    m_impl->rendererInitialized = false;
+    return true;
+}
+
 void Context::setTheme(const Theme& theme) {
     m_impl->theme = theme;
 }

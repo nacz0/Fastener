@@ -24,7 +24,7 @@ public:
     void pollEvents() override {}
     void waitEvents() override {}
     void swapBuffers() override {}
-    void makeContextCurrent() override {}
+    void makeContextCurrent() override { ++m_makeContextCurrentCalls; }
     Vec2 size() const override { return {800.0f, 600.0f}; }
     Vec2 framebufferSize() const override { return {800.0f, 600.0f}; }
     float dpiScale() const override { return 1.0f; }
@@ -46,9 +46,11 @@ public:
     void* nativeHandle() const override { return nullptr; }
     InputState& input() override { return m_input; }
     const InputState& input() const override { return m_input; }
+    int makeContextCurrentCalls() const { return m_makeContextCurrentCalls; }
     
 private:
     InputState m_input;
+    int m_makeContextCurrentCalls = 0;
 };
 
 /**

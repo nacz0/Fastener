@@ -306,7 +306,14 @@ int main() {
             toolsWindow->swapBuffers();
         }
     }
-    
+
+    // VAOs belong to individual GL contexts. Release the secondary context
+    // first, then release shared renderer resources with the primary current.
+    if (toolsWindow) {
+        (void)ctx.releaseWindowResources(*toolsWindow);
+    }
+    (void)ctx.shutdown(*mainWindow);
+
     std::cout << "Demo closed." << std::endl;
     return 0;
 }

@@ -57,6 +57,12 @@ The DrawList is a command buffer for geometry. Widgets push rectangles, lines, a
 
 Wraps the OS window and input events. It also exposes clipboard and cursor APIs used by widgets.
 
+Each OpenGL context owns its own vertex array object (VAO), while buffers,
+programs, and textures can be shared by windows in the same share group.
+Applications must call `Context::releaseWindowResources()` before destroying
+each secondary window and `Context::shutdown()` before destroying the final
+window. Teardown is rejected while a frame is active.
+
 ## Rendering Pipeline
 
 Fastener uses an OpenGL 3.3 pipeline:

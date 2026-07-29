@@ -46,6 +46,18 @@ public:
     void beginFrame(IPlatformWindow& window);
     void endFrame();
     [[nodiscard]] bool isFrameActive() const;
+
+    /**
+     * Release renderer objects local to one platform window's GL context.
+     * Call this for each secondary/shared window before destroying it.
+     */
+    [[nodiscard]] bool releaseWindowResources(IPlatformWindow& window);
+
+    /**
+     * Release fonts and shared renderer objects with the supplied window's
+     * GL context current. The context may be initialized again by beginFrame.
+     */
+    [[nodiscard]] bool shutdown(IPlatformWindow& window);
     
     // Profiling
     Profiler& profiler();

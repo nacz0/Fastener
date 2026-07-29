@@ -157,6 +157,38 @@ TEST(ContextFrameGuardTest, EndFrameRecoversUnbalancedLayoutStack) {
               Rect(0.0f, 0.0f, 10.0f, 10.0f));
 }
 
+TEST(ContextShutdownTest, WindowResourceReleaseMakesTargetContextCurrent) {
+    Context ctx(false);
+    StubWindow window;
+
+    EXPECT_TRUE(ctx.releaseWindowResources(window));
+
+    EXPECT_EQ(window.makeContextCurrentCalls(), 1);
+}
+
+TEST(ContextShutdownTest, ShutdownIsRejectedDuringActiveFrame) {
+    Context ctx(false);
+    StubWindow window;
+    ctx.beginFrame(window);
+
+    EXPECT_FALSE(ctx.shutdown(window));
+    EXPECT_TRUE(ctx.isFrameActive());
+    EXPECT_EQ(window.makeContextCurrentCalls(), 0);
+
+    ctx.endFrame();
+}
+
+TEST(ContextShutdownTest, ShutdownIsIdempotentOutsideFrame) {
+    Context ctx(false);
+    StubWindow window;
+
+    EXPECT_TRUE(ctx.shutdown(window));
+    EXPECT_TRUE(ctx.shutdown(window));
+
+    EXPECT_FALSE(ctx.isFrameActive());
+    EXPECT_EQ(window.makeContextCurrentCalls(), 2);
+}
+
 TEST(ContextMenuContextTest, ClosingOneContextMenuDoesNotCloseAnotherContextsMenu) {
     Context first(false);
     Context second(false);

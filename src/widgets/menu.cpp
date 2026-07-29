@@ -8,6 +8,7 @@
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <cmath>
 
@@ -16,10 +17,16 @@ namespace fst {
 namespace {
 constexpr float kMenuPopupRadius = 0.0f;
 constexpr float kMenuHoverRadius = 0.0f;
+
+struct ContextMenuContextState {
+    ContextMenu menu;
+};
+
+ContextMenu& getContextMenu(Context& ctx) {
+    return detail::widgetStates(ctx).get<ContextMenuContextState>().menu;
 }
 
-// Local context menu instance (data storage, not shared state)
-static ContextMenu g_contextMenu;
+} // namespace
 
 // Helper to access menu state from current Context
 static Context::MenuState& getMenuState(Context& ctx) {
@@ -604,26 +611,28 @@ void ContextMenu::renderSubmenu(Context& ctx, const std::vector<std::shared_ptr<
 // Global helpers
 //=============================================================================
 void ShowContextMenu(Context& ctx, const std::vector<MenuItem>& items, const Vec2& position) {
-    g_contextMenu.setItems(items);
-    g_contextMenu.show(position);
+    ContextMenu& contextMenu = getContextMenu(ctx);
+    contextMenu.setItems(items);
+    contextMenu.show(position);
     getMenuState(ctx).contextMenuActive = true;
 }
 
 void RenderContextMenu(Context& ctx) {
     if (getMenuState(ctx).contextMenuActive) {
-        g_contextMenu.render(ctx);
-        if (!g_contextMenu.isVisible()) {
+        ContextMenu& contextMenu = getContextMenu(ctx);
+        contextMenu.render(ctx);
+        if (!contextMenu.isVisible()) {
             getMenuState(ctx).contextMenuActive = false;
         }
     }
 }
 
 bool IsContextMenuOpen(Context& ctx) {
-    return getMenuState(ctx).contextMenuActive && g_contextMenu.isVisible();
+    return getMenuState(ctx).contextMenuActive && getContextMenu(ctx).isVisible();
 }
 
 void CloseContextMenu(Context& ctx) {
-    g_contextMenu.hide();
+    getContextMenu(ctx).hide();
     getMenuState(ctx).contextMenuActive = false;
     getMenuState(ctx).contextMenuRect = Rect();
 }

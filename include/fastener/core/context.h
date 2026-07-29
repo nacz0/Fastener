@@ -24,8 +24,10 @@ class Profiler;
 
 namespace detail {
 struct DragDropContextState;
+class WidgetStateRegistry;
 DragDropContextState& dragDropState(Context& ctx);
 const DragDropContextState& dragDropState(const Context& ctx);
+WidgetStateRegistry& widgetStates(Context& ctx);
 }
 
 //=============================================================================
@@ -149,6 +151,7 @@ public:
 private:
     friend detail::DragDropContextState& detail::dragDropState(Context& ctx);
     friend const detail::DragDropContextState& detail::dragDropState(const Context& ctx);
+    friend detail::WidgetStateRegistry& detail::widgetStates(Context& ctx);
 
     struct Impl;
     std::unique_ptr<Impl> m_impl;

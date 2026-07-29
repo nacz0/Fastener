@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <unordered_map>
 
@@ -40,9 +41,24 @@ struct TableState {
     float resizeStartWidth = 0.0f;
 };
 
-static std::unordered_map<WidgetId, TableState> s_tableStates;
-static TableState* s_currentTable = nullptr;
-static WidgetId s_currentTableId = 0;
+struct TableContextState {
+    std::unordered_map<WidgetId, TableState> tables;
+    std::vector<WidgetId> tableStack;
+};
+
+static TableContextState& getTableContextState(Context& ctx) {
+    return detail::widgetStates(ctx).get<TableContextState>();
+}
+
+static TableState* getCurrentTable(Context& ctx) {
+    TableContextState& contextState = getTableContextState(ctx);
+    if (contextState.tableStack.empty()) {
+        return nullptr;
+    }
+
+    auto it = contextState.tables.find(contextState.tableStack.back());
+    return it != contextState.tables.end() ? &it->second : nullptr;
+}
 
 //=============================================================================
 // Table Class Implementation
@@ -402,10 +418,9 @@ void Table::end(Context& ctx) {
 bool BeginTable(Context& ctx, const std::string& id, const std::vector<TableColumn>& columns,
                 const TableOptions& options) {
     WidgetId widgetId = ctx.makeId(id.c_str());
-    TableState& state = s_tableStates[widgetId];
-    
-    s_currentTable = &state;
-    s_currentTableId = widgetId;
+    TableContextState& contextState = getTableContextState(ctx);
+    TableState& state = contextState.tables[widgetId];
+    contextState.tableStack.push_back(widgetId);
     
     state.columns = columns;
     state.options = options;
@@ -451,9 +466,10 @@ bool BeginTable(Context& ctx, const std::string& id, const std::vector<TableColu
 
 
 void TableHeader(Context& ctx, int sortColumn, bool sortAscending) {
-    if (!s_currentTable || !s_currentTable->inTable) return;
+    TableState* currentTable = getCurrentTable(ctx);
+    if (!currentTable || !currentTable->inTable) return;
     
-    TableState& state = *s_currentTable;
+    TableState& state = *currentTable;
     state.sortColumn = sortColumn;
     state.sortAscending = sortAscending;
 
@@ -529,9 +545,10 @@ void TableHeader(Context& ctx, int sortColumn, bool sortAscending) {
 }
 
 bool TableRow(Context& ctx, const std::vector<std::string>& cells, bool selected) {
-    if (!s_currentTable || !s_currentTable->inTable) return false;
+    TableState* currentTable = getCurrentTable(ctx);
+    if (!currentTable || !currentTable->inTable) return false;
 
-    TableState& state = *s_currentTable;
+    TableState& state = *currentTable;
     const Theme& theme = ctx.theme();
     IDrawList& dl = *ctx.activeDrawList();
     Font* font = ctx.font();
@@ -624,9 +641,11 @@ bool TableRow(Context& ctx, const std::vector<std::string>& cells, bool selected
 }
 
 void EndTable(Context& ctx) {
-    if (!s_currentTable || !s_currentTable->inTable) return;
+    TableContextState& contextState = getTableContextState(ctx);
+    TableState* currentTable = getCurrentTable(ctx);
+    if (!currentTable || !currentTable->inTable) return;
 
-    TableState& state = *s_currentTable;
+    TableState& state = *currentTable;
     const Theme& theme = ctx.theme();
     IDrawList& dl = *ctx.activeDrawList();
     InputState& input = ctx.input();
@@ -655,30 +674,29 @@ void EndTable(Context& ctx) {
     dl.addRect(state.bounds, theme.colors.border, theme.metrics.borderRadiusSmall);
 
     state.inTable = false;
-    s_currentTable = nullptr;
-    s_currentTableId = 0;
+    contextState.tableStack.pop_back();
 }
 
 int GetTableClickedRow(Context& ctx) {
-    (void)ctx;
-    return s_currentTable ? s_currentTable->clickedRow : -1;
+    TableState* currentTable = getCurrentTable(ctx);
+    return currentTable ? currentTable->clickedRow : -1;
 }
 
 int GetTableSortColumn(Context& ctx) {
-    (void)ctx;
-    return s_currentTable ? s_currentTable->sortColumn : -1;
+    TableState* currentTable = getCurrentTable(ctx);
+    return currentTable ? currentTable->sortColumn : -1;
 }
 
 bool GetTableSortAscending(Context& ctx) {
-    (void)ctx;
-    return s_currentTable ? s_currentTable->sortAscending : true;
+    TableState* currentTable = getCurrentTable(ctx);
+    return currentTable ? currentTable->sortAscending : true;
 }
 
 void SetTableSort(Context& ctx, int column, bool ascending) {
-    (void)ctx;
-    if (s_currentTable) {
-        s_currentTable->sortColumn = column;
-        s_currentTable->sortAscending = ascending;
+    TableState* currentTable = getCurrentTable(ctx);
+    if (currentTable) {
+        currentTable->sortColumn = column;
+        currentTable->sortAscending = ascending;
     }
 }
 

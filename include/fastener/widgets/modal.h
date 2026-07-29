@@ -22,8 +22,8 @@
  *       if (fst::ModalButton(ctx, "OK")) {
  *           showAlert = false;  // Close modal
  *       }
+ *       fst::EndModal(ctx);
  *   }
- *   fst::EndModal(ctx);
  */
 
 namespace fst {
@@ -67,7 +67,7 @@ private:
 /// Begin modal dialog - returns true if modal should render content
 bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOptions& options = {});
 
-/// End modal dialog
+/// End a modal dialog only when BeginModal returned true
 void EndModal(Context& ctx);
 
 /// Button styled for modal dialog footer

@@ -29,6 +29,7 @@ void RenderDockPreview(Context& ctx) {
     const auto& theme = ctx.theme();
 
     
+    const DrawLayer previousLayer = dl.currentLayer();
     dl.setLayer(DrawLayer::Overlay);
     
     // Calculate preview rect
@@ -47,7 +48,7 @@ void RenderDockPreview(Context& ctx) {
     // Draw target indicators (the 5-way cross)
     RenderDockTargetIndicators(ctx, hoveredNode, dragState.mousePos);
     
-    dl.setLayer(DrawLayer::Default);
+    dl.setLayer(previousLayer);
 }
 
 

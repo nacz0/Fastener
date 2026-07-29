@@ -254,8 +254,8 @@ bool open = true;
 if (fst::BeginModal(ctx, "confirm", open, {.title = "Confirm"})) {
     fst::Label(ctx, "Are you sure?");
     if (fst::ModalButton(ctx, "OK", true)) open = false;
+    fst::EndModal(ctx);
 }
-fst::EndModal(ctx);
 ```
 
 ## Docking

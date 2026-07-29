@@ -166,6 +166,7 @@ void renderToast(Context& ctx, ToastEntry& toast, const Vec2& position, float al
     };
     
     // Switch to overlay layer
+    const DrawLayer previousLayer = dl.currentLayer();
     dl.setLayer(DrawLayer::Overlay);
     
     // Draw shadow
@@ -256,8 +257,7 @@ void renderToast(Context& ctx, ToastEntry& toast, const Vec2& position, float al
     WidgetId toastId = ctx.makeId(toast.id * 1000);  // Unique ID for toast body
     handleWidgetInteraction(ctx, toastId, bounds, true, true, true);  // ignoreOcclusion=true for overlay
     
-    // Restore layer
-    dl.setLayer(DrawLayer::Default);
+    dl.setLayer(previousLayer);
 }
 
 } // anonymous namespace

@@ -13,6 +13,7 @@
 #include "fastener/ui/layout.h"
 #include "../core/widget_state_registry.h"
 #include <algorithm>
+#include <vector>
 
 namespace fst {
 
@@ -22,8 +23,12 @@ namespace fst {
 
 namespace {
 
+struct ModalFrame {
+    DrawLayer previousLayer = DrawLayer::Default;
+};
+
 struct ModalState {
-    bool active = false;
+    std::vector<ModalFrame> frames;
 };
 
 ModalState& getModalState(Context& ctx) {
@@ -39,7 +44,6 @@ ModalState& getModalState(Context& ctx) {
 bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOptions& options) {
     ModalState& modalState = getModalState(ctx);
     if (!isOpen) {
-        modalState.active = false;
         return false;
     }
     
@@ -56,6 +60,7 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     float windowH = static_cast<float>(ctx.window().height());
     
     // Switch to overlay layer to render on top of everything
+    DrawLayer previousLayer = dl.currentLayer();
     dl.setLayer(DrawLayer::Overlay);
     
     // Draw backdrop (semi-transparent overlay)
@@ -66,10 +71,12 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     
     dl.addRectFilled(backdropBounds, Color(0, 0, 0, 150));
     
-    // Block all input to widgets behind the modal backdrop
-    // Handle backdrop as a widget to capture mouse events
-    WidgetId backdropId = ctx.makeId("modal_backdrop");
-    (void)handleWidgetInteraction(ctx, backdropId, backdropBounds, false);
+    // Snapshot raw backdrop input before consuming it. The backdrop must not
+    // become the active widget because that would capture input from controls
+    // inside the modal.
+    const bool backdropPressed =
+        ctx.input().isMousePressedRaw(MouseButton::Left);
+    const Vec2 backdropMousePos = ctx.input().mousePos();
     
     // Consume mouse to prevent hover on background widgets
     ctx.input().consumeMouse();
@@ -111,17 +118,18 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     dl.addRect(modalBounds, theme.colors.border, theme.metrics.borderRadius);
     
     // Handle click outside modal (backdrop click)
-    if (options.closeOnBackdrop) {
-        auto& input = ctx.input();
-        if (input.isMousePressed(MouseButton::Left)) {
-            Vec2 mousePos = input.mousePos();
-            if (!modalBounds.contains(mousePos)) {
-                isOpen = false;
-                modalState.active = false;
-                ctx.popId();
-                return false;
-            }
-        }
+    auto closePartialScope = [&]() {
+        dl.popClipRect();
+        dl.setLayer(previousLayer);
+        ctx.popId();
+    };
+
+    if (options.closeOnBackdrop &&
+        backdropPressed &&
+        !modalBounds.contains(backdropMousePos)) {
+        isOpen = false;
+        closePartialScope();
+        return false;
     }
     
     // Draw title bar
@@ -154,13 +162,14 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
             );
             
             WidgetId closeId = ctx.makeId("close");
-            WidgetInteraction closeInteraction = handleWidgetInteraction(ctx, closeId, closeButtonBounds, true);
+            WidgetInteraction closeInteraction =
+                handleWidgetInteraction(ctx, closeId, closeButtonBounds,
+                                        true, true, true);
             WidgetState closeState = getWidgetState(ctx, closeId);
             
             if (closeInteraction.clicked) {
                 isOpen = false;
-                modalState.active = false;
-                ctx.popId();
+                closePartialScope();
                 return false;
             }
             
@@ -203,20 +212,21 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     ctx.layout().beginContainer(contentBounds, options.direction);
     ctx.layout().setSpacing(theme.metrics.itemSpacing);
     
-    modalState.active = true;
+    modalState.frames.push_back({previousLayer});
     
     return true;
 }
 
 void EndModal(Context& ctx) {
     ModalState& modalState = getModalState(ctx);
-    if (modalState.active) {
+    if (!modalState.frames.empty()) {
+        const DrawLayer previousLayer = modalState.frames.back().previousLayer;
         ctx.drawList().popClipRect();  // Pop content clip rect
         ctx.layout().endContainer();
         ctx.drawList().popClipRect();  // Pop fullscreen clip rect
-        ctx.drawList().setLayer(DrawLayer::Default);  // Restore default layer
+        ctx.drawList().setLayer(previousLayer);
         ctx.popId();
-        modalState.active = false;
+        modalState.frames.pop_back();
     }
 }
 
@@ -277,8 +287,9 @@ bool ModalButton(Context& ctx, std::string_view label, bool primary) {
 //=============================================================================
 
 ModalScope::ModalScope(Context& ctx, const std::string& id, bool& isOpen, const ModalOptions& options)
-    : m_ctx(&ctx), m_visible(false), m_needsEnd(true) {
+    : m_ctx(&ctx), m_visible(false), m_needsEnd(false) {
     m_visible = BeginModal(ctx, id, isOpen, options);
+    m_needsEnd = m_visible;
 }
 
 ModalScope::~ModalScope() {

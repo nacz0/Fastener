@@ -1,10 +1,15 @@
 #include <gtest/gtest.h>
 #include <fastener/core/context.h>
 #include <fastener/graphics/draw_list.h>
+#include <fastener/graphics/font.h>
+#include <fastener/ui/dock_context.h>
 #include <fastener/ui/flex_layout.h>
+#include <fastener/ui/theme.h>
+#include <fastener/widgets/dock_preview.h>
 #include <fastener/widgets/modal.h>
 #include <fastener/widgets/panel.h>
 #include <fastener/widgets/status_bar.h>
+#include <fastener/widgets/toast.h>
 #include <fastener/widgets/tooltip.h>
 #include "TestContext.h"
 #include <filesystem>
@@ -88,6 +93,149 @@ TEST(ModalContextStateTest, ClosedModalInAnotherContextCannotPreventScopeCleanup
     EndModal(first);
     EXPECT_EQ(first.currentId(), WidgetId{0});
     first.endFrame();
+}
+
+TEST(ModalContextStateTest, NestedModalsRestoreIdsAndCallingDrawLayer) {
+    Context ctx(false);
+    fst::testing::StubWindow window;
+    bool outerOpen = true;
+    bool innerOpen = true;
+
+    ctx.beginFrame(window);
+    ctx.drawList().setLayer(DrawLayer::Floating);
+
+    ASSERT_TRUE(BeginModal(ctx, "OuterModal", outerOpen));
+    WidgetId outerId = ctx.currentId();
+    ASSERT_NE(outerId, WidgetId{0});
+
+    ASSERT_TRUE(BeginModal(ctx, "InnerModal", innerOpen));
+    ASSERT_NE(ctx.currentId(), outerId);
+
+    EndModal(ctx);
+    EXPECT_EQ(ctx.currentId(), outerId);
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Overlay);
+
+    EndModal(ctx);
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
+    ctx.endFrame();
+}
+
+TEST(ModalContextStateTest, BackdropCloseCleansPartiallyOpenedScope) {
+    Context ctx(false);
+    fst::testing::StubWindow window;
+    bool isOpen = true;
+
+    window.input().beginFrame();
+    window.input().onMouseMove(0.0f, 0.0f);
+    window.input().onMouseDown(MouseButton::Left);
+    ctx.beginFrame(window);
+    ctx.drawList().setLayer(DrawLayer::Floating);
+
+    EXPECT_FALSE(BeginModal(ctx, "BackdropCloseModal", isOpen));
+    EXPECT_FALSE(isOpen);
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
+
+    EndModal(ctx);
+    ctx.endFrame();
+}
+
+TEST(ModalContextStateTest, CloseButtonCanCloseAndCleanItsScope) {
+    Context ctx(false);
+    fst::testing::StubWindow window;
+    ASSERT_TRUE(ctx.loadFont(testFontPath(), 16.0f));
+    bool isOpen = true;
+
+    ModalOptions options;
+    options.title = "Closable";
+    Font* font = ctx.font();
+    ASSERT_NE(font, nullptr);
+
+    const float padding = ctx.theme().metrics.paddingMedium;
+    const float titleHeight = font->lineHeight() + padding * 2.0f;
+    const float modalX =
+        (static_cast<float>(window.width()) - options.width) * 0.5f;
+    const float modalY =
+        (static_cast<float>(window.height()) - 200.0f) * 0.5f;
+    const float closeSize = font->lineHeight();
+    const float closeX =
+        modalX + options.width - padding - closeSize * 0.5f;
+    const float closeY = modalY + titleHeight * 0.5f;
+
+    window.input().beginFrame();
+    window.input().onMouseMove(closeX, closeY);
+    window.input().onMouseDown(MouseButton::Left);
+    window.input().onMouseUp(MouseButton::Left);
+    ctx.beginFrame(window);
+    ctx.drawList().setLayer(DrawLayer::Floating);
+
+    EXPECT_FALSE(BeginModal(ctx, "CloseButtonModal", isOpen, options));
+    EXPECT_FALSE(isOpen);
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
+
+    EndModal(ctx);
+    ctx.endFrame();
+}
+
+TEST(ModalContextStateTest, ClosedRaiiModalDoesNotEndOuterModal) {
+    Context ctx(false);
+    fst::testing::StubWindow window;
+    bool outerOpen = true;
+    bool innerOpen = false;
+
+    ctx.beginFrame(window);
+    ASSERT_TRUE(BeginModal(ctx, "OuterModal", outerOpen));
+    WidgetId outerId = ctx.currentId();
+
+    {
+        ModalScope inner(ctx, "ClosedInnerModal", innerOpen);
+        EXPECT_FALSE(inner);
+    }
+
+    EXPECT_EQ(ctx.currentId(), outerId);
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Overlay);
+
+    EndModal(ctx);
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    ctx.endFrame();
+}
+
+TEST(OverlayLayerStateTest, ToastRenderingRestoresCallingDrawLayer) {
+    Context ctx(false);
+    fst::testing::StubWindow window;
+    ASSERT_TRUE(ctx.loadFont(testFontPath(), 16.0f));
+
+    ctx.beginFrame(window);
+    ctx.drawList().setLayer(DrawLayer::Floating);
+    ShowToast(ctx, "Layer-safe toast");
+
+    RenderToasts(ctx);
+
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
+    DismissAllToasts(ctx);
+    ctx.endFrame();
+}
+
+TEST(OverlayLayerStateTest, DockPreviewRestoresCallingDrawLayer) {
+    Context ctx(false);
+    fst::testing::StubWindow window;
+    DockNode::Id rootId =
+        ctx.docking().createDockSpace("Preview", Rect(0, 0, 400, 300));
+    auto& drag = ctx.docking().dragState();
+    drag.active = true;
+    drag.hoveredNodeId = rootId;
+    drag.hoveredDirection = DockDirection::Left;
+    drag.mousePos = Vec2(20, 150);
+
+    ctx.beginFrame(window);
+    ctx.drawList().setLayer(DrawLayer::Floating);
+
+    RenderDockPreview(ctx);
+
+    EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
+    ctx.endFrame();
 }
 
 TEST(StatusBarContextStateTest, EndingAnotherContextDoesNotDisableActiveStatusBar) {

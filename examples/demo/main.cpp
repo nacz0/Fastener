@@ -999,8 +999,8 @@ int main() {
                     statusText = "Modal confirmed!";
                 }
             EndHorizontal(ctx);
+            EndModal(ctx);
         }
-        EndModal(ctx);
 
         // Table Demo Window
         DockableWindow(ctx, "Table Demo") {

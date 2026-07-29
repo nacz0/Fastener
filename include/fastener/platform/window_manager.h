@@ -71,6 +71,9 @@ public:
     
     /**
      * @brief Get all managed windows.
+     *
+     * The returned container belongs to this manager. Its iterators and
+     * element references may be invalidated when windows are added or removed.
      */
     const std::vector<Window*>& windows() const;
     

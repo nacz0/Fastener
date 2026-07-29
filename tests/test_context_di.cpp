@@ -8,11 +8,22 @@
 #include <fastener/ui/layout.h>
 #include <fastener/ui/widget_scope.h>
 #include <fastener/ui/widget_utils.h>
+#include <fastener/platform/window_manager.h>
 #include <fastener/widgets/menu.h>
 #include "TestContext.h"
 
 using namespace fst;
 using namespace fst::testing;
+
+TEST(WindowManagerTest, WindowViewsAreOwnedByTheirManager) {
+    WindowManager first;
+    WindowManager second;
+
+    const auto* firstView = &first.windows();
+    const auto* secondView = &second.windows();
+
+    EXPECT_NE(firstView, secondView);
+}
 
 //=============================================================================
 // WidgetScope RAII Tests

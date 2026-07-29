@@ -5,6 +5,7 @@ namespace fst {
 
 struct WindowManager::Impl {
     std::vector<std::unique_ptr<Window>> windows;
+    std::vector<Window*> windowPtrs;
     Window* mainWindow = nullptr;
     
     // Cross-window drag state
@@ -34,6 +35,7 @@ Window* WindowManager::createWindow(const WindowConfig& config) {
     
     Window* ptr = window.get();
     m_impl->windows.push_back(std::move(window));
+    m_impl->windowPtrs.push_back(ptr);
     return ptr;
 }
 
@@ -55,6 +57,7 @@ Window* WindowManager::createChildWindow(const WindowConfig& config, Window* par
     
     Window* ptr = window.get();
     m_impl->windows.push_back(std::move(window));
+    m_impl->windowPtrs.push_back(ptr);
     return ptr;
 }
 
@@ -71,20 +74,18 @@ void WindowManager::destroyWindow(Window* window) {
                 ? (it == m_impl->windows.begin() ? m_impl->windows[1].get() : m_impl->windows[0].get())
                 : nullptr;
         }
+        m_impl->windowPtrs.erase(
+            std::remove(
+                m_impl->windowPtrs.begin(),
+                m_impl->windowPtrs.end(),
+                window),
+            m_impl->windowPtrs.end());
         m_impl->windows.erase(it);
     }
 }
 
 const std::vector<Window*>& WindowManager::windows() const {
-    // Note: This returns pointers, but we need to build the vector
-    // For now we store and return a cached version
-    static thread_local std::vector<Window*> windowPtrs;
-    windowPtrs.clear();
-    windowPtrs.reserve(m_impl->windows.size());
-    for (const auto& w : m_impl->windows) {
-        windowPtrs.push_back(w.get());
-    }
-    return windowPtrs;
+    return m_impl->windowPtrs;
 }
 
 Window* WindowManager::mainWindow() const {

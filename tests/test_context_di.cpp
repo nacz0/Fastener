@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <fastener/core/context.h>
+#include <fastener/ui/layout.h>
 #include <fastener/ui/widget_scope.h>
 #include <fastener/ui/widget_utils.h>
 #include <fastener/widgets/menu.h>
@@ -69,6 +70,91 @@ TEST(TestContextTest, MockDrawListAvailable) {
         .Times(1);
     
     mockDl.addRectFilled(Rect(0, 0, 100, 100), Color::red(), 5.0f);
+}
+
+TEST(ContextFrameGuardTest, DoubleBeginDoesNotRequireExtraEnd) {
+    Context ctx(false);
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    ASSERT_TRUE(ctx.isFrameActive());
+
+    ctx.beginFrame(window);
+    EXPECT_TRUE(ctx.isFrameActive());
+
+    ctx.endFrame();
+    EXPECT_FALSE(ctx.isFrameActive());
+}
+
+TEST(ContextFrameGuardTest, EndWithoutBeginIsANoOp) {
+    Context ctx(false);
+
+    ctx.endFrame();
+
+    EXPECT_FALSE(ctx.isFrameActive());
+}
+
+TEST(ContextFrameGuardTest, OutOfOrderEndCannotCloseAnotherContextsFrame) {
+    Context first(false);
+    Context second(false);
+    StubWindow firstWindow;
+    StubWindow secondWindow;
+
+    first.beginFrame(firstWindow);
+    second.beginFrame(secondWindow);
+
+    first.endFrame();
+    EXPECT_TRUE(first.isFrameActive());
+    EXPECT_TRUE(second.isFrameActive());
+
+    second.endFrame();
+    first.endFrame();
+    EXPECT_FALSE(first.isFrameActive());
+    EXPECT_FALSE(second.isFrameActive());
+}
+
+TEST(ContextFrameGuardTest, WidgetScopeMustEndBeforeItsEnclosingFrame) {
+    Context frameContext(false);
+    Context scopedContext(false);
+    StubWindow window;
+
+    frameContext.beginFrame(window);
+    {
+        WidgetScope scope(scopedContext);
+        frameContext.endFrame();
+        EXPECT_TRUE(frameContext.isFrameActive());
+    }
+
+    frameContext.endFrame();
+    EXPECT_FALSE(frameContext.isFrameActive());
+}
+
+TEST(ContextFrameGuardTest, EndFrameRecoversUnbalancedIdStack) {
+    Context ctx(false);
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    ctx.pushId("UnclosedScope");
+    ASSERT_NE(ctx.currentId(), WidgetId{0});
+
+    ctx.endFrame();
+
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+}
+
+TEST(ContextFrameGuardTest, EndFrameRecoversUnbalancedLayoutStack) {
+    Context ctx(false);
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    ctx.layout().beginContainer(
+        Rect(100.0f, 100.0f, 200.0f, 200.0f),
+        LayoutDirection::Horizontal);
+
+    ctx.endFrame();
+
+    EXPECT_EQ(ctx.layout().allocate(10.0f, 10.0f),
+              Rect(0.0f, 0.0f, 10.0f, 10.0f));
 }
 
 TEST(ContextMenuContextTest, ClosingOneContextMenuDoesNotCloseAnotherContextsMenu) {

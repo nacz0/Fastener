@@ -45,6 +45,7 @@ public:
     // Frame management
     void beginFrame(IPlatformWindow& window);
     void endFrame();
+    [[nodiscard]] bool isFrameActive() const;
     
     // Profiling
     Profiler& profiler();

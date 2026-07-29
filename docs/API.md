@@ -15,7 +15,7 @@ This document summarizes the core public API of Fastener.
 
 `fst::Context` manages frame lifecycle, state, and rendering:
 
-- Frame: `beginFrame(IPlatformWindow&)`, `endFrame()`
+- Frame: `beginFrame(IPlatformWindow&)`, `endFrame()`, `isFrameActive()`
 - Theme: `setTheme(Theme)`, `theme()`
 - Fonts: `loadFont(path, size)`, `font()`, `defaultFont()`
 - Input: `input()`

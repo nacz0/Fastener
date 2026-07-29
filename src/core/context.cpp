@@ -19,7 +19,22 @@
 namespace fst {
 
 // Thread-local context stack for multi-window/DI support
-static thread_local std::vector<Context*> s_contextStack;
+namespace {
+
+enum class ContextStackEntryKind {
+    ExplicitScope,
+    Frame
+};
+
+struct ContextStackEntry {
+    Context* context = nullptr;
+    ContextStackEntryKind kind = ContextStackEntryKind::ExplicitScope;
+};
+
+thread_local std::vector<ContextStackEntry> s_contextStack;
+
+} // namespace
+
 static IDrawList* s_testDrawList = nullptr;
 
 namespace {
@@ -143,11 +158,13 @@ Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
 Context::~Context() {
     detail::CancelDragDropForContext(*this);
 
-    // Remove this context from the stack if it's there
-    auto it = std::find(s_contextStack.begin(), s_contextStack.end(), this);
-    if (it != s_contextStack.end()) {
-        s_contextStack.erase(it);
-    }
+    s_contextStack.erase(
+        std::remove_if(
+            s_contextStack.begin(), s_contextStack.end(),
+            [this](const ContextStackEntry& entry) {
+                return entry.context == this;
+            }),
+        s_contextStack.end());
 }
 
 namespace detail {
@@ -167,7 +184,12 @@ WidgetStateRegistry& widgetStates(Context& ctx) {
 } // namespace detail
 
 void Context::beginFrame(IPlatformWindow& window) {
-    pushContext(this);
+    if (m_impl->frameActive) {
+        FST_LOG_ERROR("Context::beginFrame called while a frame is already active");
+        return;
+    }
+
+    s_contextStack.push_back({this, ContextStackEntryKind::Frame});
     m_impl->frameActive = true;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
@@ -250,6 +272,18 @@ void Context::beginFrame(IPlatformWindow& window) {
 }
 
 void Context::endFrame() {
+    if (!m_impl->frameActive) {
+        FST_LOG_ERROR("Context::endFrame called without an active frame");
+        return;
+    }
+    if (s_contextStack.empty() ||
+        s_contextStack.back().context != this ||
+        s_contextStack.back().kind != ContextStackEntryKind::Frame) {
+        FST_LOG_ERROR(
+            "Context::endFrame must close the top-most active frame");
+        return;
+    }
+
     m_impl->profiler.endSection(); // UI
 
     // Safety net: If mouse was released but activeWidget wasn't cleared by any widget,
@@ -265,6 +299,10 @@ void Context::endFrame() {
     
     // End layout
     m_impl->layout.endContainer();
+    // Deferred overlays must start from a root scope even if user code missed
+    // an End... call during the main UI pass.
+    m_impl->layout.reset();
+    m_impl->idStack.resize(1);
     
     // Pop clip rect
     m_impl->drawList.popClipRect();
@@ -292,8 +330,15 @@ void Context::endFrame() {
     m_impl->inputState = nullptr;
     m_impl->currentWindow = nullptr;
     m_impl->frameActive = false;
+    // Also recover any scopes left unbalanced by deferred rendering.
+    m_impl->layout.reset();
+    m_impl->idStack.resize(1);
 
-    popContext();
+    s_contextStack.pop_back();
+}
+
+bool Context::isFrameActive() const {
+    return m_impl->frameActive;
 }
 
 void Context::setTheme(const Theme& theme) {
@@ -542,13 +587,19 @@ WidgetId Context::makeId(int idx) const {
 }
 
 void Context::pushContext(Context* ctx) {
-    s_contextStack.push_back(ctx);
+    s_contextStack.push_back({ctx, ContextStackEntryKind::ExplicitScope});
 }
 
 void Context::popContext() {
-    if (!s_contextStack.empty()) {
-        s_contextStack.pop_back();
+    if (s_contextStack.empty()) {
+        FST_LOG_ERROR("Context::popContext called with an empty context stack");
+        return;
     }
+    if (s_contextStack.back().kind != ContextStackEntryKind::ExplicitScope) {
+        FST_LOG_ERROR("Context::popContext cannot pop an active frame");
+        return;
+    }
+    s_contextStack.pop_back();
 }
 
 #ifdef _MSC_VER
@@ -557,7 +608,7 @@ void Context::popContext() {
 #endif
 
 Context* Context::current() {
-    return s_contextStack.empty() ? nullptr : s_contextStack.back();
+    return s_contextStack.empty() ? nullptr : s_contextStack.back().context;
 }
 
 #ifdef _MSC_VER

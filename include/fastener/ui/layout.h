@@ -82,6 +82,8 @@ public:
     Vec2 scroll() const;
     
 private:
+    friend class Context;
+
     struct ContainerState {
         Rect bounds;
         Vec2 cursor;
@@ -102,6 +104,7 @@ private:
     
     std::vector<ContainerState> m_stack;
     
+    void reset();
     ContainerState& current();
     const ContainerState& current() const;
 };

@@ -8,6 +8,10 @@ namespace fst {
 LayoutContext::LayoutContext() = default;
 LayoutContext::~LayoutContext() = default;
 
+void LayoutContext::reset() {
+    m_stack.clear();
+}
+
 void LayoutContext::beginContainer(const Rect& bounds, LayoutDirection direction) {
     ContainerState state;
     state.bounds = bounds;

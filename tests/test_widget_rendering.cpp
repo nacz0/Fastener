@@ -189,7 +189,7 @@ TEST_F(WidgetRenderingTest, Context_GlobalOcclusionBlocksOverlay) {
 
 TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     // Step 0: Ensure clean state
-    CancelDragDrop(); 
+    CancelDragDrop(*ctx);
 
     // Step 1: Start drag - Frame A: Press
     window.input().beginFrame();
@@ -213,14 +213,14 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     
     bool started = BeginDragDropSource(*ctx);
     EXPECT_TRUE(started) << "Drag should have started";
-    SetDragDropPayload("test", nullptr, 0);
-    EndDragDropSource();
+    SetDragDropPayload(*ctx, "test", nullptr, 0);
+    EndDragDropSource(*ctx);
     
     // Add a floating window that occludes (70, 70) for the NEXT frame
     ctx->addFloatingWindowRect(Rect(0, 0, 100, 100));
     ctx->endFrame();
     
-    ASSERT_TRUE(IsDragDropActive());
+    ASSERT_TRUE(IsDragDropActive(*ctx));
     
     // Step 2: Test occlusion in third frame
     window.input().beginFrame();
@@ -238,7 +238,7 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
     bool isTarget = BeginDragDropTarget(*ctx, Rect(40, 40, 40, 40));
     EXPECT_FALSE(isTarget) << "Target should be occluded by floating window";
     
-    if (isTarget) EndDragDropTarget();
+    if (isTarget) EndDragDropTarget(*ctx);
     
     ctx->endFrame();
 }
@@ -256,8 +256,8 @@ TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
     input.onMouseMove(60, 60);
     
     BeginDragDropSource(*ctx);
-    SetDragDropPayload("test", nullptr, 0);
-    EndDragDropSource();
+    SetDragDropPayload(*ctx, "test", nullptr, 0);
+    EndDragDropSource(*ctx);
     ctx->endFrame();
     
     // Step 2: Move to target and verify late update
@@ -267,13 +267,13 @@ TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
     
     // Source processed first
     BeginDragDropSource(*ctx);
-    EndDragDropSource();
+    EndDragDropSource(*ctx);
     
     // Target processed second
     bool isTarget = BeginDragDropTarget(*ctx, Rect(140, 140, 40, 40));
     if (isTarget) {
         AcceptDragDropPayload(*ctx, "test");
-        EndDragDropTarget();
+        EndDragDropTarget(*ctx);
     }
     
     // Verify that highlight was drawn (happens during endFrame -> EndDragDropFrame)
@@ -283,9 +283,9 @@ TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
 }
 
 TEST(DragDropLifetimeTest, DestroyingSourceContextCancelsActiveDrag) {
-    CancelDragDrop();
     StubWindow sourceWindow;
     auto sourceContext = std::make_unique<Context>(false);
+    CancelDragDrop(*sourceContext);
 
     sourceWindow.input().beginFrame();
     sourceContext->beginFrame(sourceWindow);
@@ -302,16 +302,91 @@ TEST(DragDropLifetimeTest, DestroyingSourceContextCancelsActiveDrag) {
     sourceContext->setLastWidgetBounds(Rect(0, 0, 100, 100));
     sourceContext->input().onMouseMove(40, 40);
     ASSERT_TRUE(BeginDragDropSource(*sourceContext));
-    ASSERT_TRUE(SetDragDropPayload("test", nullptr, 0));
+    ASSERT_TRUE(SetDragDropPayload(*sourceContext, "test", nullptr, 0));
     EndDragDropSource(*sourceContext);
     sourceContext->endFrame();
-    ASSERT_TRUE(IsDragDropActive());
+    ASSERT_TRUE(IsDragDropActive(*sourceContext));
 
     sourceContext.reset();
 
     bool activeAfterContextDestruction = IsDragDropActive();
     CancelDragDrop();
     EXPECT_FALSE(activeAfterContextDestruction);
+}
+
+TEST(DragDropContextTest, ActiveDragIsIsolatedBetweenContexts) {
+    StubWindow sourceWindow;
+    Context sourceContext(false);
+    Context unrelatedContext(false);
+
+    sourceWindow.input().beginFrame();
+    sourceContext.beginFrame(sourceWindow);
+    sourceContext.setLastWidgetId(hashString("source"));
+    sourceContext.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    sourceContext.input().onMouseMove(25, 25);
+    sourceContext.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(BeginDragDropSource(sourceContext));
+    sourceContext.endFrame();
+
+    sourceWindow.input().beginFrame();
+    sourceContext.beginFrame(sourceWindow);
+    sourceContext.setLastWidgetId(hashString("source"));
+    sourceContext.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    sourceContext.input().onMouseMove(40, 40);
+    ASSERT_TRUE(BeginDragDropSource(sourceContext));
+    ASSERT_TRUE(SetDragDropPayload(sourceContext, "test", nullptr, 0));
+    EndDragDropSource(sourceContext);
+    sourceContext.endFrame();
+
+    EXPECT_TRUE(IsDragDropActive(sourceContext));
+    EXPECT_FALSE(IsDragDropActive(unrelatedContext));
+    EXPECT_NE(GetDragDropPayload(sourceContext), nullptr);
+    EXPECT_EQ(GetDragDropPayload(unrelatedContext), nullptr);
+
+    CancelDragDrop(unrelatedContext);
+    EXPECT_TRUE(IsDragDropActive(sourceContext));
+
+    CancelDragDrop(sourceContext);
+    EXPECT_FALSE(IsDragDropActive(sourceContext));
+}
+
+TEST(DragDropContextTest, RejectedSourceCannotOverwriteActivePayload) {
+    StubWindow window;
+    Context ctx(false);
+
+    window.input().beginFrame();
+    ctx.beginFrame(window);
+    ctx.setLastWidgetId(hashString("source-a"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(25, 25);
+    ctx.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(BeginDragDropSource(ctx));
+    ctx.endFrame();
+
+    window.input().beginFrame();
+    ctx.beginFrame(window);
+    ctx.setLastWidgetId(hashString("source-a"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(40, 40);
+    ASSERT_TRUE(BeginDragDropSource(ctx));
+    const int originalPayload = 42;
+    ASSERT_TRUE(SetDragDropPayload(ctx, "original", &originalPayload, sizeof(originalPayload)));
+    EndDragDropSource(ctx);
+
+    ctx.setLastWidgetId(hashString("source-b"));
+    ctx.setLastWidgetBounds(Rect(100, 0, 100, 100));
+    ASSERT_FALSE(BeginDragDropSource(ctx));
+
+    const int replacementPayload = 7;
+    EXPECT_FALSE(SetDragDropPayload(ctx, "replacement", &replacementPayload, sizeof(replacementPayload)));
+
+    const DragPayload* payload = GetDragDropPayload(ctx);
+    ASSERT_NE(payload, nullptr);
+    EXPECT_EQ(payload->type, "original");
+    EXPECT_EQ(payload->getData<int>(), originalPayload);
+
+    CancelDragDrop(ctx);
+    ctx.endFrame();
 }
 
 //=============================================================================

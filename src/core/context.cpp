@@ -9,6 +9,7 @@
 #include "fastener/ui/layout.h"
 #include "fastener/ui/dock_context.h"
 #include "fastener/ui/drag_drop.h"
+#include "../ui/drag_drop_internal.h"
 #include "fastener/core/profiler.h"
 #include <vector>
 #include <chrono>
@@ -80,6 +81,7 @@ struct Context::Impl {
     LayoutContext layout;
     DockContext dockContext;
     Profiler profiler;
+    detail::DragDropContextState dragDrop;
     
     // Theme
     Theme theme = Theme::dark();
@@ -145,6 +147,18 @@ Context::~Context() {
         s_contextStack.erase(it);
     }
 }
+
+namespace detail {
+
+DragDropContextState& dragDropState(Context& ctx) {
+    return ctx.m_impl->dragDrop;
+}
+
+const DragDropContextState& dragDropState(const Context& ctx) {
+    return ctx.m_impl->dragDrop;
+}
+
+} // namespace detail
 
 void Context::beginFrame(IPlatformWindow& window) {
     pushContext(this);

@@ -12,6 +12,7 @@
 namespace fst {
 
 // Forward declarations
+class Context;
 class Renderer;
 class DrawList;
 class IDrawList;
@@ -20,6 +21,12 @@ class Font;
 class LayoutContext;
 class DockContext;
 class Profiler;
+
+namespace detail {
+struct DragDropContextState;
+DragDropContextState& dragDropState(Context& ctx);
+const DragDropContextState& dragDropState(const Context& ctx);
+}
 
 //=============================================================================
 // Context - Main application context
@@ -140,6 +147,9 @@ public:
     static IDrawList* testDrawList();
     
 private:
+    friend detail::DragDropContextState& detail::dragDropState(Context& ctx);
+    friend const detail::DragDropContextState& detail::dragDropState(const Context& ctx);
+
     struct Impl;
     std::unique_ptr<Impl> m_impl;
     

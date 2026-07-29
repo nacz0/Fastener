@@ -1155,7 +1155,7 @@ int main() {
                             bool insertAfter = ctx.input().mousePos().y > itemRect.center().y;
                             
                             // Visual Feedback
-                            if (IsDragDropActive() && GetDragDropPayload()->type == "DND_DEMO_ITEM") {
+                            if (IsDragDropActive(ctx) && GetDragDropPayload(ctx)->type == "DND_DEMO_ITEM") {
                                 float halfSpacing = theme.metrics.paddingSmall / 2.0f;
                                 // If first item and dropping above, shift line down slightly to avoid panel clipping
                                 float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() + (i == 0 ? 2.0f : -halfSpacing);
@@ -1165,14 +1165,14 @@ int main() {
                             if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
                                 pendingDrop = {(const char*)payload->data.data(), (int)i, insertAfter};
                             }
-                            EndDragDropTarget();
+                            EndDragDropTarget(ctx);
                         }
                         
                         if (BeginDragDropSource()) {
                             selectedDragItem1 = dragDropList1[i];
-                            SetDragDropPayload("DND_DEMO_ITEM", dragDropList1[i].c_str(), dragDropList1[i].size() + 1);
-                            SetDragDropDisplayText("Moving: " + dragDropList1[i]);
-                            EndDragDropSource();
+                            SetDragDropPayload(ctx, "DND_DEMO_ITEM", dragDropList1[i].c_str(), dragDropList1[i].size() + 1);
+                            SetDragDropDisplayText(ctx, "Moving: " + dragDropList1[i]);
+                            EndDragDropSource(ctx);
                         }
                     }
 
@@ -1221,7 +1221,7 @@ int main() {
                                 }
                             }
                         }
-                        EndDragDropTarget();
+                        EndDragDropTarget(ctx);
                     }
                 }
                 
@@ -1261,7 +1261,7 @@ int main() {
                             bool insertAfter = ctx.input().mousePos().y > itemRect.center().y;
                             
                             // Visual Feedback
-                            if (IsDragDropActive() && GetDragDropPayload()->type == "DND_DEMO_ITEM") {
+                            if (IsDragDropActive(ctx) && GetDragDropPayload(ctx)->type == "DND_DEMO_ITEM") {
                                 float halfSpacing = theme.metrics.paddingSmall / 2.0f;
                                 float lineY = insertAfter ? itemRect.bottom() + halfSpacing : itemRect.top() + (i == 0 ? 2.0f : -halfSpacing);
                                 dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
@@ -1270,14 +1270,14 @@ int main() {
                             if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
                                 pendingDrop = {(const char*)payload->data.data(), (int)i, insertAfter};
                             }
-                            EndDragDropTarget();
+                            EndDragDropTarget(ctx);
                         }
                         
                         if (BeginDragDropSource()) {
                             selectedDragItem2 = dragDropList2[i];
-                            SetDragDropPayload("DND_DEMO_ITEM", dragDropList2[i].c_str(), dragDropList2[i].size() + 1);
-                            SetDragDropDisplayText("Moving: " + dragDropList2[i]);
-                            EndDragDropSource();
+                            SetDragDropPayload(ctx, "DND_DEMO_ITEM", dragDropList2[i].c_str(), dragDropList2[i].size() + 1);
+                            SetDragDropDisplayText(ctx, "Moving: " + dragDropList2[i]);
+                            EndDragDropSource(ctx);
                         }
                     }
 
@@ -1326,7 +1326,7 @@ int main() {
                                 }
                             }
                         }
-                        EndDragDropTarget();
+                        EndDragDropTarget(ctx);
                     }
                 }
             }

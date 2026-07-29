@@ -171,9 +171,9 @@ int main() {
                     
                     if (BeginDragDropSource(ctx)) {
                         int idx = static_cast<int>(i);
-                        SetDragDropPayload("ITEM_IDX", &idx, sizeof(int));
-                        SetDragDropDisplayText(items[i]);
-                        EndDragDropSource();
+                        SetDragDropPayload(ctx, "ITEM_IDX", &idx, sizeof(int));
+                        SetDragDropDisplayText(ctx, items[i]);
+                        EndDragDropSource(ctx);
                     }
                     
                     if (BeginDragDropTarget(ctx)) {
@@ -187,7 +187,7 @@ int main() {
                                 items.insert(items.begin() + dstIdx, tmp);
                             }
                         }
-                        EndDragDropTarget();
+                        EndDragDropTarget(ctx);
                     }
                     ctx.popId();
                 }
@@ -250,7 +250,7 @@ int main() {
                 
                 // Background for drop zone
                 Color dropColor = theme.colors.panelBackground;
-                if (IsDragDropActive()) {
+                if (IsDragDropActive(ctx)) {
                     dropColor = theme.colors.primary.withAlpha(0.3f);
                 }
                 dlTools.addRectFilled(dropZone, dropColor, 4.0f);
@@ -280,7 +280,7 @@ int main() {
                             items.erase(items.begin() + srcIdx);
                         }
                     }
-                    EndDragDropTarget();
+                    EndDragDropTarget(ctx);
                 }
                 
                 // Clear button

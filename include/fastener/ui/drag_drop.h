@@ -12,20 +12,20 @@
  * 
  * @ai_hint 
  * SOURCE PATTERN (call after rendering the draggable widget):
- *   if (fst::BeginDragDropSource()) {
+ *   if (fst::BeginDragDropSource(ctx)) {
  *       int itemIndex = 42;
- *       fst::SetDragDropPayload("MY_TYPE", &itemIndex, sizeof(int));
- *       fst::SetDragDropDisplayText("Dragging item 42");
- *       fst::EndDragDropSource();
+ *       fst::SetDragDropPayload(ctx, "MY_TYPE", &itemIndex, sizeof(int));
+ *       fst::SetDragDropDisplayText(ctx, "Dragging item 42");
+ *       fst::EndDragDropSource(ctx);
  *   }
  * 
  * TARGET PATTERN (call after rendering the drop-target widget):
- *   if (fst::BeginDragDropTarget()) {
- *       if (const auto* payload = fst::AcceptDragDropPayload("MY_TYPE")) {
+ *   if (fst::BeginDragDropTarget(ctx)) {
+ *       if (const auto* payload = fst::AcceptDragDropPayload(ctx, "MY_TYPE")) {
  *           int droppedIndex = payload->getData<int>();
  *           handleDrop(droppedIndex);
  *       }
- *       fst::EndDragDropTarget();
+ *       fst::EndDragDropTarget(ctx);
  *   }
  * 
  * IMPORTANT: Type strings must match exactly between source and target.
@@ -91,7 +91,7 @@ struct DragPayload {
 //=============================================================================
 
 /**
- * @brief Global state for drag and drop operations
+ * @brief State for drag and drop operations owned by a Context
  * 
  * @ai_hint For cross-window D&D: globalStartPos/globalCurrentPos are screen coordinates
  * obtained via GetGlobalCursorPos(). targetWindow tracks which window the cursor is over.
@@ -151,11 +151,13 @@ bool BeginDragDropSource(DragDropFlags flags = DragDropFlags_None);
  * @param size Size of data in bytes
  * @return true if payload was set
  */
+bool SetDragDropPayload(Context& ctx, const std::string& type, const void* data, size_t size);
 bool SetDragDropPayload(const std::string& type, const void* data, size_t size);
 
 /**
  * @brief Set display text for drag preview
  */
+void SetDragDropDisplayText(Context& ctx, const std::string& text);
 void SetDragDropDisplayText(const std::string& text);
 
 /**
@@ -212,16 +214,19 @@ void EndDragDropTarget();
 /**
  * @brief Check if a drag operation is in progress
  */
+bool IsDragDropActive(const Context& ctx);
 bool IsDragDropActive();
 
 /**
  * @brief Get the current drag payload (if any)
  */
+const DragPayload* GetDragDropPayload(const Context& ctx);
 const DragPayload* GetDragDropPayload();
 
 /**
  * @brief Cancel current drag operation
  */
+void CancelDragDrop(Context& ctx);
 void CancelDragDrop();
 
 /**
@@ -234,8 +239,8 @@ void EndDragDropFrame();
 
 namespace detail {
 /**
- * Clears a drag operation or pending gesture owned by a Context that is being
- * destroyed. This is an internal lifecycle hook, not a widget API.
+ * Clears legacy routing references to a Context that is being destroyed.
+ * This is an internal lifecycle hook, not a widget API.
  */
 void CancelDragDropForContext(Context& ctx);
 }

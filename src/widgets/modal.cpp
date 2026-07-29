@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 
 namespace fst {
@@ -22,13 +23,12 @@ namespace fst {
 namespace {
 
 struct ModalState {
-    Rect contentBounds;
-    Rect modalBounds;
     bool active = false;
-    bool* openPtr = nullptr;
 };
 
-thread_local ModalState s_modalState;
+ModalState& getModalState(Context& ctx) {
+    return detail::widgetStates(ctx).get<ModalState>();
+}
 
 } // anonymous namespace
 
@@ -37,8 +37,9 @@ thread_local ModalState s_modalState;
 //=============================================================================
 
 bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOptions& options) {
+    ModalState& modalState = getModalState(ctx);
     if (!isOpen) {
-        s_modalState.active = false;
+        modalState.active = false;
         return false;
     }
     
@@ -91,8 +92,6 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     float modalX = (windowW - modalWidth) * 0.5f;
     float modalY = (windowH - modalHeight) * 0.5f;
     Rect modalBounds(modalX, modalY, modalWidth, modalHeight);
-    s_modalState.modalBounds = modalBounds;
-    
     // Draw modal shadow
     float shadowOffset = 8.0f;
     for (int i = 4; i > 0; --i) {
@@ -111,9 +110,6 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     dl.addRectFilled(modalBounds, theme.colors.panelBackground, theme.metrics.borderRadius);
     dl.addRect(modalBounds, theme.colors.border, theme.metrics.borderRadius);
     
-    // Store for backdrop click detection
-    s_modalState.openPtr = &isOpen;
-    
     // Handle click outside modal (backdrop click)
     if (options.closeOnBackdrop) {
         auto& input = ctx.input();
@@ -121,7 +117,7 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
             Vec2 mousePos = input.mousePos();
             if (!modalBounds.contains(mousePos)) {
                 isOpen = false;
-                s_modalState.active = false;
+                modalState.active = false;
                 ctx.popId();
                 return false;
             }
@@ -163,7 +159,7 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
             
             if (closeInteraction.clicked) {
                 isOpen = false;
-                s_modalState.active = false;
+                modalState.active = false;
                 ctx.popId();
                 return false;
             }
@@ -207,20 +203,20 @@ bool BeginModal(Context& ctx, const std::string& id, bool& isOpen, const ModalOp
     ctx.layout().beginContainer(contentBounds, options.direction);
     ctx.layout().setSpacing(theme.metrics.itemSpacing);
     
-    s_modalState.contentBounds = contentBounds;
-    s_modalState.active = true;
+    modalState.active = true;
     
     return true;
 }
 
 void EndModal(Context& ctx) {
-    if (s_modalState.active) {
+    ModalState& modalState = getModalState(ctx);
+    if (modalState.active) {
         ctx.drawList().popClipRect();  // Pop content clip rect
         ctx.layout().endContainer();
         ctx.drawList().popClipRect();  // Pop fullscreen clip rect
         ctx.drawList().setLayer(DrawLayer::Default);  // Restore default layer
         ctx.popId();
-        s_modalState.active = false;
+        modalState.active = false;
     }
 }
 

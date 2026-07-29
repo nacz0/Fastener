@@ -5,6 +5,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "flex_layout_internal.h"
 
 namespace fst {
 
@@ -29,6 +30,10 @@ WidgetContext WidgetContext::make(Context& ctx) {
 
 Rect allocateWidgetBounds(Context& ctx, const Style& style, float width, float height) {
     if (style.x < 0.0f && style.y < 0.0f) {
+        Rect gridBounds;
+        if (detail::allocateGridItem(ctx, width, height, gridBounds)) {
+            return gridBounds;
+        }
         return ctx.layout().allocate(width, height, style.flexGrow);
     }
     return Rect(style.x, style.y, width, height);

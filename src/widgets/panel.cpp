@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 
 namespace fst {
 
@@ -18,8 +19,17 @@ namespace fst {
 // Panel State
 //=============================================================================
 
-/** @brief Tracks nested panel depth for shadow rendering decisions. */
-static int s_panelDepth = 0;
+namespace {
+
+struct PanelContextState {
+    int depth = 0;
+};
+
+PanelContextState& getPanelContextState(Context& ctx) {
+    return detail::widgetStates(ctx).get<PanelContextState>();
+}
+
+} // namespace
 
 //=============================================================================
 // PanelScope Implementation
@@ -60,6 +70,7 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
+    auto& panelState = getPanelContextState(ctx);
     
     // Push panel ID onto stack
     ctx.pushId(id.c_str());
@@ -90,7 +101,7 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
         : theme.metrics.borderRadius;
     
     // Draw shadow for top-level panels or when explicitly requested
-    if (options.style.hasShadow || s_panelDepth == 0) {
+    if (options.style.hasShadow || panelState.depth == 0) {
         dl.addShadow(bounds, theme.colors.shadow, theme.metrics.shadowSize, radius);
     }
     
@@ -149,7 +160,7 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
         ctx.layout().setSpacing(theme.metrics.paddingSmall);
     }
     
-    s_panelDepth++;
+    panelState.depth++;
     
     return true;
 }
@@ -159,7 +170,7 @@ bool BeginPanel(Context& ctx, const std::string& id, const PanelOptions& options
  * @brief End a panel container started with BeginPanel().
  */
 void EndPanel(Context& ctx) {
-    s_panelDepth--;
+    getPanelContextState(ctx).depth--;
     
     // Restore clip rect
     ctx.drawList().popClipRect();

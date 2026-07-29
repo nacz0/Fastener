@@ -10,6 +10,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 
 namespace fst {
@@ -28,8 +29,9 @@ struct StatusBarState {
     bool active = false;
 };
 
-// Thread-local status bar state
-thread_local StatusBarState s_statusBarState;
+StatusBarState& getStatusBarState(Context& ctx) {
+    return detail::widgetStates(ctx).get<StatusBarState>();
+}
 
 } // anonymous namespace
 
@@ -42,6 +44,7 @@ bool BeginStatusBar(Context& ctx, const StatusBarOptions& options) {
     
     const Theme& theme = *wc.theme;
     IDrawList& dl = *wc.dl;
+    StatusBarState& state = getStatusBarState(ctx);
     
     // Calculate dimensions
     float height = options.height > 0 ? options.height : 24.0f;
@@ -62,22 +65,22 @@ bool BeginStatusBar(Context& ctx, const StatusBarOptions& options) {
     );
     
     // Initialize state
-    s_statusBarState.bounds = bounds;
-    s_statusBarState.currentX = bounds.x() + theme.metrics.paddingSmall;
-    s_statusBarState.height = height;
-    s_statusBarState.sectionCount = 0;
-    s_statusBarState.active = true;
+    state.bounds = bounds;
+    state.currentX = bounds.x() + theme.metrics.paddingSmall;
+    state.height = height;
+    state.sectionCount = 0;
+    state.active = true;
     
     return true;
 }
 
 void EndStatusBar(Context& ctx) {
-    (void)ctx;
-    s_statusBarState.active = false;
+    getStatusBarState(ctx).active = false;
 }
 
 void StatusBarSection(Context& ctx, std::string_view text, const StatusBarSectionOptions& options) {
-    if (!s_statusBarState.active) return;
+    StatusBarState& state = getStatusBarState(ctx);
+    if (!state.active) return;
     
     auto wc = WidgetContext::make(ctx);
     
@@ -88,15 +91,15 @@ void StatusBarSection(Context& ctx, std::string_view text, const StatusBarSectio
     if (!font) return;
     
     // Draw separator if not first section
-    if (s_statusBarState.sectionCount > 0) {
-        float sepX = s_statusBarState.currentX;
+    if (state.sectionCount > 0) {
+        float sepX = state.currentX;
         dl.addLine(
-            Vec2(sepX, s_statusBarState.bounds.y() + 4),
-            Vec2(sepX, s_statusBarState.bounds.bottom() - 4),
+            Vec2(sepX, state.bounds.y() + 4),
+            Vec2(sepX, state.bounds.bottom() - 4),
             theme.colors.border,
             1.0f
         );
-        s_statusBarState.currentX += theme.metrics.paddingSmall;
+        state.currentX += theme.metrics.paddingSmall;
     }
     
     // Calculate text dimensions
@@ -104,19 +107,19 @@ void StatusBarSection(Context& ctx, std::string_view text, const StatusBarSectio
     float sectionWidth = std::max(textSize.x + theme.metrics.paddingSmall * 2, options.minWidth);
     
     // Calculate text position
-    float textX = s_statusBarState.currentX + theme.metrics.paddingSmall;
+    float textX = state.currentX + theme.metrics.paddingSmall;
     if (options.alignRight && sectionWidth > textSize.x) {
-        textX = s_statusBarState.currentX + sectionWidth - textSize.x - theme.metrics.paddingSmall;
+        textX = state.currentX + sectionWidth - textSize.x - theme.metrics.paddingSmall;
     }
     
-    float textY = s_statusBarState.bounds.center().y - textSize.y * 0.5f;
+    float textY = state.bounds.center().y - textSize.y * 0.5f;
     
     // Draw text
     dl.addText(font, Vec2(textX, textY), text, theme.colors.textSecondary);
     
     // Update state
-    s_statusBarState.currentX += sectionWidth;
-    s_statusBarState.sectionCount++;
+    state.currentX += sectionWidth;
+    state.sectionCount++;
 }
 
 } // namespace fst

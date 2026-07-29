@@ -92,6 +92,7 @@ if(FST_BUILD_TESTS)
         tests/test_docking.cpp
         tests/test_widget_rendering.cpp
         tests/test_context_di.cpp
+        tests/test_context_scope_state.cpp
         tests/test_i18n.cpp
         tests/test_rich_text_preview.cpp
         tests/test_text_area.cpp

@@ -11,6 +11,8 @@
 #include "fastener/ui/theme.h"
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
+#include "../core/widget_state_registry.h"
+#include "flex_layout_internal.h"
 
 namespace fst {
 
@@ -170,11 +172,18 @@ struct GridState {
     float maxRowHeight = 0.0f;  // Track max height in current row
 };
 
-static thread_local std::vector<GridState> s_gridStack;
+struct GridContextState {
+    std::vector<GridState> stack;
+};
 
 // Helper to get current grid state
-static GridState* currentGrid() {
-    return s_gridStack.empty() ? nullptr : &s_gridStack.back();
+static GridContextState& getGridContextState(Context& ctx) {
+    return detail::widgetStates(ctx).get<GridContextState>();
+}
+
+static GridState* currentGrid(Context& ctx) {
+    auto& stack = getGridContextState(ctx).stack;
+    return stack.empty() ? nullptr : &stack.back();
 }
 
 GridScope::GridScope(Context& ctx, const GridOptions& options)
@@ -249,7 +258,7 @@ void BeginGrid(Context& ctx, const GridOptions& options) {
     state.startPos = contentBounds.pos;
     state.currentPos = contentBounds.pos;
     state.maxRowHeight = 0.0f;
-    s_gridStack.push_back(state);
+    getGridContextState(ctx).stack.push_back(state);
     
     // Begin a vertical container for rows
     lc.beginContainer(contentBounds, LayoutDirection::Vertical);
@@ -257,18 +266,17 @@ void BeginGrid(Context& ctx, const GridOptions& options) {
 }
 
 void EndGrid(Context& ctx) {
-    if (!s_gridStack.empty()) {
-        s_gridStack.pop_back();
+    auto& stack = getGridContextState(ctx).stack;
+    if (!stack.empty()) {
+        stack.pop_back();
     }
     ctx.layout().endContainer();
 }
 
-// Custom allocate function for grid items - called by widgets inside Grid
-Rect GridAllocate(Context& ctx, float width, float height) {
-    GridState* grid = currentGrid();
+bool detail::allocateGridItem(Context& ctx, float width, float height, Rect& bounds) {
+    GridState* grid = currentGrid(ctx);
     if (!grid) {
-        // Fallback to normal allocation
-        return ctx.layout().allocate(width, height);
+        return false;
     }
     
     // Calculate position
@@ -291,7 +299,8 @@ Rect GridAllocate(Context& ctx, float width, float height) {
         grid->maxRowHeight = 0.0f;
     }
     
-    return Rect(x, y, itemWidth, itemHeight);
+    bounds = Rect(x, y, itemWidth, itemHeight);
+    return true;
 }
 
 //=============================================================================

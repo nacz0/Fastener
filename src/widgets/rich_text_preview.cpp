@@ -10,6 +10,7 @@
 #include "fastener/ui/layout.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/widget_utils.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <cctype>
 #include <sstream>
@@ -47,7 +48,15 @@ struct RichTextPreviewState {
     float scrollOffsetY = 0.0f;
 };
 
-static std::unordered_map<WidgetId, RichTextPreviewState> s_richTextStates;
+struct RichTextPreviewContextState {
+    std::unordered_map<WidgetId, RichTextPreviewState> previews;
+};
+
+static RichTextPreviewState& getPreviewState(Context& ctx, WidgetId widgetId) {
+    return fst::detail::widgetStates(ctx)
+        .get<RichTextPreviewContextState>()
+        .previews[widgetId];
+}
 
 static bool startsWith(std::string_view text, std::string_view prefix) {
     if (text.size() < prefix.size()) return false;
@@ -768,7 +777,7 @@ void RichTextPreview(Context& ctx, const char* id, std::string_view text, const 
     if (!font) return;
 
     WidgetId widgetId = ctx.makeId(id);
-    auto& state = rich_text::internal::s_richTextStates[widgetId];
+    auto& state = rich_text::internal::getPreviewState(ctx, widgetId);
 
     float padding = theme.metrics.paddingSmall;
     Rect contentRect = bounds.shrunk(padding);

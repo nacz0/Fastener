@@ -1,10 +1,20 @@
 ﻿#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 #include <fastener/widgets/rich_text_preview.h>
+#include "TestContext.h"
+#include <algorithm>
+#include <filesystem>
 
 using namespace fst;
 using namespace fst::rich_text::internal;
 
 namespace {
+
+std::string testFontPath() {
+    namespace fs = std::filesystem;
+    fs::path root = fs::path(__FILE__).parent_path().parent_path();
+    return (root / "assets" / "arial.ttf").string();
+}
 
 const RichTextSpan* findSpan(const RichTextLine& line, std::string_view text) {
     for (const auto& span : line.spans) {
@@ -74,4 +84,50 @@ TEST(RichTextAutoTest, ParsesBasicRtf) {
     ASSERT_GE(lines.size(), 2u);
     EXPECT_EQ(lines[0].spans[0].text, "Hello");
     EXPECT_EQ(lines[1].spans[0].text, "Bold");
+}
+
+TEST(RichTextContextTest, ScrollPositionDoesNotLeakToMatchingIdInNewContext) {
+    constexpr std::string_view document =
+        "Line0\nLine1\nLine2\nLine3\nLine4\nLine5\nLine6\nLine7";
+    RichTextPreviewOptions options;
+    options.width = 200.0f;
+    options.height = 45.0f;
+    options.showBackground = false;
+    options.showBorder = false;
+    options.showScrollbar = false;
+
+    {
+        fst::testing::TestContext first;
+        ASSERT_TRUE(first.context().loadFont(testFontPath(), 16.0f));
+
+        auto& input = first.window().input();
+        input.beginFrame();
+        input.onMouseMove(10.0f, 10.0f);
+        input.onMouseScroll(0.0f, -10.0f);
+
+        first.beginFrame();
+        RichTextPreview(first.context(), "SharedPreview", document, options);
+        first.endFrame();
+    }
+
+    {
+        fst::testing::TestContext second;
+        ASSERT_TRUE(second.context().loadFont(testFontPath(), 16.0f));
+
+        std::vector<std::string> renderedText;
+        EXPECT_CALL(second.mockDrawList(),
+                    addText(::testing::_, ::testing::_, ::testing::_, ::testing::_))
+            .Times(::testing::AtLeast(1))
+            .WillRepeatedly([&renderedText](Font*, const Vec2&, std::string_view text, Color) {
+                renderedText.emplace_back(text);
+            });
+
+        second.window().input().beginFrame();
+        second.beginFrame();
+        RichTextPreview(second.context(), "SharedPreview", document, options);
+        second.endFrame();
+
+        EXPECT_NE(std::find(renderedText.begin(), renderedText.end(), "Line0"),
+                  renderedText.end());
+    }
 }

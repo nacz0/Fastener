@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -130,7 +131,9 @@ struct CalendarCell {
     bool inRange = true;
 };
 
-static std::unordered_map<WidgetId, DatePickerState> s_datePickerStates;
+struct DatePickerContextState {
+    std::unordered_map<WidgetId, DatePickerState> datePickers;
+};
 
 //=============================================================================
 // Helpers
@@ -220,7 +223,9 @@ bool DatePicker(Context& ctx, std::string_view label, Date& date, const DatePick
     }
 
     WidgetId id = ctx.makeId(label);
-    DatePickerState& state = s_datePickerStates[id];
+    DatePickerContextState& contextState =
+        detail::widgetStates(ctx).get<DatePickerContextState>();
+    DatePickerState& state = contextState.datePickers[id];
     if (state.displayYear == 0 || state.displayMonth == 0 || !state.isOpen) {
         state.displayYear = date.year;
         state.displayMonth = date.month;

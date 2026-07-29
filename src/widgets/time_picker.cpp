@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <cstdio>
 #include <ctime>
@@ -98,7 +99,9 @@ struct TimePickerState {
     bool isOpen = false;
 };
 
-static std::unordered_map<WidgetId, TimePickerState> s_timePickerStates;
+struct TimePickerContextState {
+    std::unordered_map<WidgetId, TimePickerState> timePickers;
+};
 
 //=============================================================================
 // Helpers
@@ -142,7 +145,9 @@ bool TimePicker(Context& ctx, std::string_view label, TimeOfDay& time, const Tim
     }
 
     WidgetId id = ctx.makeId(label);
-    TimePickerState& state = s_timePickerStates[id];
+    TimePickerContextState& contextState =
+        detail::widgetStates(ctx).get<TimePickerContextState>();
+    TimePickerState& state = contextState.timePickers[id];
 
     float width = options.style.width > 0 ? options.style.width : 120.0f;
     float height = options.style.height > 0 ? options.style.height : theme.metrics.inputHeight;

@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
+#include <fastener/core/context.h>
 #include <fastener/widgets/date_picker.h>
 #include <fastener/widgets/time_picker.h>
+
+#include "TestContext.h"
 
 using namespace fst;
 
@@ -111,4 +114,72 @@ TEST(TimeUtilsTest, FormatTime12) {
     TimeOfDay t2{13, 9, 0};
     EXPECT_EQ(time_utils::formatTime(t1, TimeFormat::H12, false), "12:05 AM");
     EXPECT_EQ(time_utils::formatTime(t2, TimeFormat::H12, false), "01:09 PM");
+}
+
+TEST(DatePickerContextTest, OpenCalendarDoesNotLeakToMatchingIdInAnotherContext) {
+    fst::testing::StubWindow firstWindow;
+    fst::testing::StubWindow secondWindow;
+    Context firstContext(false);
+    Context secondContext(false);
+    DatePickerOptions options;
+    options.style = Style().withPos(0, 0).withSize(160, 28);
+
+    Date firstDate{2025, 5, 15};
+    firstWindow.input().beginFrame();
+    firstContext.beginFrame(firstWindow);
+    firstWindow.input().onMouseMove(10, 10);
+    firstWindow.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(DatePicker(firstContext, "context-shared-date", firstDate, options));
+    firstContext.endFrame();
+
+    firstWindow.input().beginFrame();
+    firstContext.beginFrame(firstWindow);
+    firstWindow.input().onMouseMove(10, 10);
+    firstWindow.input().onMouseUp(MouseButton::Left);
+    EXPECT_FALSE(DatePicker(firstContext, "context-shared-date", firstDate, options));
+    firstContext.endFrame();
+
+    Date secondDate{2025, 5, 15};
+    secondWindow.input().beginFrame();
+    secondContext.beginFrame(secondWindow);
+    secondWindow.input().onMouseMove(10, 90);
+    secondWindow.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(DatePicker(secondContext, "context-shared-date", secondDate, options));
+    secondContext.endFrame();
+
+    EXPECT_EQ(secondDate, (Date{2025, 5, 15}));
+}
+
+TEST(TimePickerContextTest, OpenEditorDoesNotLeakToMatchingIdInAnotherContext) {
+    fst::testing::StubWindow firstWindow;
+    fst::testing::StubWindow secondWindow;
+    Context firstContext(false);
+    Context secondContext(false);
+    TimePickerOptions options;
+    options.style = Style().withPos(0, 0).withSize(120, 28);
+
+    TimeOfDay firstTime{10, 30, 0};
+    firstWindow.input().beginFrame();
+    firstContext.beginFrame(firstWindow);
+    firstWindow.input().onMouseMove(10, 10);
+    firstWindow.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(TimePicker(firstContext, "context-shared-time", firstTime, options));
+    firstContext.endFrame();
+
+    firstWindow.input().beginFrame();
+    firstContext.beginFrame(firstWindow);
+    firstWindow.input().onMouseMove(10, 10);
+    firstWindow.input().onMouseUp(MouseButton::Left);
+    EXPECT_FALSE(TimePicker(firstContext, "context-shared-time", firstTime, options));
+    firstContext.endFrame();
+
+    TimeOfDay secondTime{10, 30, 0};
+    secondWindow.input().beginFrame();
+    secondContext.beginFrame(secondWindow);
+    secondWindow.input().onMouseMove(10, 65);
+    secondWindow.input().onMouseScroll(0, -1);
+    EXPECT_FALSE(TimePicker(secondContext, "context-shared-time", secondTime, options));
+    secondContext.endFrame();
+
+    EXPECT_EQ(secondTime, (TimeOfDay{10, 30, 0}));
 }

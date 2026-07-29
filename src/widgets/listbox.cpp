@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <unordered_map>
 
@@ -26,7 +27,15 @@ struct ListboxState {
     int hoveredIndex = -1;
 };
 
-static std::unordered_map<WidgetId, ListboxState> s_listboxStates;
+struct ListboxContextState {
+    std::unordered_map<WidgetId, ListboxState> listboxes;
+};
+
+static ListboxState& getListboxState(Context& ctx, WidgetId id) {
+    ListboxContextState& contextState =
+        detail::widgetStates(ctx).get<ListboxContextState>();
+    return contextState.listboxes[id];
+}
 
 //=============================================================================
 // Listbox Implementation
@@ -43,7 +52,7 @@ bool Listbox(Context& ctx, std::string_view label, int& selectedIndex,
     InputState& input = ctx.input();
 
     WidgetId id = ctx.makeId(label);
-    ListboxState& state = s_listboxStates[id];
+    ListboxState& state = getListboxState(ctx, id);
 
     // Calculate dimensions
     float width = options.style.width > 0 ? options.style.width : 200.0f;
@@ -225,7 +234,7 @@ bool ListboxMulti(Context& ctx, std::string_view label, std::vector<int>& select
     InputState& input = ctx.input();
 
     WidgetId id = ctx.makeId(label);
-    ListboxState& state = s_listboxStates[id];
+    ListboxState& state = getListboxState(ctx, id);
 
     float width = options.style.width > 0 ? options.style.width : 200.0f;
     float height = options.style.height > 0 ? options.style.height : options.height;

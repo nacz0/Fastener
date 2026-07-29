@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <unordered_map>
 
@@ -27,7 +28,9 @@ struct ComboBoxState {
     float scrollOffset = 0.0f;
 };
 
-static std::unordered_map<WidgetId, ComboBoxState> s_comboStates;
+struct ComboBoxContextState {
+    std::unordered_map<WidgetId, ComboBoxState> comboBoxes;
+};
 
 //=============================================================================
 // ComboBox Implementation
@@ -53,7 +56,9 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
     InputState& input = ctx.input();
 
     WidgetId id = ctx.makeId(label);
-    ComboBoxState& state = s_comboStates[id];
+    ComboBoxContextState& contextState =
+        detail::widgetStates(ctx).get<ComboBoxContextState>();
+    ComboBoxState& state = contextState.comboBoxes[id];
 
     float width = options.style.width > 0 ? options.style.width : 150.0f;
     float height = options.style.height > 0 ? options.style.height : 28.0f;

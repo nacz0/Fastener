@@ -98,6 +98,7 @@ if(FST_BUILD_TESTS)
         tests/test_svg.cpp
         tests/test_svg_widget.cpp
         tests/test_chart_widget.cpp
+        tests/test_combo_box.cpp
         tests/test_table.cpp
         tests/test_toast.cpp
         tests/test_pill_widget.cpp

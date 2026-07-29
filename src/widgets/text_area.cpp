@@ -11,6 +11,7 @@
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
 #include "fastener/ui/layout.h"
+#include "../core/widget_state_registry.h"
 #include <algorithm>
 #include <sstream>
 #include <vector>
@@ -34,7 +35,9 @@ struct TextAreaState {
     bool selecting = false;
 };
 
-static std::unordered_map<WidgetId, TextAreaState> s_textAreaStates;
+struct TextAreaContextState {
+    std::unordered_map<WidgetId, TextAreaState> textAreas;
+};
 
 //=============================================================================
 // Helper Functions
@@ -136,7 +139,9 @@ bool TextArea(Context& ctx, const char* id, std::string& value, const TextAreaOp
     InputState& input = ctx.input();
 
     WidgetId widgetId = ctx.makeId(id);
-    TextAreaState& state = s_textAreaStates[widgetId];
+    TextAreaContextState& contextState =
+        detail::widgetStates(ctx).get<TextAreaContextState>();
+    TextAreaState& state = contextState.textAreas[widgetId];
 
 
     // Calculate dimensions

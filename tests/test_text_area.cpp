@@ -98,3 +98,32 @@ TEST(TextAreaClipboardTest, CtrlAThenCtrlVPastesClipboard) {
 
     EXPECT_EQ(value, "Hi");
 }
+
+TEST(TextAreaContextTest, CursorStateIsIsolatedForMatchingIds) {
+    ClipboardWindowStub firstWindow;
+    ClipboardWindowStub secondWindow;
+    Context firstContext(false);
+    Context secondContext(false);
+    TextAreaOptions options;
+    options.style = Style().withSize(200, 100);
+
+    std::string firstValue = "AAAA";
+    firstWindow.input().beginFrame();
+    firstContext.beginFrame(firstWindow);
+    WidgetId firstId = firstContext.makeId("context-shared-cursor");
+    firstContext.setFocusedWidget(firstId);
+    firstWindow.input().onKeyDown(Key::End);
+    TextArea(firstContext, "context-shared-cursor", firstValue, options);
+    firstContext.endFrame();
+
+    std::string secondValue = "BBBB";
+    secondWindow.input().beginFrame();
+    secondContext.beginFrame(secondWindow);
+    WidgetId secondId = secondContext.makeId("context-shared-cursor");
+    secondContext.setFocusedWidget(secondId);
+    secondWindow.input().onTextInput(U'x');
+    TextArea(secondContext, "context-shared-cursor", secondValue, options);
+    secondContext.endFrame();
+
+    EXPECT_EQ(secondValue, "xBBBB");
+}

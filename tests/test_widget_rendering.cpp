@@ -282,6 +282,38 @@ TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
     ctx->endFrame();
 }
 
+TEST(DragDropLifetimeTest, DestroyingSourceContextCancelsActiveDrag) {
+    CancelDragDrop();
+    StubWindow sourceWindow;
+    auto sourceContext = std::make_unique<Context>(false);
+
+    sourceWindow.input().beginFrame();
+    sourceContext->beginFrame(sourceWindow);
+    sourceContext->setLastWidgetId(hashString("source"));
+    sourceContext->setLastWidgetBounds(Rect(0, 0, 100, 100));
+    sourceContext->input().onMouseMove(25, 25);
+    sourceContext->input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(BeginDragDropSource(*sourceContext));
+    sourceContext->endFrame();
+
+    sourceWindow.input().beginFrame();
+    sourceContext->beginFrame(sourceWindow);
+    sourceContext->setLastWidgetId(hashString("source"));
+    sourceContext->setLastWidgetBounds(Rect(0, 0, 100, 100));
+    sourceContext->input().onMouseMove(40, 40);
+    ASSERT_TRUE(BeginDragDropSource(*sourceContext));
+    ASSERT_TRUE(SetDragDropPayload("test", nullptr, 0));
+    EndDragDropSource(*sourceContext);
+    sourceContext->endFrame();
+    ASSERT_TRUE(IsDragDropActive());
+
+    sourceContext.reset();
+
+    bool activeAfterContextDestruction = IsDragDropActive();
+    CancelDragDrop();
+    EXPECT_FALSE(activeAfterContextDestruction);
+}
+
 //=============================================================================
 // Integration Test - Verifying Test Mode Works
 //=============================================================================

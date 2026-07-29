@@ -232,4 +232,12 @@ void EndDragDropFrame(Context& ctx);
 [[deprecated("Use version with explicit Context")]]
 void EndDragDropFrame();
 
+namespace detail {
+/**
+ * Clears a drag operation or pending gesture owned by a Context that is being
+ * destroyed. This is an internal lifecycle hook, not a widget API.
+ */
+void CancelDragDropForContext(Context& ctx);
+}
+
 } // namespace fst

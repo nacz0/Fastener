@@ -1,6 +1,7 @@
 #include "fastener/ui/dock_builder.h"
 #include "fastener/ui/dock_context.h"
 #include "fastener/core/context.h"
+#include <vector>
 
 namespace fst {
 
@@ -113,12 +114,20 @@ void DockBuilder::ClearDockSpace(Context& ctx, DockNode::Id dockspaceId) {
     DockNode* root = docking.getDockNode(dockspaceId);
     
     if (root) {
-        // Clear all windows and children
-        root->forEachLeaf([&docking](DockNode* leaf) {
-            for (auto winId : leaf->dockedWindows) {
-                docking.undockWindow(winId);
-            }
+        // Snapshot window IDs before mutating the tree. Undocking can erase from
+        // dockedWindows and merge parent nodes, invalidating traversal state.
+        std::vector<WidgetId> windowsToUndock;
+        root->forEachLeaf([&windowsToUndock](DockNode* leaf) {
+            windowsToUndock.insert(
+                windowsToUndock.end(),
+                leaf->dockedWindows.begin(),
+                leaf->dockedWindows.end()
+            );
         });
+
+        for (WidgetId windowId : windowsToUndock) {
+            docking.undockWindow(windowId);
+        }
         
         root->children[0].reset();
         root->children[1].reset();

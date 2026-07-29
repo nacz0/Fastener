@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <fastener/ui/dock_context.h>
+#include <fastener/ui/dock_builder.h>
 #include <fastener/ui/dock_node.h>
 #include <fastener/core/context.h>
 
@@ -63,4 +64,73 @@ TEST_F(DockingTest, IdUniqueness) {
             EXPECT_NE(ids[i], ids[j]) << "Duplicate ID found at " << i << " and " << j;
         }
     }
+}
+
+TEST_F(DockingTest, ClearDockSpaceRemovesEveryWindowMappingFromSplitLeaves) {
+    Context ctx(false);
+    DockContext& docking = ctx.docking();
+    DockNode::Id rootId = docking.createDockSpace("Main", Rect(0, 0, 1000, 800));
+    DockNode* root = docking.getDockNode(rootId);
+    ASSERT_NE(root, nullptr);
+
+    DockNode::Id leftId = docking.generateNodeId();
+    DockNode::Id rightId = docking.generateNodeId();
+    DockNode* left = root->splitNode(DockDirection::Left, leftId, rightId, 0.3f);
+    ASSERT_NE(left, nullptr);
+    ASSERT_NE(root->children[1], nullptr);
+
+    std::vector<WidgetId> windowIds;
+    for (WidgetId id = 100; id < 116; ++id) {
+        windowIds.push_back(id);
+        docking.dockWindow(id, (id % 2 == 0) ? left->id : root->children[1]->id);
+    }
+
+    DockBuilder::ClearDockSpace(ctx, rootId);
+
+    for (WidgetId id : windowIds) {
+        EXPECT_FALSE(docking.isWindowDocked(id)) << "stale mapping for window " << id;
+        EXPECT_EQ(docking.getWindowDockNode(id), nullptr);
+    }
+    EXPECT_TRUE(root->isLeafNode());
+    EXPECT_TRUE(root->dockedWindows.empty());
+    EXPECT_EQ(root->children[0], nullptr);
+    EXPECT_EQ(root->children[1], nullptr);
+}
+
+TEST_F(DockingTest, ClearDockSpaceResetsNestedSplitTreeWithoutInvalidatingRoot) {
+    Context ctx(false);
+    DockContext& docking = ctx.docking();
+    Rect originalBounds(10, 20, 1200, 900);
+    DockNode::Id rootId = docking.createDockSpace("Nested", originalBounds);
+    DockNode* root = docking.getDockNode(rootId);
+    ASSERT_NE(root, nullptr);
+
+    DockNode::Id firstA = docking.generateNodeId();
+    DockNode::Id firstB = docking.generateNodeId();
+    DockNode* left = root->splitNode(DockDirection::Left, firstA, firstB, 0.25f);
+    ASSERT_NE(left, nullptr);
+
+    DockNode::Id nestedA = docking.generateNodeId();
+    DockNode::Id nestedB = docking.generateNodeId();
+    DockNode* topLeft = left->splitNode(DockDirection::Top, nestedA, nestedB, 0.5f);
+    ASSERT_NE(topLeft, nullptr);
+
+    docking.dockWindow(201, topLeft->id);
+    docking.dockWindow(202, left->children[1]->id);
+    docking.dockWindow(203, root->children[1]->id);
+
+    DockBuilder::ClearDockSpace(ctx, rootId);
+
+    EXPECT_EQ(docking.getDockNode(rootId), root);
+    EXPECT_EQ(root->id, rootId);
+    EXPECT_EQ(root->bounds, originalBounds);
+    EXPECT_TRUE(root->isLeafNode());
+    EXPECT_TRUE(root->isEmpty());
+    EXPECT_EQ(docking.getDockNode(firstA), nullptr);
+    EXPECT_EQ(docking.getDockNode(firstB), nullptr);
+    EXPECT_EQ(docking.getDockNode(nestedA), nullptr);
+    EXPECT_EQ(docking.getDockNode(nestedB), nullptr);
+    EXPECT_FALSE(docking.isWindowDocked(201));
+    EXPECT_FALSE(docking.isWindowDocked(202));
+    EXPECT_FALSE(docking.isWindowDocked(203));
 }

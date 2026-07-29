@@ -137,6 +137,8 @@ Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
 }
 
 Context::~Context() {
+    detail::CancelDragDropForContext(*this);
+
     // Remove this context from the stack if it's there
     auto it = std::find(s_contextStack.begin(), s_contextStack.end(), this);
     if (it != s_contextStack.end()) {

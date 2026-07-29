@@ -25,6 +25,13 @@ namespace fst {
 
 struct DragDropStateEx : DragDropState {
     bool pendingClear = false;
+    Context* sourceContext = nullptr;
+
+    void clear() {
+        DragDropState::clear();
+        pendingClear = false;
+        sourceContext = nullptr;
+    }
 };
     
 static DragDropStateEx s_dragDropState;
@@ -36,6 +43,7 @@ static Vec2 s_mousePressPos;
 static Vec2 s_globalMousePressPos;  // Global (screen) coordinates at mouse press
 static bool s_potentialDrag = false;
 static WidgetId s_potentialDragSource = INVALID_WIDGET_ID;
+static Context* s_potentialDragContext = nullptr;
 
 //=============================================================================
 // Internal Helpers
@@ -164,6 +172,7 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
                 s_globalMousePressPos = GetGlobalCursorPos();  // Capture global position
                 s_potentialDrag = true;
                 s_potentialDragSource = lastWidgetId;
+                s_potentialDragContext = &ctx;
             }
         }
         
@@ -195,9 +204,11 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
                 s_dragDropState.payload.sourceWidget = lastWidgetId;
                 s_dragDropState.payload.sourceWindow = &ctx.window();  // Track source window
                 s_dragDropState.payload.isDelivered = false;  // Reset from any previous drop
+                s_dragDropState.sourceContext = &ctx;
                 s_currentSourceWidget = lastWidgetId;
                 s_potentialDrag = false;
                 s_potentialDragSource = INVALID_WIDGET_ID;
+                s_potentialDragContext = nullptr;
                 return true;
             }
         }
@@ -205,6 +216,7 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
         // Mouse released, cancel potential drag
         s_potentialDrag = false;
         s_potentialDragSource = INVALID_WIDGET_ID;
+        s_potentialDragContext = nullptr;
         s_inSourceBlock = false;
         return false;
     }
@@ -416,9 +428,12 @@ const DragPayload* GetDragDropPayload() {
 
 void CancelDragDrop() {
     s_dragDropState.clear();
-    s_dragDropState.pendingClear = false;
     s_potentialDrag = false;
     s_potentialDragSource = INVALID_WIDGET_ID;
+    s_potentialDragContext = nullptr;
+    s_currentSourceWidget = INVALID_WIDGET_ID;
+    s_inSourceBlock = false;
+    s_inTargetBlock = false;
 }
 
 void EndDragDropFrame(Context& ctx) {
@@ -431,7 +446,6 @@ void EndDragDropFrame(Context& ctx) {
     // we can safely clear the state now.
     if (s_dragDropState.pendingClear) {
         s_dragDropState.clear();
-        s_dragDropState.pendingClear = false;
     }
     
     // Reset frame-cumulative state
@@ -442,6 +456,16 @@ void EndDragDropFrame() {
     Context* ctx = Context::current();
     if (ctx) fst::EndDragDropFrame(*ctx);
 }
+
+namespace detail {
+
+void CancelDragDropForContext(Context& ctx) {
+    if (s_dragDropState.sourceContext == &ctx || s_potentialDragContext == &ctx) {
+        CancelDragDrop();
+    }
+}
+
+} // namespace detail
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop

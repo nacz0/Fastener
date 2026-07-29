@@ -11,6 +11,7 @@
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
+#include "../core/widget_state_registry.h"
 #include <vector>
 #include <algorithm>
 #include <cmath>
@@ -50,9 +51,14 @@ struct ToastEntry {
     {}
 };
 
-/// Thread-local toast queue
-thread_local std::vector<ToastEntry> s_toasts;
-thread_local int s_nextToastId = 1;
+struct ToastContextState {
+    std::vector<ToastEntry> toasts;
+    int nextToastId = 1;
+};
+
+ToastContextState& getToastState(Context& ctx) {
+    return detail::widgetStates(ctx).get<ToastContextState>();
+}
 
 /// Animation constants
 constexpr float FADE_DURATION = 0.2f;       // Seconds for fade in/out
@@ -261,21 +267,22 @@ void renderToast(Context& ctx, ToastEntry& toast, const Vec2& position, float al
 //=============================================================================
 
 int ShowToast(Context& ctx, std::string_view message, const ToastOptions& options) {
-    (void)ctx;  // Not currently used but kept for API consistency
-    int id = s_nextToastId++;
-    s_toasts.emplace_back(id, "", std::string(message), options);
+    auto& state = getToastState(ctx);
+    int id = state.nextToastId++;
+    state.toasts.emplace_back(id, "", std::string(message), options);
     return id;
 }
 
 int ShowToast(Context& ctx, std::string_view title, std::string_view message, const ToastOptions& options) {
-    (void)ctx;
-    int id = s_nextToastId++;
-    s_toasts.emplace_back(id, std::string(title), std::string(message), options);
+    auto& state = getToastState(ctx);
+    int id = state.nextToastId++;
+    state.toasts.emplace_back(id, std::string(title), std::string(message), options);
     return id;
 }
 
 void RenderToasts(Context& ctx, const ToastContainerOptions& options) {
-    if (s_toasts.empty()) return;
+    auto& toasts = getToastState(ctx).toasts;
+    if (toasts.empty()) return;
     
     Font* font = ctx.font();
     
@@ -292,7 +299,7 @@ void RenderToasts(Context& ctx, const ToastContainerOptions& options) {
     float deltaTime = ctx.deltaTime();
 
     // Process toast animations and timers
-    for (auto& toast : s_toasts) {
+    for (auto& toast : toasts) {
         switch (toast.phase) {
             case ToastPhase::FadeIn:
                 toast.animationProgress += deltaTime / FADE_DURATION;
@@ -323,16 +330,16 @@ void RenderToasts(Context& ctx, const ToastContainerOptions& options) {
     }
     
     // Remove dismissed toasts
-    s_toasts.erase(
-        std::remove_if(s_toasts.begin(), s_toasts.end(),
+    toasts.erase(
+        std::remove_if(toasts.begin(), toasts.end(),
                        [](const ToastEntry& t) { return t.markedForRemoval; }),
-        s_toasts.end()
+        toasts.end()
     );
     
     // Render visible toasts (limited by maxVisible)
     int visibleCount = 0;
 
-    for (auto& toast : s_toasts) {
+    for (auto& toast : toasts) {
         if (visibleCount >= options.maxVisible) break;
         
         // Calculate height for positioning
@@ -359,8 +366,8 @@ void RenderToasts(Context& ctx, const ToastContainerOptions& options) {
     }
 }
 
-void DismissToast(int toastId) {
-    for (auto& toast : s_toasts) {
+void DismissToast(Context& ctx, int toastId) {
+    for (auto& toast : getToastState(ctx).toasts) {
         if (toast.id == toastId && toast.phase != ToastPhase::FadeOut) {
             toast.phase = ToastPhase::FadeOut;
             toast.animationProgress = 1.0f;
@@ -369,12 +376,13 @@ void DismissToast(int toastId) {
     }
 }
 
-void DismissAllToasts() {
-    s_toasts.clear();
+void DismissAllToasts(Context& ctx) {
+    getToastState(ctx).toasts.clear();
 }
 
 void UpdateToastInput(Context& ctx, const ToastContainerOptions& options) {
-    if (s_toasts.empty()) return;
+    const auto& toasts = getToastState(ctx).toasts;
+    if (toasts.empty()) return;
     
     Font* font = ctx.font();
     if (!font) return;
@@ -387,7 +395,7 @@ void UpdateToastInput(Context& ctx, const ToastContainerOptions& options) {
     // Pre-register all visible toast bounds as floating windows for input blocking
     // This MUST be called at the start of the frame, before other widgets process input
     int visibleCount = 0;
-    for (const auto& toast : s_toasts) {
+    for (const auto& toast : toasts) {
         if (visibleCount >= options.maxVisible) break;
         
         float contentHeight = lineHeight;
@@ -426,8 +434,8 @@ void UpdateToastInput(Context& ctx, const ToastContainerOptions& options) {
 
 namespace internal {
 
-int getToastCount() {
-    return static_cast<int>(s_toasts.size());
+int getToastCount(Context& ctx) {
+    return static_cast<int>(getToastState(ctx).toasts.size());
 }
 
 } // namespace internal

@@ -86,7 +86,7 @@ struct ToastContainerOptions {
  * @param ctx The context.
  * @param message The message to display.
  * @param options Toast configuration options.
- * @return Toast ID that can be used with DismissToast().
+ * @return Toast ID that can be used with DismissToast() for this context.
  */
 int ShowToast(Context& ctx, std::string_view message, const ToastOptions& options = {});
 
@@ -96,7 +96,7 @@ int ShowToast(Context& ctx, std::string_view message, const ToastOptions& option
  * @param title Bold title text.
  * @param message Body message text.
  * @param options Toast configuration options.
- * @return Toast ID that can be used with DismissToast().
+ * @return Toast ID that can be used with DismissToast() for this context.
  */
 int ShowToast(Context& ctx, std::string_view title, std::string_view message, const ToastOptions& options = {});
 
@@ -120,14 +120,16 @@ void UpdateToastInput(Context& ctx, const ToastContainerOptions& options = {});
 
 /**
  * @brief Dismiss a specific toast by ID.
+ * @param ctx The context that owns the toast.
  * @param toastId The ID returned by ShowToast().
  */
-void DismissToast(int toastId);
+void DismissToast(Context& ctx, int toastId);
 
 /**
- * @brief Dismiss all active toasts immediately.
+ * @brief Dismiss all active toasts owned by a context immediately.
+ * @param ctx The context whose toasts should be dismissed.
  */
-void DismissAllToasts();
+void DismissAllToasts(Context& ctx);
 
 //=============================================================================
 // Internal State (for testing)
@@ -135,7 +137,7 @@ void DismissAllToasts();
 namespace internal {
 
 /// @brief Get current number of toasts in queue (for testing).
-int getToastCount();
+int getToastCount(Context& ctx);
 
 } // namespace internal
 

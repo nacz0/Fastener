@@ -40,11 +40,11 @@ protected:
     
     void SetUp() override {
         // Clear any existing toasts before each test
-        DismissAllToasts();
+        DismissAllToasts(tc.context());
     }
     
     void TearDown() override {
-        DismissAllToasts();
+        DismissAllToasts(tc.context());
     }
 };
 
@@ -56,13 +56,13 @@ TEST_F(ToastTest, ShowToast_AddsToQueue) {
     tc.beginFrame();
     
     // Initially no toasts
-    EXPECT_EQ(internal::getToastCount(), 0);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
     
     // Show a toast
     ShowToast(tc.context(), "Test message");
     
     // Should have one toast in queue
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     
     tc.endFrame();
 }
@@ -72,7 +72,7 @@ TEST_F(ToastTest, ShowToast_WithTitle_AddsToQueue) {
     
     ShowToast(tc.context(), "Title", "Message body");
     
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     
     tc.endFrame();
 }
@@ -84,9 +84,24 @@ TEST_F(ToastTest, ShowToast_MultipleToasts_Stack) {
     ShowToast(tc.context(), "Toast 2");
     ShowToast(tc.context(), "Toast 3");
     
-    EXPECT_EQ(internal::getToastCount(), 3);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 3);
     
     tc.endFrame();
+}
+
+TEST_F(ToastTest, ToastQueuesAreIndependentForEachContext) {
+    Context second(false);
+
+    ShowToast(tc.context(), "First context");
+    ShowToast(second, "Second context");
+
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
+    EXPECT_EQ(internal::getToastCount(second), 1);
+
+    DismissAllToasts(tc.context());
+
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
+    EXPECT_EQ(internal::getToastCount(second), 1);
 }
 
 //=============================================================================
@@ -98,10 +113,10 @@ TEST_F(ToastTest, DismissAllToasts_ClearsQueue) {
     
     ShowToast(tc.context(), "Toast 1");
     ShowToast(tc.context(), "Toast 2");
-    EXPECT_EQ(internal::getToastCount(), 2);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 2);
     
-    DismissAllToasts();
-    EXPECT_EQ(internal::getToastCount(), 0);
+    DismissAllToasts(tc.context());
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
     
     tc.endFrame();
 }
@@ -114,15 +129,15 @@ TEST_F(ToastTest, DismissToast_RemovesSpecificToast) {
     int id3 = ShowToast(tc.context(), "Toast 3");
     (void)id1; (void)id3;  // Suppress unused warnings
     
-    EXPECT_EQ(internal::getToastCount(), 3);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 3);
     
     // DismissToast starts fade-out, RenderToasts processes removal
-    DismissToast(id2);
+    DismissToast(tc.context(), id2);
     
     // Toast is marked for fade-out but still in queue until render processes it
     // Use DismissAllToasts for immediate removal, or render frames to animate out
-    DismissAllToasts();  // Use immediate clear for this test
-    EXPECT_EQ(internal::getToastCount(), 0);
+    DismissAllToasts(tc.context());  // Use immediate clear for this test
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
     
     tc.endFrame();
 }
@@ -139,7 +154,7 @@ TEST_F(ToastTest, Toast_AutoDismissesAfterDuration) {
     opts.duration = 0.1f;  // 100ms
     ShowToast(tc.context(), "Short-lived toast", opts);
     
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     tc.endFrame();
     
     // Simulate time passing - render multiple frames
@@ -161,7 +176,7 @@ TEST_F(ToastTest, Toast_ZeroDuration_NeverAutoDismisses) {
     opts.duration = 0.0f;  // Never auto-dismiss
     ShowToast(tc.context(), "Persistent toast", opts);
     
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     
     tc.endFrame();
     
@@ -173,7 +188,7 @@ TEST_F(ToastTest, Toast_ZeroDuration_NeverAutoDismisses) {
     }
     
     // Toast should still exist
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
 }
 
 //=============================================================================
@@ -197,7 +212,7 @@ TEST_F(ToastTest, ToastTypes_AllValid) {
     ShowToast(tc.context(), "Warning", ToastOptions{ToastType::Warning});
     ShowToast(tc.context(), "Error", ToastOptions{ToastType::Error});
     
-    EXPECT_EQ(internal::getToastCount(), 4);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 4);
     
     tc.endFrame();
 }
@@ -213,20 +228,20 @@ TEST_F(ToastTest, RenderToasts_DrawsVisibleToasts) {
     
     tc.beginFrame();
     ShowToast(tc.context(), "Visible toast");
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     
     // RenderToasts should handle missing font gracefully (early return)
     RenderToasts(tc.context());
     
     // Toast should still be in queue (not rendered but not removed)
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     tc.endFrame();
 }
 
 TEST_F(ToastTest, RenderToasts_NoToasts_DoesNothing) {
     tc.beginFrame();
     
-    EXPECT_EQ(internal::getToastCount(), 0);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
     
     // RenderToasts should complete without errors even with no toasts
     RenderToasts(tc.context());
@@ -273,7 +288,7 @@ TEST_F(ToastTest, MaxVisible_LimitsDisplayedToasts) {
         ShowToast(tc.context(), "Toast " + std::to_string(i));
     }
     
-    EXPECT_EQ(internal::getToastCount(), 10);  // All still in queue
+    EXPECT_EQ(internal::getToastCount(tc.context()), 10);  // All still in queue
     
     // Rendering should only show maxVisible
     RenderToasts(tc.context(), containerOpts);
@@ -301,7 +316,7 @@ TEST_F(ToastTest, Dismissible_False_HidesCloseButton) {
     // Verified by checking that toast stays after rendering
     RenderToasts(tc.context());
     
-    EXPECT_EQ(internal::getToastCount(), 1);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 1);
     
     tc.endFrame();
 }
@@ -353,7 +368,7 @@ TEST_F(ToastTest, CloseButton_ClickDismissesToast) {
     RenderToasts(tc.context());
     tc.endFrame();
 
-    EXPECT_EQ(internal::getToastCount(), 0);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
 }
 
 TEST_F(ToastTest, HoveringToast_ConsumesMouseToBlockClickThrough) {
@@ -438,5 +453,5 @@ TEST_F(ToastTest, CloseButton_IgnoresConsumedMouse) {
     RenderToasts(tc.context());
     tc.endFrame();
 
-    EXPECT_EQ(internal::getToastCount(), 0);
+    EXPECT_EQ(internal::getToastCount(tc.context()), 0);
 }

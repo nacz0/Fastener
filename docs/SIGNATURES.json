@@ -356,8 +356,8 @@
         "int ShowToast(Context& ctx, std::string_view message, const ToastOptions& options = {})",
         "int ShowToast(Context& ctx, std::string_view title, std::string_view message, const ToastOptions& options = {})",
         "void RenderToasts(Context& ctx, const ToastContainerOptions& options = {})",
-        "void DismissToast(int toastId)",
-        "void DismissAllToasts()"
+        "void DismissToast(Context& ctx, int toastId)",
+        "void DismissAllToasts(Context& ctx)"
       ],
       "returns": "int (toast ID) or void",
       "options": {

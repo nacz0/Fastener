@@ -8,8 +8,10 @@
 #include "fastener/ui/layout.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
+#include "../core/widget_state_registry.h"
 
 #include <unordered_map>
+#include <vector>
 
 namespace fst {
 
@@ -26,18 +28,19 @@ struct DockableWindowState {
     DrawLayer prevLayer = DrawLayer::Default;
 };
 
-// Simple window state storage
-static std::unordered_map<WidgetId, DockableWindowState> s_windowStates;
+struct DockableWindowContextState {
+    std::unordered_map<WidgetId, DockableWindowState> windows;
+    std::vector<WidgetId> windowStack;
+};
 
-static DockableWindowState& getWindowState(WidgetId id) {
-    return s_windowStates[id];
+static DockableWindowContextState& getDockableWindowContextState(Context& ctx) {
+    return detail::widgetStates(ctx).get<DockableWindowContextState>();
 }
 
-//=============================================================================
-// Active window stack
-//=============================================================================
-
-static std::vector<WidgetId> s_windowStack;
+static DockableWindowState& getWindowState(DockableWindowContextState& contextState,
+                                           WidgetId id) {
+    return contextState.windows[id];
+}
 
 //=============================================================================
 // BeginDockableWindow
@@ -55,7 +58,8 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
 
     
     // Get or create window state
-    auto& state = getWindowState(widgetId);
+    auto& contextState = getDockableWindowContextState(ctx);
+    auto& state = getWindowState(contextState, widgetId);
     if (state.id == INVALID_WIDGET_ID) {
         state.id = widgetId;
         state.title = options.title.empty() ? id : options.title;
@@ -98,7 +102,7 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
     // --- FROM HERE WE ARE VISIBLE AND RENDERING ---
     
     // Push to window stack and ID stack
-    s_windowStack.push_back(widgetId);
+    contextState.windowStack.push_back(widgetId);
     ctx.pushId(id.c_str());
 
     
@@ -235,7 +239,8 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
 //=============================================================================
 
 void EndDockableWindow(Context& ctx) {
-    if (s_windowStack.empty()) {
+    auto& contextState = getDockableWindowContextState(ctx);
+    if (contextState.windowStack.empty()) {
         return;
     }
     
@@ -248,14 +253,14 @@ void EndDockableWindow(Context& ctx) {
     dl.popClipRect();
     
     // Reset layer
-    auto& state = getWindowState(s_windowStack.back());
+    auto& state = getWindowState(contextState, contextState.windowStack.back());
     dl.setLayer(state.prevLayer);
     
     // Pop ID
     ctx.popId();
     
     // Pop from stack
-    s_windowStack.pop_back();
+    contextState.windowStack.pop_back();
 }
 
 

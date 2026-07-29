@@ -3,6 +3,9 @@
 #include <fastener/ui/dock_builder.h>
 #include <fastener/ui/dock_node.h>
 #include <fastener/core/context.h>
+#include <fastener/widgets/dock_space.h>
+#include <fastener/widgets/dockable_window.h>
+#include "TestContext.h"
 
 using namespace fst;
 
@@ -133,4 +136,134 @@ TEST_F(DockingTest, ClearDockSpaceResetsNestedSplitTreeWithoutInvalidatingRoot) 
     EXPECT_FALSE(docking.isWindowDocked(201));
     EXPECT_FALSE(docking.isWindowDocked(202));
     EXPECT_FALSE(docking.isWindowDocked(203));
+}
+
+TEST_F(DockingTest, DockableWindowStateDoesNotLeakAcrossContexts) {
+    const std::string windowName = "SharedDockableWindow";
+
+    {
+        fst::testing::TestContext first;
+        DockableWindowOptions options;
+        options.title = "First context";
+        options.showTitleBar = false;
+
+        first.beginFrame();
+        ASSERT_TRUE(BeginDockableWindow(first.context(), windowName, options));
+        EndDockableWindow(first.context());
+        EXPECT_EQ(first.context().docking().getWindowTitle(first.context().makeId(windowName.c_str())),
+                  "First context");
+        first.endFrame();
+    }
+
+    {
+        fst::testing::TestContext second;
+        DockableWindowOptions options;
+        options.title = "Second context";
+        options.showTitleBar = false;
+
+        second.beginFrame();
+        ASSERT_TRUE(BeginDockableWindow(second.context(), windowName, options));
+        EndDockableWindow(second.context());
+        EXPECT_EQ(second.context().docking().getWindowTitle(second.context().makeId(windowName.c_str())),
+                  "Second context");
+        second.endFrame();
+    }
+}
+
+TEST_F(DockingTest, SplitterDragRemainsActiveWhenAnotherContextUsesDocking) {
+    fst::testing::TestContext first;
+    fst::testing::TestContext second;
+
+    DockNode::Id firstRootId =
+        first.context().docking().createDockSpace("FirstDockSpace", Rect(0, 0, 100, 100));
+    DockNode* firstRoot = first.context().docking().getDockNode(firstRootId);
+    ASSERT_NE(firstRoot, nullptr);
+    ASSERT_NE(firstRoot->splitNode(
+                  DockDirection::Left,
+                  first.context().docking().generateNodeId(),
+                  first.context().docking().generateNodeId()),
+              nullptr);
+    firstRoot->updateLayout(firstRoot->bounds);
+
+    (void)second.context().docking().generateNodeId();
+    DockNode::Id secondRootId =
+        second.context().docking().createDockSpace("SecondDockSpace", Rect(0, 0, 100, 100));
+    DockNode* secondRoot = second.context().docking().getDockNode(secondRootId);
+    ASSERT_NE(secondRoot, nullptr);
+    ASSERT_NE(secondRoot->splitNode(
+                  DockDirection::Left,
+                  second.context().docking().generateNodeId(),
+                  second.context().docking().generateNodeId()),
+              nullptr);
+    secondRoot->updateLayout(secondRoot->bounds);
+
+    auto& firstInput = first.window().input();
+    firstInput.beginFrame();
+    firstInput.onMouseMove(50.0f, 50.0f);
+    firstInput.onMouseDown(MouseButton::Left);
+    first.beginFrame();
+    EXPECT_TRUE(HandleDockSplitter(
+        first.context(), firstRoot, Rect(48.0f, 0.0f, 4.0f, 100.0f), true));
+    first.endFrame();
+
+    auto& secondInput = second.window().input();
+    secondInput.beginFrame();
+    secondInput.onMouseMove(50.0f, 50.0f);
+    secondInput.onMouseDown(MouseButton::Left);
+    second.beginFrame();
+    EXPECT_TRUE(HandleDockSplitter(
+        second.context(), secondRoot, Rect(48.0f, 0.0f, 4.0f, 100.0f), true));
+    second.endFrame();
+
+    firstInput.beginFrame();
+    firstInput.onMouseMove(70.0f, 50.0f);
+    first.beginFrame();
+    EXPECT_TRUE(HandleDockSplitter(
+        first.context(), firstRoot, Rect(48.0f, 0.0f, 4.0f, 100.0f), true));
+    EXPECT_FLOAT_EQ(firstRoot->splitRatio, 0.7f);
+    first.endFrame();
+}
+
+TEST_F(DockingTest, DockTabDragRemainsBoundToItsContext) {
+    fst::testing::TestContext first;
+    fst::testing::TestContext second;
+
+    DockNode::Id firstRootId =
+        first.context().docking().createDockSpace("FirstTabs", Rect(0, 0, 200, 100));
+    DockNode* firstRoot = first.context().docking().getDockNode(firstRootId);
+    ASSERT_NE(firstRoot, nullptr);
+    constexpr WidgetId firstWindow = 101;
+    first.context().docking().dockWindow(firstWindow, firstRootId);
+
+    (void)second.context().docking().generateNodeId();
+    DockNode::Id secondRootId =
+        second.context().docking().createDockSpace("SecondTabs", Rect(0, 0, 200, 100));
+    DockNode* secondRoot = second.context().docking().getDockNode(secondRootId);
+    ASSERT_NE(secondRoot, nullptr);
+    constexpr WidgetId secondWindow = 202;
+    second.context().docking().dockWindow(secondWindow, secondRootId);
+
+    auto& firstInput = first.window().input();
+    firstInput.beginFrame();
+    firstInput.onMouseMove(20.0f, 10.0f);
+    firstInput.onMouseDown(MouseButton::Left);
+    first.beginFrame();
+    RenderDockTabBar(first.context(), firstRoot);
+    first.endFrame();
+
+    auto& secondInput = second.window().input();
+    secondInput.beginFrame();
+    secondInput.onMouseMove(20.0f, 10.0f);
+    secondInput.onMouseDown(MouseButton::Left);
+    second.beginFrame();
+    RenderDockTabBar(second.context(), secondRoot);
+    second.endFrame();
+
+    firstInput.beginFrame();
+    firstInput.onMouseMove(40.0f, 10.0f);
+    first.beginFrame();
+    RenderDockTabBar(first.context(), firstRoot);
+    EXPECT_TRUE(first.context().docking().dragState().active);
+    EXPECT_EQ(first.context().docking().dragState().windowId, firstWindow);
+    first.endFrame();
 }

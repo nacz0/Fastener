@@ -7,9 +7,26 @@
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/platform/window.h"
+#include "../core/widget_state_registry.h"
 
 
 namespace fst {
+
+namespace {
+
+struct DockSpaceInteractionState {
+    WidgetId activeSplitter = INVALID_WIDGET_ID;
+    WidgetId activeDockTab = INVALID_WIDGET_ID;
+    Vec2 dragStartPos;
+    int dragTabIndex = -1;
+    DockNode::Id dragNodeId = DockNode::INVALID_ID;
+};
+
+DockSpaceInteractionState& getDockSpaceInteractionState(Context& ctx) {
+    return detail::widgetStates(ctx).get<DockSpaceInteractionState>();
+}
+
+} // namespace
 
 //=============================================================================
 // DockSpace Widget
@@ -116,22 +133,21 @@ bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, 
     // Create unique ID for this splitter
     WidgetId splitterId = combineIds(hashString("##DockSplitter"), node->id);
     
-    // Track active splitter for drag
-    static WidgetId s_activeSplitter = INVALID_WIDGET_ID;
+    auto& interactionState = getDockSpaceInteractionState(ctx);
     
     bool isHovered = splitterRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos()) && !input.isMouseConsumed();
     bool isDragging = false;
     
     // Start drag on mouse press
     if (isHovered && input.isMousePressed(MouseButton::Left)) {
-        s_activeSplitter = splitterId;
+        interactionState.activeSplitter = splitterId;
         ctx.setActiveWidget(splitterId);
     }
     
     // Handle dragging
-    if (s_activeSplitter == splitterId && ctx.getActiveWidget() == splitterId) {
+    if (interactionState.activeSplitter == splitterId && ctx.getActiveWidget() == splitterId) {
         if (input.isMouseReleased(MouseButton::Left)) {
-            s_activeSplitter = INVALID_WIDGET_ID;
+            interactionState.activeSplitter = INVALID_WIDGET_ID;
             ctx.clearActiveWidget();
         } else if (input.isMouseDown(MouseButton::Left)) {
 
@@ -175,6 +191,7 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
     auto& dl = ctx.drawList();
     auto& input = ctx.input();
     const auto& theme = ctx.theme();
+    auto& interactionState = getDockSpaceInteractionState(ctx);
 
     
     // Tab bar dimensions
@@ -206,39 +223,36 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
         bool isSelected = (i == node->selectedTabIndex);
         bool isHovered = tabRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos()) && !input.isMouseConsumed();
         
-        // Track active tab for drag detection
-        static WidgetId s_activeDockTab = INVALID_WIDGET_ID;
-        static Vec2 s_dragStartPos;
-        static int s_dragTabIndex = -1;
-        static DockNode* s_dragNode = nullptr;
-        
         WidgetId tabId = combineIds(hashString("##DockTab"), node->id ^ i);
         
         // Start tracking on mouse press
         if (isHovered && input.isMousePressed(MouseButton::Left)) {
             node->selectedTabIndex = i;  // Immediate tab switch
-            s_activeDockTab = tabId;
-            s_dragStartPos = input.mousePos();
-            s_dragTabIndex = i;
-            s_dragNode = node;
+            interactionState.activeDockTab = tabId;
+            interactionState.dragStartPos = input.mousePos();
+            interactionState.dragTabIndex = i;
+            interactionState.dragNodeId = node->id;
             ctx.setActiveWidget(tabId);
         }
         
         // Handle dragging for tab undocking - only if this is the active tab
-        if (s_activeDockTab == tabId) {
+        if (interactionState.activeDockTab == tabId) {
             if (input.isMouseReleased(MouseButton::Left)) {
-                s_activeDockTab = INVALID_WIDGET_ID;
-                s_dragNode = nullptr;
-                s_dragTabIndex = -1;
+                interactionState.activeDockTab = INVALID_WIDGET_ID;
+                interactionState.dragNodeId = DockNode::INVALID_ID;
+                interactionState.dragTabIndex = -1;
                 ctx.clearActiveWidget();
-            } else if (input.isMouseDown(MouseButton::Left) && s_dragNode == node && s_dragTabIndex == i) {
-                float dragDistSq = (input.mousePos() - s_dragStartPos).lengthSquared();
+            } else if (input.isMouseDown(MouseButton::Left) &&
+                       interactionState.dragNodeId == node->id &&
+                       interactionState.dragTabIndex == i) {
+                float dragDistSq =
+                    (input.mousePos() - interactionState.dragStartPos).lengthSquared();
                 if (dragDistSq > 25.0f) { // 5 pixel threshold
                     // Start dragging the window out of the dock
                     ctx.docking().beginDrag(node->dockedWindows[i], input.mousePos());
-                    s_activeDockTab = INVALID_WIDGET_ID;
-                    s_dragNode = nullptr;
-                    s_dragTabIndex = -1;
+                    interactionState.activeDockTab = INVALID_WIDGET_ID;
+                    interactionState.dragNodeId = DockNode::INVALID_ID;
+                    interactionState.dragTabIndex = -1;
                     ctx.clearActiveWidget();
                 }
             }

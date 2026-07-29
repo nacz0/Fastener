@@ -11,11 +11,21 @@
 #include "fastener/ui/widget.h"
 #include "fastener/ui/widget_utils.h"
 #include "fastener/ui/theme.h"
+#include "../core/widget_state_registry.h"
 
 #include <cmath>
 #include <algorithm>
+#include <unordered_map>
 
 namespace fst {
+
+namespace {
+
+struct TreeViewSimpleContextState {
+    std::unordered_map<WidgetId, TreeView> treeViews;
+};
+
+} // namespace
 
 //=============================================================================
 // TreeView Implementation
@@ -320,10 +330,9 @@ void TreeView::drawIcon(Context& ctx, const Vec2& pos, bool isFolder, bool isExp
 void TreeViewSimple(Context& ctx, std::string_view id, TreeNode* root, const Rect& bounds,
                     std::function<void(TreeNode*)> onSelect,
                     const TreeViewOptions& options) {
-    static std::unordered_map<std::string, TreeView> treeViews;
-    
-    std::string key(id);
-    auto& tv = treeViews[key];
+    TreeViewSimpleContextState& contextState =
+        detail::widgetStates(ctx).get<TreeViewSimpleContextState>();
+    TreeView& tv = contextState.treeViews[ctx.makeId(id)];
     if (tv.root() != root) {
         auto sharedRoot = std::shared_ptr<TreeNode>(root, [](TreeNode*){});
         tv.setRoot(sharedRoot);

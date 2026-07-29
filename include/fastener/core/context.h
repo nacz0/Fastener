@@ -144,7 +144,8 @@ public:
     [[deprecated("Use explicit context passing or WidgetScope")]]
     static Context* current();
 
-    // Deferred rendering (for popups/tooltips)
+    // Deferred rendering (for popups/tooltips). Commands queued while deferred
+    // commands are executing run during the following frame.
     void deferRender(std::function<void()> cmd);
     
     // Menu state management (for internal use)

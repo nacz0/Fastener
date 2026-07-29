@@ -189,6 +189,48 @@ TEST(ContextShutdownTest, ShutdownIsIdempotentOutsideFrame) {
     EXPECT_EQ(window.makeContextCurrentCalls(), 2);
 }
 
+TEST(ContextDeferredRenderTest, CommandsQueuedDuringFlushRunNextFrame) {
+    Context ctx(false);
+    StubWindow window;
+    int executionOrder = 0;
+
+    ctx.beginFrame(window);
+    ctx.deferRender([&] {
+        executionOrder = executionOrder * 10 + 1;
+        ctx.deferRender([&] {
+            executionOrder = executionOrder * 10 + 2;
+        });
+    });
+    ctx.endFrame();
+
+    EXPECT_EQ(executionOrder, 1);
+
+    ctx.beginFrame(window);
+    ctx.endFrame();
+
+    EXPECT_EQ(executionOrder, 12);
+}
+
+TEST(ContextDeferredRenderTest, RecursiveEndFrameCannotCloseTheOuterFrame) {
+    Context ctx(false);
+    StubWindow window;
+    int callbackCount = 0;
+
+    ctx.beginFrame(window);
+    ctx.deferRender([&] {
+        ctx.endFrame();
+        ++callbackCount;
+    });
+    ctx.endFrame();
+
+    EXPECT_EQ(callbackCount, 1);
+    EXPECT_FALSE(ctx.isFrameActive());
+
+    ctx.beginFrame(window);
+    EXPECT_TRUE(ctx.isFrameActive());
+    ctx.endFrame();
+}
+
 TEST(ContextMenuContextTest, ClosingOneContextMenuDoesNotCloseAnotherContextsMenu) {
     Context first(false);
     Context second(false);

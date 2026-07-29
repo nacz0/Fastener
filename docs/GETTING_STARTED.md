@@ -88,7 +88,9 @@ int main() {
 - Fonts: at least one font must be loaded before text widgets.
 - Event loop: always call `window.pollEvents()` before `beginFrame()`.
 - Frame scope: `ctx.input()` and `ctx.window()` are only valid between `beginFrame()` and `endFrame()`.
-- Frame calls must be balanced and closed in LIFO order across contexts. Invalid double-begin, unmatched end, and out-of-order end calls are logged and ignored.
+- Frame calls must be balanced and closed in LIFO order across contexts. Invalid
+  double-begin, unmatched, recursive, and out-of-order end calls are logged and
+  ignored.
 - GL context: renderer initialization and cleanup require a current context.
   Call `releaseWindowResources()` for every secondary window before destroying
   it, then call `shutdown()` with the final window still alive.

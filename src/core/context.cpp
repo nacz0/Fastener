@@ -149,6 +149,7 @@ struct Context::Impl {
     bool rendererInitialized = false;
     bool rendererEnabled = false;
     bool frameActive = false;
+    bool frameEnding = false;
 };
 
 Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
@@ -272,6 +273,10 @@ void Context::beginFrame(IPlatformWindow& window) {
 }
 
 void Context::endFrame() {
+    if (m_impl->frameEnding) {
+        FST_LOG_ERROR("Context::endFrame called recursively");
+        return;
+    }
     if (!m_impl->frameActive) {
         FST_LOG_ERROR("Context::endFrame called without an active frame");
         return;
@@ -284,6 +289,7 @@ void Context::endFrame() {
         return;
     }
 
+    m_impl->frameEnding = true;
     m_impl->profiler.endSection(); // UI
 
     // Safety net: If mouse was released but activeWidget wasn't cleared by any widget,
@@ -307,11 +313,15 @@ void Context::endFrame() {
     // Pop clip rect
     m_impl->drawList.popClipRect();
     
-    // Execute deferred commands (popups, etc.)
-    for (const auto& cmd : m_impl->postRenderCommands) {
-        cmd();
+    // Execute a stable snapshot. Commands deferred by these callbacks belong
+    // to the next frame and remain in postRenderCommands.
+    std::deque<std::function<void()>> commands;
+    commands.swap(m_impl->postRenderCommands);
+    for (const auto& cmd : commands) {
+        if (cmd) {
+            cmd();
+        }
     }
-    m_impl->postRenderCommands.clear();
 
     // Cleanup drag and drop state if needed (and render preview)
     EndDragDropFrame(*this);
@@ -330,6 +340,7 @@ void Context::endFrame() {
     m_impl->inputState = nullptr;
     m_impl->currentWindow = nullptr;
     m_impl->frameActive = false;
+    m_impl->frameEnding = false;
     // Also recover any scopes left unbalanced by deferred rendering.
     m_impl->layout.reset();
     m_impl->idStack.resize(1);

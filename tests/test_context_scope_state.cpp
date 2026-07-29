@@ -11,6 +11,7 @@
 #include <fastener/widgets/status_bar.h>
 #include <fastener/widgets/toast.h>
 #include <fastener/widgets/tooltip.h>
+#include <fastener/widgets/tree_view.h>
 #include "TestContext.h"
 #include <filesystem>
 
@@ -46,6 +47,61 @@ std::size_t renderStatusBarWithSection(Context& ctx, fst::testing::StubWindow& w
 }
 
 } // namespace
+
+TEST(TreeViewSimpleContextStateTest, MatchingIdsRetainIndependentScrollState) {
+    Context first(false);
+    Context second(false);
+    fst::testing::StubWindow firstWindow;
+    fst::testing::StubWindow secondWindow;
+    ASSERT_TRUE(first.loadFont(testFontPath(), 16.0f));
+    ASSERT_TRUE(second.loadFont(testFontPath(), 16.0f));
+
+    TreeNode firstRoot("first-root", "First root");
+    TreeNode secondRoot("second-root", "Second root");
+    for (int index = 0; index < 5; ++index) {
+        firstRoot.addChild(
+            "first-" + std::to_string(index),
+            "First " + std::to_string(index),
+            true);
+        secondRoot.addChild(
+            "second-" + std::to_string(index),
+            "Second " + std::to_string(index),
+            true);
+    }
+
+    const Rect bounds(0.0f, 40.0f, 120.0f, 48.0f);
+    TreeViewOptions options;
+    options.rowHeight = 24.0f;
+    options.showIcons = false;
+
+    firstWindow.input().beginFrame();
+    first.beginFrame(firstWindow);
+    firstWindow.input().onMouseMove(50.0f, 52.0f);
+    firstWindow.input().onMouseScroll(0.0f, -1.0f);
+    TreeViewSimple(first, "shared-tree", &firstRoot, bounds, nullptr, options);
+    first.endFrame();
+
+    secondWindow.input().beginFrame();
+    second.beginFrame(secondWindow);
+    TreeViewSimple(second, "shared-tree", &secondRoot, bounds, nullptr, options);
+    second.endFrame();
+
+    std::string selectedId;
+    firstWindow.input().beginFrame();
+    first.beginFrame(firstWindow);
+    firstWindow.input().onMouseMove(50.0f, 52.0f);
+    firstWindow.input().onMouseDown(MouseButton::Left);
+    TreeViewSimple(
+        first,
+        "shared-tree",
+        &firstRoot,
+        bounds,
+        [&](TreeNode* node) { selectedId = node->id; },
+        options);
+    first.endFrame();
+
+    EXPECT_EQ(selectedId, "first-3");
+}
 
 TEST(PanelContextStateTest, OpenPanelInAnotherContextIsStillTopLevel) {
     Context first(false);

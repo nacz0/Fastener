@@ -25,7 +25,8 @@ This document summarizes the core public API of Fastener.
 - Time: `deltaTime()`, `time()`
 - Focus/hover/active: `getFocusedWidget()`, `setFocusedWidget()`, etc.
 - ID stack: `pushId(...)`, `popId()`, `currentId()`
-- Deferred rendering: `deferRender(lambda)`
+- Deferred rendering: `deferRender(lambda)`; commands queued by a deferred
+  callback run during the following frame
 
 Context stack helpers:
 

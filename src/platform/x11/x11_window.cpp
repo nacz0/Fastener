@@ -10,6 +10,7 @@
 
 #include "fastener/platform/window.h"
 #include "x11_clipboard_protocol.h"
+#include "x11_display_connection.h"
 #include <X11/Xlib.h>
 #include <X11/Xresource.h>
 #include <X11/Xutil.h>
@@ -136,6 +137,7 @@ typedef int (*PFNGLXSWAPINTERVALMESAPROC)(int);
 // Window Implementation
 //=============================================================================
 struct Window::Impl {
+    detail::X11DisplayConnection displayConnection;
     Display* display = nullptr;
     ::Window window = 0;
     GLXContext glxContext = nullptr;
@@ -262,7 +264,11 @@ bool Window::Impl::createGLContext(int msaaSamples, bool vsync, GLXContext share
     
     XFree(vi);
     
-    if (!window) return false;
+    if (!window) {
+        XFreeColormap(display, colormap);
+        colormap = 0;
+        return false;
+    }
     
     // Create GLX context
     if (glXCreateContextAttribsARB) {
@@ -280,7 +286,13 @@ bool Window::Impl::createGLContext(int msaaSamples, bool vsync, GLXContext share
         glxContext = glXCreateNewContext(display, fbConfig, GLX_RGBA_TYPE, shareContext, True);
     }
     
-    if (!glxContext) return false;
+    if (!glxContext) {
+        XDestroyWindow(display, window);
+        window = 0;
+        XFreeColormap(display, colormap);
+        colormap = 0;
+        return false;
+    }
     
     glXMakeCurrent(display, window, glxContext);
     
@@ -439,10 +451,16 @@ bool Window::create(const WindowConfig& config) {
     }
     
     // Open display
-    m_impl->display = XOpenDisplay(nullptr);
-    if (!m_impl->display) {
+    Display* display = XOpenDisplay(nullptr);
+    if (!display) {
         return false;
     }
+    m_impl->displayConnection = detail::X11DisplayConnection::adopt(
+        display,
+        [](void* handle) {
+            XCloseDisplay(static_cast<Display*>(handle));
+        });
+    m_impl->display = display;
 
     XrmInitialize();
     
@@ -455,8 +473,8 @@ bool Window::create(const WindowConfig& config) {
     
     // Create GL context and window
     if (!m_impl->createGLContext(config.msaaSamples, config.vsync, nullptr)) {
-        XCloseDisplay(m_impl->display);
         m_impl->display = nullptr;
+        m_impl->displayConnection.reset();
         return false;
     }
     
@@ -501,8 +519,11 @@ bool Window::createWithSharedContext(const WindowConfig& config, Window* shareWi
         return create(config);
     }
     
-    // Use same display as share window
-    m_impl->display = shareWindow->m_impl->display;
+    // The X connection must outlive every window sharing it.
+    m_impl->displayConnection =
+        shareWindow->m_impl->displayConnection;
+    m_impl->display = static_cast<Display*>(
+        m_impl->displayConnection.get());
     m_impl->width = config.width;
     m_impl->height = config.height;
     
@@ -513,6 +534,7 @@ bool Window::createWithSharedContext(const WindowConfig& config, Window* shareWi
     // Create GL context with sharing
     if (!m_impl->createGLContext(config.msaaSamples, config.vsync, shareWindow->m_impl->glxContext)) {
         m_impl->display = nullptr;
+        m_impl->displayConnection.reset();
         return false;
     }
     
@@ -580,8 +602,8 @@ void Window::destroy() {
     }
     
     if (m_impl->display) {
-        XCloseDisplay(m_impl->display);
         m_impl->display = nullptr;
+        m_impl->displayConnection.reset();
     }
     
     m_impl->isOpen = false;

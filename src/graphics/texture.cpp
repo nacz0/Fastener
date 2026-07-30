@@ -6,6 +6,7 @@
 #include "stb_image.h"
 #include "fastener/graphics/texture.h"
 #include "fastener/core/log.h"
+#include "gl_context.h"
 #include <vector>
 #include <cstdio>
 
@@ -30,9 +31,9 @@
 
 namespace fst {
 
-namespace {
+namespace detail {
 
-bool hasCurrentGLContext() {
+bool hasCurrentGraphicsContext() {
 #ifdef _WIN32
     return wglGetCurrentContext() != nullptr;
 #elif defined(__linux__)
@@ -42,7 +43,7 @@ bool hasCurrentGLContext() {
 #endif
 }
 
-} // namespace
+} // namespace detail
 
 Texture::Texture() = default;
 
@@ -76,14 +77,24 @@ Texture& Texture::operator=(Texture&& other) noexcept {
 }
 
 bool Texture::create(int width, int height, const void* data, int channels) {
+    if (width <= 0 || height <= 0 ||
+        (channels != 1 && channels != 3 && channels != 4)) {
+        FST_LOG_ERROR("Texture::create called with invalid dimensions or channel count");
+        return false;
+    }
+    if (!detail::hasCurrentGraphicsContext()) {
+        FST_LOG_ERROR("Texture::create called without a current graphics context");
+        return false;
+    }
+
     destroy();
-    
-    m_width = width;
-    m_height = height;
-    m_channels = channels;
-    
-    GLuint texture;
+
+    GLuint texture = 0;
     glGenTextures(1, &texture);
+    if (texture == 0) {
+        FST_LOG_ERROR("Texture::create failed to allocate an OpenGL texture");
+        return false;
+    }
     glBindTexture(GL_TEXTURE_2D, texture);
     
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -105,8 +116,11 @@ bool Texture::create(int width, int height, const void* data, int channels) {
     glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_BYTE, data);
     
     glBindTexture(GL_TEXTURE_2D, 0);
-    
+
     m_handle = texture;
+    m_width = width;
+    m_height = height;
+    m_channels = channels;
     return true;
 }
 
@@ -157,12 +171,15 @@ bool Texture::loadFromMemory(const void* data, size_t size) {
 
 void Texture::destroy() {
     if (m_handle != 0) {
-        if (!hasCurrentGLContext()) {
-            FST_LOG_WARN("Texture::destroy called without a current GL context; skipping GL delete");
-        } else {
-            GLuint tex = m_handle;
-            glDeleteTextures(1, &tex);
+        if (!detail::hasCurrentGraphicsContext()) {
+            FST_LOG_WARN(
+                "Texture::destroy called without a current graphics context; "
+                "texture remains valid for explicit cleanup");
+            return;
         }
+
+        GLuint tex = m_handle;
+        glDeleteTextures(1, &tex);
         m_handle = 0;
     }
     m_width = 0;
@@ -171,6 +188,10 @@ void Texture::destroy() {
 
 void Texture::update(int x, int y, int width, int height, const void* data) {
     if (m_handle == 0) return;
+    if (!detail::hasCurrentGraphicsContext()) {
+        FST_LOG_ERROR("Texture::update called without a current graphics context");
+        return;
+    }
     
     glBindTexture(GL_TEXTURE_2D, m_handle);
     

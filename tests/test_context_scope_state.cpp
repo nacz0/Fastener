@@ -2,6 +2,7 @@
 #include <fastener/core/context.h>
 #include <fastener/graphics/draw_list.h>
 #include <fastener/graphics/font.h>
+#include <fastener/graphics/texture.h>
 #include <fastener/ui/dock_context.h>
 #include <fastener/ui/flex_layout.h>
 #include <fastener/ui/theme.h>
@@ -129,6 +130,30 @@ TEST(FontLifetimeTest, InvalidMemoryReloadPreservesValidFont) {
     EXPECT_FALSE(font.loadFromMemory(nullptr, 4, 18.0f));
     EXPECT_TRUE(font.isValid());
     EXPECT_EQ(font.measureText("Fastener"), originalMeasurement);
+}
+
+TEST(TextureLifetimeTest, CreationWithoutGraphicsContextFailsCleanly) {
+    Texture texture;
+    const std::uint8_t pixel[] = {255, 255, 255, 255};
+
+    EXPECT_FALSE(texture.create(1, 1, pixel, 4));
+    EXPECT_FALSE(texture.isValid());
+    EXPECT_EQ(texture.width(), 0);
+    EXPECT_EQ(texture.height(), 0);
+}
+
+TEST(FontLifetimeTest, CpuMetricsRemainAvailableWithoutAtlasUpload) {
+    Font font;
+    ASSERT_TRUE(font.loadFromFile(testFontPath(), 16.0f));
+
+    EXPECT_TRUE(font.isValid());
+    EXPECT_GT(font.measureText("Fastener").x, 0.0f);
+    EXPECT_FALSE(font.atlasTexture().isValid());
+
+    DrawList drawList;
+    drawList.pushClipRectFullScreen(Vec2(800.0f, 600.0f));
+    drawList.addText(&font, Vec2(10.0f, 10.0f), "Fastener", Color::white());
+    EXPECT_TRUE(drawList.vertices().empty());
 }
 
 TEST(PanelContextStateTest, OpenPanelInAnotherContextIsStillTopLevel) {

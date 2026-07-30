@@ -9,6 +9,8 @@
 
 namespace fst {
 
+class DrawList;
+
 //=============================================================================
 // Glyph Info
 //=============================================================================
@@ -103,6 +105,7 @@ private:
     float m_descent = 0.0f;
     
     bool m_isValid = false;
+    bool m_atlasDirty = false;
     
     // Atlas packing state
     int m_packX = 0;
@@ -111,7 +114,10 @@ private:
     
     bool initializeFromMemory(const void* data, size_t dataSize, float size);
     bool bakeGlyph(uint32_t codepoint);
+    bool ensureAtlasTexture();
     void updateAtlasTexture();
+
+    friend class DrawList;
 };
 
 } // namespace fst

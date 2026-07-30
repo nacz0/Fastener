@@ -4,6 +4,7 @@
 #include "fastener/graphics/font.h"
 #include "fastener/core/log.h"
 #include "fastener/core/constants.h"
+#include "gl_context.h"
 #include <fstream>
 #include <cstring>
 #include <cmath>
@@ -102,12 +103,14 @@ Font::Font(Font&& other) noexcept
     , m_ascent(other.m_ascent)
     , m_descent(other.m_descent)
     , m_isValid(other.m_isValid)
+    , m_atlasDirty(other.m_atlasDirty)
     , m_packX(other.m_packX)
     , m_packY(other.m_packY)
     , m_packRowHeight(other.m_packRowHeight)
 {
     other.m_fontInfo = nullptr;
     other.m_isValid = false;
+    other.m_atlasDirty = false;
 }
 
 Font& Font::operator=(Font&& other) noexcept {
@@ -126,12 +129,14 @@ Font& Font::operator=(Font&& other) noexcept {
         m_ascent = other.m_ascent;
         m_descent = other.m_descent;
         m_isValid = other.m_isValid;
+        m_atlasDirty = other.m_atlasDirty;
         m_packX = other.m_packX;
         m_packY = other.m_packY;
         m_packRowHeight = other.m_packRowHeight;
         
         other.m_fontInfo = nullptr;
         other.m_isValid = false;
+        other.m_atlasDirty = false;
     }
     return *this;
 }
@@ -210,19 +215,9 @@ bool Font::initializeFromMemory(const void* data, size_t dataSize, float size) {
         bakeGlyph(c);
     }
     
-    // Convert grayscale atlas to RGBA (white text with alpha from grayscale)
-    std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
-    for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
-        rgbaData[i * 4 + 0] = 255;              // R = white
-        rgbaData[i * 4 + 1] = 255;              // G = white
-        rgbaData[i * 4 + 2] = 255;              // B = white
-        rgbaData[i * 4 + 3] = m_atlasData[i];   // A = grayscale value
-    }
-    
-    // Create atlas texture as RGBA
-    m_atlas.create(m_atlasWidth, m_atlasHeight, rgbaData.data(), 4);
-    
     m_isValid = true;
+    m_atlasDirty = true;
+    (void)ensureAtlasTexture();
     return true;
 }
 
@@ -236,6 +231,7 @@ void Font::destroy() {
     m_atlasData.clear();
     m_glyphs.clear();
     m_isValid = false;
+    m_atlasDirty = false;
 }
 
 const GlyphInfo* Font::getGlyph(uint32_t codepoint) {
@@ -332,16 +328,7 @@ bool Font::bakeGlyph(uint32_t codepoint) {
             glyph.uvY1 = static_cast<float>(glyph.atlasY + glyph.atlasH) / m_atlasHeight;
         }
         
-        std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
-        for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
-            rgbaData[i * 4 + 0] = 255;
-            rgbaData[i * 4 + 1] = 255;
-            rgbaData[i * 4 + 2] = 255;
-            rgbaData[i * 4 + 3] = m_atlasData[i];
-        }
-        
-        m_atlas.destroy();
-        m_atlas.create(m_atlasWidth, m_atlasHeight, rgbaData.data(), 4);
+        m_atlasDirty = true;
     }
     
     // Render glyph to atlas
@@ -372,6 +359,7 @@ bool Font::bakeGlyph(uint32_t codepoint) {
     glyph.xAdvance = advanceWidth * m_scale;
     
     m_glyphs[codepoint] = glyph;
+    m_atlasDirty = true;
     
     // Advance pack position
     m_packX += glyphWidth + padding;
@@ -381,17 +369,53 @@ bool Font::bakeGlyph(uint32_t codepoint) {
 }
 
 void Font::updateAtlasTexture() {
-    if (m_atlas.isValid()) {
-        // Convert grayscale to RGBA for update
-        std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
-        for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
-            rgbaData[i * 4 + 0] = 255;
-            rgbaData[i * 4 + 1] = 255;
-            rgbaData[i * 4 + 2] = 255;
-            rgbaData[i * 4 + 3] = m_atlasData[i];
-        }
-        m_atlas.update(0, 0, m_atlasWidth, m_atlasHeight, rgbaData.data());
+    (void)ensureAtlasTexture();
+}
+
+bool Font::ensureAtlasTexture() {
+    if (!m_isValid) {
+        return false;
     }
+    if (m_atlas.isValid() && !m_atlasDirty) {
+        return true;
+    }
+    if (!detail::hasCurrentGraphicsContext()) {
+        return false;
+    }
+
+    std::vector<uint8_t> rgbaData(m_atlasWidth * m_atlasHeight * 4);
+    for (int i = 0; i < m_atlasWidth * m_atlasHeight; ++i) {
+        rgbaData[i * 4 + 0] = 255;
+        rgbaData[i * 4 + 1] = 255;
+        rgbaData[i * 4 + 2] = 255;
+        rgbaData[i * 4 + 3] = m_atlasData[i];
+    }
+
+    if (m_atlas.isValid() &&
+        (m_atlas.width() != m_atlasWidth ||
+         m_atlas.height() != m_atlasHeight)) {
+        m_atlas.destroy();
+    }
+
+    if (!m_atlas.isValid()) {
+        if (!m_atlas.create(
+                m_atlasWidth,
+                m_atlasHeight,
+                rgbaData.data(),
+                4)) {
+            return false;
+        }
+    } else {
+        m_atlas.update(
+            0,
+            0,
+            m_atlasWidth,
+            m_atlasHeight,
+            rgbaData.data());
+    }
+
+    m_atlasDirty = false;
+    return true;
 }
 
 Vec2 Font::measureText(std::string_view text) const {

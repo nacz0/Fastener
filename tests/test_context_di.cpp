@@ -26,6 +26,7 @@ struct RendererCalls {
     int beginFrame = 0;
     int render = 0;
     int endFrame = 0;
+    bool throwOnRender = false;
 };
 
 class RecordingRenderer final : public IRenderer {
@@ -43,7 +44,12 @@ public:
     }
     void beginFrame(int, int, float) override { ++m_calls.beginFrame; }
     void endFrame() override { ++m_calls.endFrame; }
-    void render(const DrawList&) override { ++m_calls.render; }
+    void render(const DrawList&) override {
+        ++m_calls.render;
+        if (m_calls.throwOnRender) {
+            throw std::runtime_error("renderer failure");
+        }
+    }
     uint32_t whiteTexture() const override { return 0; }
 
 private:
@@ -146,6 +152,26 @@ TEST(ContextRendererTest, ContextDestructionCleansLiveWindowsInSafeOrder) {
 
     EXPECT_EQ(calls.release, 2);
     EXPECT_EQ(calls.shutdown, 1);
+}
+
+TEST(ContextRendererTest, ThrowingRendererCannotWedgeTheFrame) {
+    RendererCalls calls;
+    calls.throwOnRender = true;
+    auto renderer = std::make_unique<RecordingRenderer>(calls);
+    Context ctx(std::move(renderer));
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    EXPECT_THROW(ctx.endFrame(), std::runtime_error);
+
+    EXPECT_FALSE(ctx.isFrameActive());
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(calls.endFrame, 1);
+
+    calls.throwOnRender = false;
+    ctx.beginFrame(window);
+    EXPECT_NO_THROW(ctx.endFrame());
+    EXPECT_FALSE(ctx.isFrameActive());
 }
 
 TEST(ContextMultiWindowTest, WidgetIdsAreNamespacedByWindow) {

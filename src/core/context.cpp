@@ -349,19 +349,44 @@ void Context::endFrame() {
         }
     }
 
-    // Cleanup drag and drop state if needed (and render preview)
-    EndDragDropFrame(*this);
-    
-    // Render
-    m_impl->drawList.mergeLayers();
-    if (m_impl->rendererInitialized) {
-        m_impl->renderer->render(m_impl->drawList);
-        m_impl->renderer->endFrame();
+    std::exception_ptr frameException = deferredException;
+    auto captureFailure = [&frameException](auto&& operation) {
+        try {
+            operation();
+            return true;
+        } catch (...) {
+            if (!frameException) {
+                frameException = std::current_exception();
+            }
+            return false;
+        }
+    };
+
+    // Cleanup drag and drop state if needed (and render preview).
+    bool drawListReady = captureFailure([this] {
+        EndDragDropFrame(*this);
+    });
+
+    // A backend failure must not prevent endFrame or Context state recovery.
+    if (drawListReady) {
+        drawListReady = captureFailure([this] {
+            m_impl->drawList.mergeLayers();
+        });
     }
-    
-    m_impl->profiler.endSection(); // Internal
-    m_impl->profiler.endSection(); // Frame
-    m_impl->profiler.endFrame();
+    if (m_impl->rendererInitialized) {
+        if (drawListReady) {
+            captureFailure([this] {
+                m_impl->renderer->render(m_impl->drawList);
+            });
+        }
+        captureFailure([this] {
+            m_impl->renderer->endFrame();
+        });
+    }
+
+    captureFailure([this] { m_impl->profiler.endSection(); }); // Internal
+    captureFailure([this] { m_impl->profiler.endSection(); }); // Frame
+    captureFailure([this] { m_impl->profiler.endFrame(); });
 
     m_impl->inputState = nullptr;
     m_impl->currentWindow = nullptr;
@@ -374,8 +399,8 @@ void Context::endFrame() {
 
     s_frameStack.pop_back();
 
-    if (deferredException) {
-        std::rethrow_exception(deferredException);
+    if (frameException) {
+        std::rethrow_exception(frameException);
     }
 }
 

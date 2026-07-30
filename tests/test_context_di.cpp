@@ -9,6 +9,7 @@
 #include <fastener/ui/widget_utils.h>
 #include <fastener/platform/window_manager.h>
 #include <fastener/graphics/renderer.h>
+#include <fastener/ui/drag_drop.h>
 #include <fastener/widgets/menu.h>
 #include "TestContext.h"
 #include <memory>
@@ -99,6 +100,16 @@ TEST(WindowManagerTest, WindowViewsAreOwnedByTheirManager) {
     EXPECT_NE(firstView, secondView);
 }
 
+TEST(WindowManagerTest, CrossWindowDragRejectsUnownedSource) {
+    WindowManager manager;
+    Window unownedWindow;
+
+    manager.beginCrossWindowDrag(&unownedWindow);
+
+    EXPECT_FALSE(manager.isCrossWindowDragActive());
+    EXPECT_EQ(manager.dragSourceWindow(), nullptr);
+}
+
 TEST(ContextRendererTest, InjectedRendererOwnsFrameAndShutdownLifecycle) {
     RendererCalls calls;
     auto renderer = std::make_unique<RecordingRenderer>(calls);
@@ -140,6 +151,37 @@ TEST(ContextRendererTest, WindowDestructionReleasesAllRendererResources) {
     first.destroyNativeResources();
     EXPECT_EQ(calls.release, 2);
     EXPECT_EQ(calls.shutdown, 1);
+}
+
+TEST(ContextRendererTest, SourceWindowDestructionCancelsActiveDrag) {
+    RendererCalls calls;
+    auto renderer = std::make_unique<RecordingRenderer>(calls);
+    Context ctx(std::move(renderer));
+    LifecycleStubWindow source;
+
+    source.input().beginFrame();
+    ctx.beginFrame(source);
+    ctx.setLastWidgetId(hashString("source"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(25, 25);
+    ctx.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(BeginDragDropSource(ctx, DragDropFlags_CrossWindow));
+    ctx.endFrame();
+
+    source.input().beginFrame();
+    ctx.beginFrame(source);
+    ctx.setLastWidgetId(hashString("source"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(40, 40);
+    ASSERT_TRUE(BeginDragDropSource(ctx, DragDropFlags_CrossWindow));
+    ASSERT_TRUE(SetDragDropPayload(ctx, "test", nullptr, 0));
+    EndDragDropSource(ctx);
+    ctx.endFrame();
+    ASSERT_TRUE(IsDragDropActive(ctx));
+
+    source.destroyNativeResources();
+
+    EXPECT_FALSE(IsDragDropActive(ctx));
 }
 
 TEST(ContextRendererTest, ContextDestructionCleansLiveWindowsInSafeOrder) {

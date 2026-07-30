@@ -14,6 +14,7 @@ struct DragDropContextState : DragDropState {
     Vec2 globalMousePressPos;
     bool potentialDrag = false;
     WidgetId potentialDragSource = INVALID_WIDGET_ID;
+    DragDropFlags sourceFlags = DragDropFlags_None;
 
     void clear() {
         DragDropState::clear();
@@ -26,6 +27,7 @@ struct DragDropContextState : DragDropState {
         globalMousePressPos = Vec2{};
         potentialDrag = false;
         potentialDragSource = INVALID_WIDGET_ID;
+        sourceFlags = DragDropFlags_None;
     }
 };
 

@@ -483,6 +483,12 @@ bool Context::shutdown(IPlatformWindow& window) {
 }
 
 void Context::beforeWindowDestroyed(IPlatformWindow& window) {
+    const auto& dragDrop = detail::dragDropState(*this);
+    if (dragDrop.payload.sourceWindow == &window ||
+        dragDrop.targetWindow == &window) {
+        CancelDragDrop(*this);
+    }
+
     auto it = std::find(
         m_impl->resourceWindows.begin(),
         m_impl->resourceWindows.end(),

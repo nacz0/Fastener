@@ -384,6 +384,73 @@ TEST(DragDropContextTest, RejectedSourceCannotOverwriteActivePayload) {
     ctx.endFrame();
 }
 
+TEST(DragDropContextTest, CrossWindowTargetsRequireSourceOptIn) {
+    StubWindow sourceWindow;
+    StubWindow targetWindow;
+    Context ctx(false);
+
+    sourceWindow.input().beginFrame();
+    ctx.beginFrame(sourceWindow);
+    ctx.setLastWidgetId(hashString("source"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(25, 25);
+    ctx.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(BeginDragDropSource(ctx));
+    ctx.endFrame();
+
+    sourceWindow.input().beginFrame();
+    ctx.beginFrame(sourceWindow);
+    ctx.setLastWidgetId(hashString("source"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(40, 40);
+    ASSERT_TRUE(BeginDragDropSource(ctx));
+    ASSERT_TRUE(SetDragDropPayload(ctx, "test", nullptr, 0));
+    EndDragDropSource(ctx);
+    ctx.endFrame();
+
+    targetWindow.input().beginFrame();
+    targetWindow.input().onMouseMove(50, 50);
+    ctx.beginFrame(targetWindow);
+    EXPECT_FALSE(BeginDragDropTarget(ctx, Rect(0, 0, 100, 100)));
+    ctx.endFrame();
+
+    CancelDragDrop(ctx);
+}
+
+TEST(DragDropContextTest, CrossWindowTargetsAcceptOptedInSources) {
+    StubWindow sourceWindow;
+    StubWindow targetWindow;
+    Context ctx(false);
+
+    sourceWindow.input().beginFrame();
+    ctx.beginFrame(sourceWindow);
+    ctx.setLastWidgetId(hashString("source"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(25, 25);
+    ctx.input().onMouseDown(MouseButton::Left);
+    EXPECT_FALSE(BeginDragDropSource(ctx, DragDropFlags_CrossWindow));
+    ctx.endFrame();
+
+    sourceWindow.input().beginFrame();
+    ctx.beginFrame(sourceWindow);
+    ctx.setLastWidgetId(hashString("source"));
+    ctx.setLastWidgetBounds(Rect(0, 0, 100, 100));
+    ctx.input().onMouseMove(40, 40);
+    ASSERT_TRUE(BeginDragDropSource(ctx, DragDropFlags_CrossWindow));
+    ASSERT_TRUE(SetDragDropPayload(ctx, "test", nullptr, 0));
+    EndDragDropSource(ctx);
+    ctx.endFrame();
+
+    targetWindow.input().beginFrame();
+    targetWindow.input().onMouseMove(50, 50);
+    ctx.beginFrame(targetWindow);
+    EXPECT_TRUE(BeginDragDropTarget(ctx, Rect(0, 0, 100, 100)));
+    EndDragDropTarget(ctx);
+    ctx.endFrame();
+
+    CancelDragDrop(ctx);
+}
+
 //=============================================================================
 // Integration Test - Verifying Test Mode Works
 //=============================================================================

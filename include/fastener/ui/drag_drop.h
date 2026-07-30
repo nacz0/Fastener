@@ -47,7 +47,7 @@ enum DragDropFlags_ {
     DragDropFlags_SourceNoHoldToOpenOthers = 1 << 2, // Don't open others on hold
     DragDropFlags_AcceptNoHighlight      = 1 << 3,  // Don't highlight target
     DragDropFlags_AcceptNoPreviewTooltip = 1 << 4,  // Don't show accept preview
-    DragDropFlags_CrossWindow            = 1 << 5,  // Allow drag between windows
+    DragDropFlags_CrossWindow            = 1 << 5,  // Allow this source to target another window
 };
 using DragDropFlags = int;
 

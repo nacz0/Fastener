@@ -68,6 +68,9 @@ void WindowManager::destroyWindow(Window* window) {
         [window](const std::unique_ptr<Window>& w) { return w.get() == window; });
     
     if (it != m_impl->windows.end()) {
+        if (m_impl->dragSourceWindow == window) {
+            endCrossWindowDrag();
+        }
         if (m_impl->mainWindow == window) {
             // Main window destroyed - pick new main if available
             m_impl->mainWindow = (m_impl->windows.size() > 1) 
@@ -138,6 +141,15 @@ size_t WindowManager::windowCount() const {
 }
 
 void WindowManager::beginCrossWindowDrag(Window* sourceWindow) {
+    if (!sourceWindow ||
+        std::find(
+            m_impl->windowPtrs.begin(),
+            m_impl->windowPtrs.end(),
+            sourceWindow) == m_impl->windowPtrs.end()) {
+        endCrossWindowDrag();
+        return;
+    }
+
     m_impl->crossWindowDragActive = true;
     m_impl->dragSourceWindow = sourceWindow;
 }

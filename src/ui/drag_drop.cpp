@@ -64,6 +64,19 @@ static bool IsGlobalMouseButtonDown(Context* ctx, MouseButton button) {
 #endif
 }
 
+static Vec2 localDragMousePosition(Context& ctx) {
+    return ctx.window().nativeHandle()
+        ? GetCursorPosInWindow(ctx.window())
+        : ctx.input().mousePos();
+}
+
+static bool canTargetCurrentWindow(
+    const Context& ctx,
+    const detail::DragDropContextState& state) {
+    return state.payload.sourceWindow == &ctx.window() ||
+           (state.sourceFlags & DragDropFlags_CrossWindow) != 0;
+}
+
 static void renderDragPreview(Context& ctx, const detail::DragDropContextState& state) {
     if (!state.active) return;
     
@@ -149,6 +162,7 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
                 state.globalMousePressPos = GetGlobalCursorPos();  // Capture global position
                 state.potentialDrag = true;
                 state.potentialDragSource = lastWidgetId;
+                state.sourceFlags = flags;
             }
         }
         
@@ -249,7 +263,7 @@ void EndDragDropSource(Context& ctx) {
 
 bool BeginDragDropTarget(Context& ctx) {
     auto& state = detail::dragDropState(ctx);
-    if (!state.active) return false;
+    if (!state.active || !canTargetCurrentWindow(ctx, state)) return false;
     
     state.inTargetBlock = true;
     
@@ -257,7 +271,7 @@ bool BeginDragDropTarget(Context& ctx) {
     state.currentTargetRect = ctx.layout().currentBounds();
     
     // For cross-window D&D, use global cursor converted to this window's local coords
-    Vec2 mousePos = GetCursorPosInWindow(ctx.window());
+    Vec2 mousePos = localDragMousePosition(ctx);
     
     // Check if mouse is over this target
     if (state.currentTargetRect.contains(mousePos) && !ctx.isOccluded(mousePos)) {
@@ -272,14 +286,14 @@ bool BeginDragDropTarget(Context& ctx) {
 
 bool BeginDragDropTarget(Context& ctx, const Rect& targetRect) {
     auto& state = detail::dragDropState(ctx);
-    if (!state.active) return false;
+    if (!state.active || !canTargetCurrentWindow(ctx, state)) return false;
     
     state.inTargetBlock = true;
     
     state.currentTargetRect = targetRect;
     
     // For cross-window D&D, use global cursor converted to this window's local coords
-    Vec2 mousePos = GetCursorPosInWindow(ctx.window());
+    Vec2 mousePos = localDragMousePosition(ctx);
     
     // Check if mouse is over this target
     if (state.currentTargetRect.contains(mousePos) && !ctx.isOccluded(mousePos)) {

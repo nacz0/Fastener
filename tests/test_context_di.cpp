@@ -148,6 +148,37 @@ TEST(ContextRendererTest, ContextDestructionCleansLiveWindowsInSafeOrder) {
     EXPECT_EQ(calls.shutdown, 1);
 }
 
+TEST(ContextMultiWindowTest, WidgetIdsAreNamespacedByWindow) {
+    Context ctx(false);
+    StubWindow firstWindow;
+    StubWindow secondWindow;
+
+    ctx.beginFrame(firstWindow);
+    const WidgetId firstWindowId = ctx.makeId("shared-widget");
+    ctx.endFrame();
+
+    ctx.beginFrame(secondWindow);
+    const WidgetId secondWindowId = ctx.makeId("shared-widget");
+    ctx.endFrame();
+
+    EXPECT_NE(firstWindowId, secondWindowId);
+}
+
+TEST(ContextMultiWindowTest, WidgetIdsRemainStableForTheSameWindow) {
+    Context ctx(false);
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    const WidgetId firstFrameId = ctx.makeId("stable-widget");
+    ctx.endFrame();
+
+    ctx.beginFrame(window);
+    const WidgetId secondFrameId = ctx.makeId("stable-widget");
+    ctx.endFrame();
+
+    EXPECT_EQ(firstFrameId, secondFrameId);
+}
+
 //=============================================================================
 // WidgetContext Factory Tests
 //=============================================================================

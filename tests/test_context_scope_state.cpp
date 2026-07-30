@@ -167,15 +167,16 @@ TEST(ModalContextStateTest, ClosedModalInAnotherContextCannotPreventScopeCleanup
     bool secondOpen = false;
 
     first.beginFrame(firstWindow);
+    const WidgetId firstRootId = first.currentId();
     ASSERT_TRUE(BeginModal(first, "FirstModal", firstOpen));
-    ASSERT_NE(first.currentId(), WidgetId{0});
+    ASSERT_NE(first.currentId(), firstRootId);
 
     second.beginFrame(secondWindow);
     EXPECT_FALSE(BeginModal(second, "SecondModal", secondOpen));
     second.endFrame();
 
     EndModal(first);
-    EXPECT_EQ(first.currentId(), WidgetId{0});
+    EXPECT_EQ(first.currentId(), firstRootId);
     first.endFrame();
 }
 
@@ -186,11 +187,12 @@ TEST(ModalContextStateTest, NestedModalsRestoreIdsAndCallingDrawLayer) {
     bool innerOpen = true;
 
     ctx.beginFrame(window);
+    const WidgetId rootId = ctx.currentId();
     ctx.drawList().setLayer(DrawLayer::Floating);
 
     ASSERT_TRUE(BeginModal(ctx, "OuterModal", outerOpen));
     WidgetId outerId = ctx.currentId();
-    ASSERT_NE(outerId, WidgetId{0});
+    ASSERT_NE(outerId, rootId);
 
     ASSERT_TRUE(BeginModal(ctx, "InnerModal", innerOpen));
     ASSERT_NE(ctx.currentId(), outerId);
@@ -200,7 +202,7 @@ TEST(ModalContextStateTest, NestedModalsRestoreIdsAndCallingDrawLayer) {
     EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Overlay);
 
     EndModal(ctx);
-    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.currentId(), rootId);
     EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
     ctx.endFrame();
 }
@@ -214,11 +216,12 @@ TEST(ModalContextStateTest, BackdropCloseCleansPartiallyOpenedScope) {
     window.input().onMouseMove(0.0f, 0.0f);
     window.input().onMouseDown(MouseButton::Left);
     ctx.beginFrame(window);
+    const WidgetId rootId = ctx.currentId();
     ctx.drawList().setLayer(DrawLayer::Floating);
 
     EXPECT_FALSE(BeginModal(ctx, "BackdropCloseModal", isOpen));
     EXPECT_FALSE(isOpen);
-    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.currentId(), rootId);
     EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
 
     EndModal(ctx);
@@ -252,11 +255,12 @@ TEST(ModalContextStateTest, CloseButtonCanCloseAndCleanItsScope) {
     window.input().onMouseDown(MouseButton::Left);
     window.input().onMouseUp(MouseButton::Left);
     ctx.beginFrame(window);
+    const WidgetId rootId = ctx.currentId();
     ctx.drawList().setLayer(DrawLayer::Floating);
 
     EXPECT_FALSE(BeginModal(ctx, "CloseButtonModal", isOpen, options));
     EXPECT_FALSE(isOpen);
-    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.currentId(), rootId);
     EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Floating);
 
     EndModal(ctx);
@@ -270,6 +274,7 @@ TEST(ModalContextStateTest, ClosedRaiiModalDoesNotEndOuterModal) {
     bool innerOpen = false;
 
     ctx.beginFrame(window);
+    const WidgetId rootId = ctx.currentId();
     ASSERT_TRUE(BeginModal(ctx, "OuterModal", outerOpen));
     WidgetId outerId = ctx.currentId();
 
@@ -282,7 +287,7 @@ TEST(ModalContextStateTest, ClosedRaiiModalDoesNotEndOuterModal) {
     EXPECT_EQ(ctx.drawList().currentLayer(), DrawLayer::Overlay);
 
     EndModal(ctx);
-    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+    EXPECT_EQ(ctx.currentId(), rootId);
     ctx.endFrame();
 }
 

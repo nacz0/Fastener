@@ -16,6 +16,7 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
+#include <cstdint>
 #include <exception>
 
 namespace fst {
@@ -199,6 +200,10 @@ void Context::beginFrame(IPlatformWindow& window) {
     m_impl->frameActive = true;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
+    m_impl->idStack.resize(1);
+    m_impl->idStack.front() = combineIds(
+        0,
+        static_cast<WidgetId>(reinterpret_cast<std::uintptr_t>(&window)));
     m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
 
     if (m_impl->rendererEnabled &&
@@ -365,6 +370,7 @@ void Context::endFrame() {
     // Also recover any scopes left unbalanced by deferred rendering.
     m_impl->layout.reset();
     m_impl->idStack.resize(1);
+    m_impl->idStack.front() = 0;
 
     s_frameStack.pop_back();
 

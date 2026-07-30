@@ -194,6 +194,15 @@ void InputState::onModifiersChanged(bool shift, bool ctrl, bool alt, bool super)
     m_modifiers.super = super;
 }
 
+void InputState::onMouseCaptureLost() {
+    for (std::size_t index = 0; index < m_mouseDown.size(); ++index) {
+        m_mouseReleased[index] = m_mouseReleased[index] || m_mouseDown[index];
+        m_mouseDown[index] = false;
+        m_mousePressed[index] = false;
+        m_mouseDoubleClicked[index] = false;
+    }
+}
+
 void InputState::onFocusLost() {
     for (std::size_t index = 0; index < m_keysDown.size(); ++index) {
         m_keysReleased[index] = m_keysReleased[index] || m_keysDown[index];
@@ -201,13 +210,7 @@ void InputState::onFocusLost() {
         m_keysPressed[index] = false;
     }
 
-    for (std::size_t index = 0; index < m_mouseDown.size(); ++index) {
-        m_mouseReleased[index] = m_mouseReleased[index] || m_mouseDown[index];
-        m_mouseDown[index] = false;
-        m_mousePressed[index] = false;
-        m_mouseDoubleClicked[index] = false;
-    }
-
+    onMouseCaptureLost();
     m_modifiers = {};
     m_pendingHighSurrogate = 0;
 }

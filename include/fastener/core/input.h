@@ -161,6 +161,8 @@ public:
     // Platform adapter for UTF-16 event streams; assembles surrogate pairs.
     void onTextInputUtf16(char16_t codeUnit);
     void onModifiersChanged(bool shift, bool ctrl, bool alt, bool super);
+    // Releases held mouse buttons when the native platform revokes capture.
+    void onMouseCaptureLost();
     void onFocusLost();
     void onResize(float width, float height);
     void setFrameTime(float time);

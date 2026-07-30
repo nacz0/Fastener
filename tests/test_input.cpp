@@ -201,6 +201,25 @@ TEST(InputStateTest, FocusLossReleasesHeldInputAndModifiers) {
     EXPECT_FALSE(input.isMousePressedRaw(MouseButton::Left));
 }
 
+TEST(InputStateTest, MouseCaptureLossReleasesOnlyHeldMouseButtons) {
+    InputState input;
+    input.onKeyDown(Key::A);
+    input.onModifiersChanged(false, true, false, false);
+    input.onMouseDown(MouseButton::Left);
+    input.onMouseDown(MouseButton::Right);
+
+    input.onMouseCaptureLost();
+
+    EXPECT_FALSE(input.isMouseDown(MouseButton::Left));
+    EXPECT_FALSE(input.isMouseDown(MouseButton::Right));
+    EXPECT_TRUE(input.isMouseReleasedRaw(MouseButton::Left));
+    EXPECT_TRUE(input.isMouseReleasedRaw(MouseButton::Right));
+    EXPECT_FALSE(input.isMousePressedRaw(MouseButton::Left));
+    EXPECT_FALSE(input.isMousePressedRaw(MouseButton::Right));
+    EXPECT_TRUE(input.isKeyDown(Key::A));
+    EXPECT_TRUE(input.modifiers().ctrl);
+}
+
 //=============================================================================
 // InputState Text Input Tests
 //=============================================================================

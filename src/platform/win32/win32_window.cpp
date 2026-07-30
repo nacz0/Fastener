@@ -15,6 +15,7 @@
 
 #include "fastener/platform/window.h"
 #include <windows.h>
+#include <windowsx.h>
 #include <dwmapi.h>
 #include <shellapi.h>
 #include <gl/GL.h>
@@ -386,8 +387,8 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         }
         
         case WM_MOUSEMOVE: {
-            float x = static_cast<float>(LOWORD(lParam));
-            float y = static_cast<float>(HIWORD(lParam));
+            float x = static_cast<float>(GET_X_LPARAM(lParam));
+            float y = static_cast<float>(GET_Y_LPARAM(lParam));
             impl->inputState.onMouseMove(x, y);
             return 0;
         }
@@ -399,7 +400,10 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         
         case WM_LBUTTONUP:
             impl->inputState.onMouseUp(MouseButton::Left);
-            ReleaseCapture();
+            if (!impl->inputState.isMouseDown(MouseButton::Right) &&
+                !impl->inputState.isMouseDown(MouseButton::Middle)) {
+                ReleaseCapture();
+            }
             return 0;
         
         case WM_RBUTTONDOWN:
@@ -409,7 +413,10 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         
         case WM_RBUTTONUP:
             impl->inputState.onMouseUp(MouseButton::Right);
-            ReleaseCapture();
+            if (!impl->inputState.isMouseDown(MouseButton::Left) &&
+                !impl->inputState.isMouseDown(MouseButton::Middle)) {
+                ReleaseCapture();
+            }
             return 0;
         
         case WM_MBUTTONDOWN:
@@ -419,7 +426,23 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         
         case WM_MBUTTONUP:
             impl->inputState.onMouseUp(MouseButton::Middle);
-            ReleaseCapture();
+            if (!impl->inputState.isMouseDown(MouseButton::Left) &&
+                !impl->inputState.isMouseDown(MouseButton::Right)) {
+                ReleaseCapture();
+            }
+            return 0;
+
+        case WM_CAPTURECHANGED:
+            if (reinterpret_cast<HWND>(lParam) != hwnd) {
+                impl->inputState.onMouseCaptureLost();
+            }
+            return 0;
+
+        case WM_CANCELMODE:
+            impl->inputState.onMouseCaptureLost();
+            if (GetCapture() == hwnd) {
+                ReleaseCapture();
+            }
             return 0;
         
         case WM_MOUSEWHEEL: {

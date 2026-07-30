@@ -1,5 +1,6 @@
 #include "fastener/widgets/dock_space.h"
 #include "fastener/core/context.h"
+#include "fastener/ui/dock_builder.h"
 #include "fastener/ui/dock_context.h"
 #include "fastener/graphics/draw_list.h"
 #include "fastener/graphics/font.h"
@@ -48,8 +49,9 @@ DockNode::Id DockSpace(Context& ctx, const std::string& id, const Rect& bounds,
     }
     
     // Apply options
-    root->flags = options.nodeFlags;
-    root->flags.passthruCentralNode = options.passthruCentralNode;
+    DockNodeFlags nodeFlags = options.nodeFlags;
+    nodeFlags.passthruCentralNode = options.passthruCentralNode;
+    DockBuilder::SetNodeFlags(ctx, nodeId, nodeFlags);
     
     // Update layout
     root->updateLayout(bounds);
@@ -65,7 +67,7 @@ DockNode::Id DockSpace(Context& ctx, const std::string& id, const Rect& bounds,
     
     // Render tab bars for nodes with multiple windows
     root->forEachLeaf([&ctx](DockNode* leaf) {
-        if (leaf->dockedWindows.size() > 1 || !leaf->flags.noTabBar) {
+        if (leaf->windows().size() > 1 || !leaf->flags().noTabBar) {
             RenderDockTabBar(ctx, leaf);
         }
     });
@@ -96,23 +98,27 @@ void RenderDockSplitters(Context& ctx, DockNode* rootNode) {
         Rect splitterRect;
         bool isVertical;
         
-        if (node->type == DockNodeType::SplitHorizontal) {
+        if (node->type() == DockNodeType::SplitHorizontal) {
             // Vertical splitter (resizes horizontally)
-            float splitX = node->bounds.x() + node->bounds.width() * node->splitRatio;
+            float splitX =
+                node->bounds().x() +
+                node->bounds().width() * node->splitRatio();
             splitterRect = Rect(
                 splitX - splitterSize * 0.5f,
-                node->bounds.y(),
+                node->bounds().y(),
                 splitterSize,
-                node->bounds.height()
+                node->bounds().height()
             );
             isVertical = true;
         } else {
             // Horizontal splitter (resizes vertically)
-            float splitY = node->bounds.y() + node->bounds.height() * node->splitRatio;
+            float splitY =
+                node->bounds().y() +
+                node->bounds().height() * node->splitRatio();
             splitterRect = Rect(
-                node->bounds.x(),
+                node->bounds().x(),
                 splitY - splitterSize * 0.5f,
-                node->bounds.width(),
+                node->bounds().width(),
                 splitterSize
             );
             isVertical = false;
@@ -131,7 +137,8 @@ bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, 
 
     
     // Create unique ID for this splitter
-    WidgetId splitterId = combineIds(hashString("##DockSplitter"), node->id);
+    WidgetId splitterId =
+        combineIds(hashString("##DockSplitter"), node->id());
     
     auto& interactionState = getDockSpaceInteractionState(ctx);
     
@@ -155,15 +162,19 @@ bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, 
             
             // Update split ratio based on mouse position
             if (isVertical) {
-                float newRatio = (input.mousePos().x - node->bounds.x()) / node->bounds.width();
-                node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
+                float newRatio =
+                    (input.mousePos().x - node->bounds().x()) /
+                    node->bounds().width();
+                node->setSplitRatio(std::clamp(newRatio, 0.1f, 0.9f));
             } else {
-                float newRatio = (input.mousePos().y - node->bounds.y()) / node->bounds.height();
-                node->splitRatio = std::clamp(newRatio, 0.1f, 0.9f);
+                float newRatio =
+                    (input.mousePos().y - node->bounds().y()) /
+                    node->bounds().height();
+                node->setSplitRatio(std::clamp(newRatio, 0.1f, 0.9f));
             }
             
             // Re-layout after resize
-            node->updateLayout(node->bounds);
+            node->updateLayout(node->bounds());
         }
     }
     
@@ -186,7 +197,7 @@ bool HandleDockSplitter(Context& ctx, DockNode* node, const Rect& splitterRect, 
 //=============================================================================
 
 void RenderDockTabBar(Context& ctx, DockNode* node) {
-    if (!node || node->dockedWindows.empty()) return;
+    if (!node || node->windows().empty()) return;
     
     auto& dl = ctx.drawList();
     auto& input = ctx.input();
@@ -201,9 +212,9 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
     const float maxTabWidth = 200.0f;
     
     Rect tabBarRect = Rect(
-        node->bounds.x(),
-        node->bounds.y(),
-        node->bounds.width(),
+        node->bounds().x(),
+        node->bounds().y(),
+        node->bounds().width(),
         tabHeight
     );
     
@@ -212,7 +223,7 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
     
     // Calculate tab width
     float availableWidth = tabBarRect.width() - tabPadding * 2;
-    int tabCount = static_cast<int>(node->dockedWindows.size());
+    int tabCount = static_cast<int>(node->windows().size());
     float tabWidth = std::clamp(availableWidth / tabCount, minTabWidth, maxTabWidth);
     
     // Draw tabs
@@ -220,18 +231,19 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
     
     for (int i = 0; i < tabCount; ++i) {
         Rect tabRect(tabX, tabBarRect.y(), tabWidth - 2.0f, tabHeight);
-        bool isSelected = (i == node->selectedTabIndex);
+        bool isSelected = (i == node->selectedTabIndex());
         bool isHovered = tabRect.contains(input.mousePos()) && !ctx.isOccluded(input.mousePos()) && !input.isMouseConsumed();
         
-        WidgetId tabId = combineIds(hashString("##DockTab"), node->id ^ i);
+        WidgetId tabId =
+            combineIds(hashString("##DockTab"), node->id() ^ i);
         
         // Start tracking on mouse press
         if (isHovered && input.isMousePressed(MouseButton::Left)) {
-            node->selectedTabIndex = i;  // Immediate tab switch
+            node->selectTab(i);
             interactionState.activeDockTab = tabId;
             interactionState.dragStartPos = input.mousePos();
             interactionState.dragTabIndex = i;
-            interactionState.dragNodeId = node->id;
+            interactionState.dragNodeId = node->id();
             ctx.setActiveWidget(tabId);
         }
         
@@ -243,13 +255,15 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
                 interactionState.dragTabIndex = -1;
                 ctx.clearActiveWidget();
             } else if (input.isMouseDown(MouseButton::Left) &&
-                       interactionState.dragNodeId == node->id &&
+                       interactionState.dragNodeId == node->id() &&
                        interactionState.dragTabIndex == i) {
                 float dragDistSq =
                     (input.mousePos() - interactionState.dragStartPos).lengthSquared();
                 if (dragDistSq > 25.0f) { // 5 pixel threshold
                     // Start dragging the window out of the dock
-                    ctx.docking().beginDrag(node->dockedWindows[i], input.mousePos());
+                    ctx.docking().beginDrag(
+                        node->windows()[static_cast<std::size_t>(i)],
+                        input.mousePos());
                     interactionState.activeDockTab = INVALID_WIDGET_ID;
                     interactionState.dragNodeId = DockNode::INVALID_ID;
                     interactionState.dragTabIndex = -1;
@@ -264,7 +278,9 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
                         (isHovered ? theme.colors.buttonHover : theme.colors.panelBackground.darker(0.05f));
         
         // Ghost if being dragged
-        if (ctx.docking().dragState().active && ctx.docking().dragState().windowId == node->dockedWindows[i]) {
+        if (ctx.docking().dragState().active &&
+            ctx.docking().dragState().windowId ==
+                node->windows()[static_cast<std::size_t>(i)]) {
             tabColor = tabColor.withAlpha(0.5f);
         }
 
@@ -278,7 +294,8 @@ void RenderDockTabBar(Context& ctx, DockNode* node) {
         }
         
         // Draw tab label
-        std::string title = ctx.docking().getWindowTitle(node->dockedWindows[i]);
+        std::string title = ctx.docking().getWindowTitle(
+            node->windows()[static_cast<std::size_t>(i)]);
         if (ctx.font()) {
             Vec2 textSize = ctx.font()->measureText(title);
             Vec2 textPos = tabRect.center() - textSize * 0.5f;

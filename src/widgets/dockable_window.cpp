@@ -84,13 +84,13 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
     bool shouldShow = true;
     if (docked && !beingDragged) {
         int windowIdx = -1;
-        for (size_t i = 0; i < dockNode->dockedWindows.size(); ++i) {
-            if (dockNode->dockedWindows[i] == widgetId) {
+        for (size_t i = 0; i < dockNode->windows().size(); ++i) {
+            if (dockNode->windows()[i] == widgetId) {
                 windowIdx = static_cast<int>(i);
                 break;
             }
         }
-        shouldShow = (windowIdx == dockNode->selectedTabIndex);
+        shouldShow = (windowIdx == dockNode->selectedTabIndex());
     } else if (!docked && !beingDragged && !options.allowFloating) {
         shouldShow = false;
     }
@@ -131,11 +131,12 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
         
     } else if (docked) {
         // DOCKED MODE
-        contentBounds = dockNode->bounds;
+        contentBounds = dockNode->bounds();
         
         // Account for tab bar
         const float tabBarHeight = 24.0f;
-        if (dockNode->dockedWindows.size() > 1 || !dockNode->flags.noTabBar) {
+        if (dockNode->windows().size() > 1 ||
+            !dockNode->flags().noTabBar) {
             contentBounds.pos.y += tabBarHeight;
             contentBounds.size.y -= tabBarHeight;
         }

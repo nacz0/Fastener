@@ -93,7 +93,7 @@ void RenderDockTargetIndicators(Context& ctx, DockNode* targetNode, const Vec2& 
     const auto& theme = ctx.theme();
 
     
-    const Rect& bounds = targetNode->bounds;
+    const Rect& bounds = targetNode->bounds();
     const float indicatorSize = 40.0f;
     const float indicatorMargin = 10.0f;
     
@@ -192,11 +192,11 @@ void RenderDockTargetIndicators(Context& ctx, DockNode* targetNode, const Vec2& 
 //=============================================================================
 
 DockDirection GetDockDirectionFromMouse(const DockNode* node, const Vec2& mousePos) {
-    if (!node || !node->bounds.contains(mousePos)) {
+    if (!node || !node->bounds().contains(mousePos)) {
         return DockDirection::None;
     }
     
-    const Rect& bounds = node->bounds;
+    const Rect& bounds = node->bounds();
     const float edgeThreshold = 0.25f;  // 25% of each edge
     
     float relX = (mousePos.x - bounds.x()) / bounds.width();
@@ -225,7 +225,7 @@ Rect GetDockPreviewRect(const DockNode* node, DockDirection direction) {
         return Rect();
     }
     
-    const Rect& bounds = node->bounds;
+    const Rect& bounds = node->bounds();
     const float ratio = 0.5f;  // New window gets 50% of space
     
     switch (direction) {

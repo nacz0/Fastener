@@ -85,15 +85,7 @@ DockNode::Id DockBuilder::SplitNode(Context& ctx,
         return DockNode::INVALID_ID;
     }
     
-    DockNode::Id childId0 = docking.generateNodeId();
-    DockNode::Id childId1 = docking.generateNodeId();
-    
-    DockNode* newNode = node->splitNode(direction, childId0, childId1, sizeRatio);
-    if (newNode) {
-        docking.refreshMappings(nodeId);
-        return newNode->id;
-    }
-    return DockNode::INVALID_ID;
+    return docking.splitNode(nodeId, direction, sizeRatio);
 }
 
 void DockBuilder::DockWindow(Context& ctx, const std::string& windowId, DockNode::Id nodeId) {
@@ -109,12 +101,7 @@ void DockBuilder::DockWindow(Context& ctx, const std::string& windowId, DockNode
 }
 
 void DockBuilder::SetNodeFlags(Context& ctx, DockNode::Id nodeId, DockNodeFlags flags) {
-    auto& docking = ctx.docking();
-    DockNode* node = docking.getDockNode(nodeId);
-    
-    if (node) {
-        node->flags = flags;
-    }
+    ctx.docking().setNodeFlags(nodeId, flags);
 }
 
 DockNode::Id DockBuilder::GetNode(Context& ctx, DockNode::Id parentId, DockDirection direction) {
@@ -127,13 +114,15 @@ DockNode::Id DockBuilder::GetNode(Context& ctx, DockNode::Id parentId, DockDirec
     
     // Determine which child based on direction and split type
     int childIdx = 0;
-    if (parent->type == DockNodeType::SplitHorizontal) {
+    if (parent->m_type == DockNodeType::SplitHorizontal) {
         childIdx = (direction == DockDirection::Right) ? 1 : 0;
     } else {
         childIdx = (direction == DockDirection::Bottom) ? 1 : 0;
     }
     
-    return parent->children[childIdx] ? parent->children[childIdx]->id : DockNode::INVALID_ID;
+    return parent->m_children[childIdx]
+        ? parent->m_children[childIdx]->m_id
+        : DockNode::INVALID_ID;
 }
 
 void DockBuilder::ClearDockSpace(Context& ctx, DockNode::Id dockspaceId) {
@@ -147,8 +136,8 @@ void DockBuilder::ClearDockSpace(Context& ctx, DockNode::Id dockspaceId) {
         root->forEachLeaf([&windowsToUndock](DockNode* leaf) {
             windowsToUndock.insert(
                 windowsToUndock.end(),
-                leaf->dockedWindows.begin(),
-                leaf->dockedWindows.end()
+                leaf->m_dockedWindows.begin(),
+                leaf->m_dockedWindows.end()
             );
         });
 
@@ -156,10 +145,10 @@ void DockBuilder::ClearDockSpace(Context& ctx, DockNode::Id dockspaceId) {
             docking.undockWindow(windowId);
         }
         
-        root->children[0].reset();
-        root->children[1].reset();
-        root->type = DockNodeType::Leaf;
-        root->dockedWindows.clear();
+        root->m_children[0].reset();
+        root->m_children[1].reset();
+        root->m_type = DockNodeType::Leaf;
+        root->m_dockedWindows.clear();
     }
 }
 

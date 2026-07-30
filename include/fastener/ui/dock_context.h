@@ -65,6 +65,17 @@ public:
      */
     void dockWindow(WidgetId windowId, DockNode::Id targetNode, 
                     DockDirection direction = DockDirection::Center);
+
+    /**
+     * Split a leaf through the context so node IDs and window mappings remain
+     * consistent. Returns the new destination leaf or INVALID_ID on rejection.
+     */
+    DockNode::Id splitNode(
+        DockNode::Id targetNode,
+        DockDirection direction,
+        float ratio = 0.5f);
+
+    bool setNodeFlags(DockNode::Id nodeId, const DockNodeFlags& flags);
     
     /**
      * Undocks a window from its current position.
@@ -85,11 +96,6 @@ public:
     // Window titles for UI
     void setWindowTitle(WidgetId windowId, const std::string& title);
     std::string getWindowTitle(WidgetId windowId) const;
-    
-    /**
-     * Refreshes the window-to-node mapping for a subtree.
-     */
-    void refreshMappings(DockNode::Id nodeId = DockNode::INVALID_ID);
     
     //-------------------------------------------------------------------------
     // Drag State (for preview during dragging)
@@ -131,15 +137,12 @@ public:
      */
     bool deserializeLayout(const std::string& data);
     
-    //-------------------------------------------------------------------------
-    // ID Generation
-    //-------------------------------------------------------------------------
-    
-    DockNode::Id generateNodeId();
     DockNode::Id getNodeIdFromString(const std::string& str) const;
     
 private:
     void collapseEmptyAncestors(DockNode::Id nodeId);
+    void refreshMappings(DockNode::Id nodeId = DockNode::INVALID_ID);
+    DockNode::Id generateNodeId();
 
     struct Impl;
     std::unique_ptr<Impl> m_impl;

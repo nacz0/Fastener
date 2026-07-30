@@ -5,342 +5,328 @@
 
 namespace fst {
 
-//=============================================================================
-// Tree queries
-//=============================================================================
+DockNode* DockNode::child(int index) {
+    return index >= 0 && index < 2 ? m_children[index].get() : nullptr;
+}
+
+const DockNode* DockNode::child(int index) const {
+    return index >= 0 && index < 2 ? m_children[index].get() : nullptr;
+}
+
+bool DockNode::selectTab(int index) {
+    if (index < 0 || index >= static_cast<int>(m_dockedWindows.size())) {
+        return false;
+    }
+    m_selectedTabIndex = index;
+    return true;
+}
+
+bool DockNode::setSplitRatio(float ratio) {
+    if (!isSplitNode() ||
+        !std::isfinite(ratio) ||
+        ratio <= 0.0f ||
+        ratio >= 1.0f) {
+        return false;
+    }
+    m_splitRatio = ratio;
+    return true;
+}
 
 DockNode* DockNode::findNodeByWindowId(WidgetId windowId) {
-    // Check this node
-    auto it = std::find(dockedWindows.begin(), dockedWindows.end(), windowId);
-    if (it != dockedWindows.end()) {
+    if (hasWindow(windowId)) {
         return this;
     }
-    
-    // Check children
-    for (int i = 0; i < 2; ++i) {
-        if (children[i]) {
-            DockNode* found = children[i]->findNodeByWindowId(windowId);
-            if (found) {
+    for (auto& childNode : m_children) {
+        if (childNode) {
+            if (DockNode* found = childNode->findNodeByWindowId(windowId)) {
                 return found;
             }
         }
     }
-    
     return nullptr;
 }
 
 const DockNode* DockNode::findNodeByWindowId(WidgetId windowId) const {
-    return const_cast<DockNode*>(this)->findNodeByWindowId(windowId);
-}
-
-DockNode* DockNode::findNodeById(Id nodeId) {
-    if (id == nodeId) {
+    if (hasWindow(windowId)) {
         return this;
     }
-    
-    for (int i = 0; i < 2; ++i) {
-        if (children[i]) {
-            DockNode* found = children[i]->findNodeById(nodeId);
-            if (found) {
+    for (const auto& childNode : m_children) {
+        if (childNode) {
+            if (const DockNode* found =
+                    childNode->findNodeByWindowId(windowId)) {
                 return found;
             }
         }
     }
-    
+    return nullptr;
+}
+
+DockNode* DockNode::findNodeById(Id nodeId) {
+    if (m_id == nodeId) {
+        return this;
+    }
+    for (auto& childNode : m_children) {
+        if (childNode) {
+            if (DockNode* found = childNode->findNodeById(nodeId)) {
+                return found;
+            }
+        }
+    }
     return nullptr;
 }
 
 const DockNode* DockNode::findNodeById(Id nodeId) const {
-    return const_cast<DockNode*>(this)->findNodeById(nodeId);
-}
-
-//=============================================================================
-// Window management
-//=============================================================================
-
-void DockNode::addWindow(WidgetId windowId) {
-    if (!hasWindow(windowId)) {
-        dockedWindows.push_back(windowId);
-        if (type == DockNodeType::Unknown || type == DockNodeType::Leaf) {
-            type = dockedWindows.size() > 1 ? DockNodeType::TabContainer : DockNodeType::Leaf;
+    if (m_id == nodeId) {
+        return this;
+    }
+    for (const auto& childNode : m_children) {
+        if (childNode) {
+            if (const DockNode* found = childNode->findNodeById(nodeId)) {
+                return found;
+            }
         }
     }
+    return nullptr;
+}
+
+void DockNode::addWindow(WidgetId windowId) {
+    if (windowId == INVALID_WIDGET_ID || hasWindow(windowId)) {
+        return;
+    }
+    m_dockedWindows.push_back(windowId);
+    m_type = m_dockedWindows.size() > 1
+        ? DockNodeType::TabContainer
+        : DockNodeType::Leaf;
 }
 
 void DockNode::removeWindow(WidgetId windowId) {
-    auto it = std::find(dockedWindows.begin(), dockedWindows.end(), windowId);
-    if (it != dockedWindows.end()) {
-        dockedWindows.erase(it);
-        
-        // Adjust selected tab if needed
-        if (selectedTabIndex >= static_cast<int>(dockedWindows.size())) {
-            selectedTabIndex = static_cast<int>(dockedWindows.size()) - 1;
-        }
-        if (selectedTabIndex < 0) {
-            selectedTabIndex = 0;
-        }
-        
-        // Update type
-        if (dockedWindows.empty()) {
-            type = DockNodeType::Leaf;
-        } else if (dockedWindows.size() == 1) {
-            type = DockNodeType::Leaf;
-        }
+    auto it =
+        std::find(m_dockedWindows.begin(), m_dockedWindows.end(), windowId);
+    if (it == m_dockedWindows.end()) {
+        return;
     }
+
+    m_dockedWindows.erase(it);
+    if (m_selectedTabIndex >= static_cast<int>(m_dockedWindows.size())) {
+        m_selectedTabIndex =
+            std::max(0, static_cast<int>(m_dockedWindows.size()) - 1);
+    }
+    m_type = m_dockedWindows.size() > 1
+        ? DockNodeType::TabContainer
+        : DockNodeType::Leaf;
 }
 
 bool DockNode::hasWindow(WidgetId windowId) const {
-    return std::find(dockedWindows.begin(), dockedWindows.end(), windowId) != dockedWindows.end();
+    return std::find(
+               m_dockedWindows.begin(),
+               m_dockedWindows.end(),
+               windowId) != m_dockedWindows.end();
 }
 
-//=============================================================================
-// Split operations
-//=============================================================================
-
-
-
-DockNode* DockNode::splitNode(DockDirection direction, Id childId0, Id childId1, float ratio) {
+DockNode* DockNode::splitNode(
+    DockDirection direction,
+    Id childId0,
+    Id childId1,
+    float ratio) {
     if (direction == DockDirection::None ||
         direction == DockDirection::Center ||
-        flags.noSplit ||
+        m_flags.noSplit ||
         isSplitNode() ||
-        children[0] ||
-        children[1] ||
+        m_children[0] ||
+        m_children[1] ||
         childId0 == INVALID_ID ||
         childId1 == INVALID_ID ||
-        childId0 == id ||
-        childId1 == id ||
+        childId0 == m_id ||
+        childId1 == m_id ||
         childId0 == childId1 ||
         !std::isfinite(ratio) ||
         ratio <= 0.0f ||
         ratio >= 1.0f) {
         return nullptr;
     }
-    
-    // Create two new child nodes
+
     auto newChild0 = std::make_unique<DockNode>(childId0);
     auto newChild1 = std::make_unique<DockNode>(childId1);
-    
-    newChild0->parent = this;
-    newChild1->parent = this;
-    
-    // Move current contents to appropriate child
+    newChild0->m_parent = this;
+    newChild1->m_parent = this;
+
     DockNode* existingContent = nullptr;
     DockNode* newContent = nullptr;
-    
-    if (direction == DockDirection::Left || direction == DockDirection::Top) {
-        existingContent = newChild1.get();  // Existing goes to right/bottom
-        newContent = newChild0.get();       // New goes to left/top
-        splitRatio = ratio;
+    if (direction == DockDirection::Left ||
+        direction == DockDirection::Top) {
+        existingContent = newChild1.get();
+        newContent = newChild0.get();
+        m_splitRatio = ratio;
     } else {
-        existingContent = newChild0.get();  // Existing goes to left/top
-        newContent = newChild1.get();       // New goes to right/bottom
-        splitRatio = 1.0f - ratio;
+        existingContent = newChild0.get();
+        newContent = newChild1.get();
+        m_splitRatio = 1.0f - ratio;
     }
-    
-    // Transfer windows to existing content child
-    existingContent->dockedWindows = std::move(dockedWindows);
-    existingContent->selectedTabIndex = selectedTabIndex;
-    existingContent->type = existingContent->dockedWindows.size() > 1 
-        ? DockNodeType::TabContainer 
+
+    existingContent->m_dockedWindows = std::move(m_dockedWindows);
+    existingContent->m_selectedTabIndex = m_selectedTabIndex;
+    existingContent->m_type = existingContent->m_dockedWindows.size() > 1
+        ? DockNodeType::TabContainer
         : DockNodeType::Leaf;
-    
-    // Clear this node's windows
-    dockedWindows.clear();
-    selectedTabIndex = 0;
-    
-    // Set new content as empty leaf
-    newContent->type = DockNodeType::Leaf;
-    
-    // Set this node as split
-    type = (direction == DockDirection::Left || direction == DockDirection::Right) 
-        ? DockNodeType::SplitHorizontal 
+
+    m_dockedWindows.clear();
+    m_selectedTabIndex = 0;
+    newContent->m_type = DockNodeType::Leaf;
+    m_type = (direction == DockDirection::Left ||
+              direction == DockDirection::Right)
+        ? DockNodeType::SplitHorizontal
         : DockNodeType::SplitVertical;
-    
-    children[0] = std::move(newChild0);
-    children[1] = std::move(newChild1);
-    
+    m_children[0] = std::move(newChild0);
+    m_children[1] = std::move(newChild1);
     return newContent;
 }
 
 void DockNode::mergeNodes() {
-    // Only merge if this is a split node with one empty child
     if (!isSplitNode()) {
         return;
     }
-    
+
     DockNode* nonEmptyChild = nullptr;
     int emptyCount = 0;
-    
-    for (int i = 0; i < 2; ++i) {
-        if (children[i] && children[i]->isEmpty()) {
-            emptyCount++;
-        } else if (children[i]) {
-            nonEmptyChild = children[i].get();
+    for (auto& childNode : m_children) {
+        if (childNode && childNode->isEmpty()) {
+            ++emptyCount;
+        } else if (childNode) {
+            nonEmptyChild = childNode.get();
         }
     }
-    
-    // If one child is empty, absorb the non-empty child's contents
+
     if (emptyCount == 1 && nonEmptyChild) {
-        // Move data into local variables first to avoid use-after-free
-        // when children pointers are reset
-        auto childWindows = std::move(nonEmptyChild->dockedWindows);
-        int childSelected = nonEmptyChild->selectedTabIndex;
-        DockNodeType childType = nonEmptyChild->type;
-        auto grandchild0 = std::move(nonEmptyChild->children[0]);
-        auto grandchild1 = std::move(nonEmptyChild->children[1]);
-        
-        // Reset children - this destroys nonEmptyChild
-        children[0].reset();
-        children[1].reset();
-        
-        // Apply to self
-        dockedWindows = std::move(childWindows);
-        selectedTabIndex = childSelected;
-        type = childType;
-        children[0] = std::move(grandchild0);
-        children[1] = std::move(grandchild1);
-        
-        // Update parent pointers for grandchildren
-        if (children[0]) children[0]->parent = this;
-        if (children[1]) children[1]->parent = this;
-    }
-    
-    // If both children are empty, become an empty leaf
-    if (emptyCount == 2) {
-        type = DockNodeType::Leaf;
-        children[0].reset();
-        children[1].reset();
+        auto childWindows = std::move(nonEmptyChild->m_dockedWindows);
+        const int childSelected = nonEmptyChild->m_selectedTabIndex;
+        const DockNodeType childType = nonEmptyChild->m_type;
+        auto grandchild0 = std::move(nonEmptyChild->m_children[0]);
+        auto grandchild1 = std::move(nonEmptyChild->m_children[1]);
+
+        m_children[0].reset();
+        m_children[1].reset();
+
+        m_dockedWindows = std::move(childWindows);
+        m_selectedTabIndex = childSelected;
+        m_type = childType;
+        m_children[0] = std::move(grandchild0);
+        m_children[1] = std::move(grandchild1);
+        if (m_children[0]) m_children[0]->m_parent = this;
+        if (m_children[1]) m_children[1]->m_parent = this;
+    } else if (emptyCount == 2) {
+        m_type = DockNodeType::Leaf;
+        m_children[0].reset();
+        m_children[1].reset();
     }
 }
 
-//=============================================================================
-// Layout calculation
-//=============================================================================
-
 void DockNode::updateLayout(const Rect& availableBounds) {
-    bounds = availableBounds;
-    
+    m_bounds = availableBounds;
     if (!isSplitNode()) {
         return;
     }
-    
-    // Calculate child bounds based on split direction and ratio
-    Rect child0Bounds = getChildBounds(0);
-    Rect child1Bounds = getChildBounds(1);
-    
-    if (children[0]) {
-        children[0]->updateLayout(child0Bounds);
+
+    if (m_children[0]) {
+        m_children[0]->updateLayout(getChildBounds(0));
     }
-    if (children[1]) {
-        children[1]->updateLayout(child1Bounds);
+    if (m_children[1]) {
+        m_children[1]->updateLayout(getChildBounds(1));
     }
 }
 
 Rect DockNode::getChildBounds(int childIndex) const {
     if (childIndex < 0 || childIndex > 1 || !isSplitNode()) {
-        return bounds;
+        return m_bounds;
     }
-    
-    const float splitterSize = 4.0f;
-    
-    if (type == DockNodeType::SplitHorizontal) {
-        // Left-right split
-        float splitX = bounds.x() + bounds.width() * splitRatio;
-        
+
+    constexpr float splitterSize = 4.0f;
+    if (m_type == DockNodeType::SplitHorizontal) {
+        const float splitX =
+            m_bounds.x() + m_bounds.width() * m_splitRatio;
         if (childIndex == 0) {
-            // Left child
-            return Rect(bounds.x(), bounds.y(), 
-                       splitX - bounds.x() - splitterSize * 0.5f, 
-                       bounds.height());
-        } else {
-            // Right child
-            return Rect(splitX + splitterSize * 0.5f, bounds.y(),
-                       bounds.right() - splitX - splitterSize * 0.5f,
-                       bounds.height());
+            return Rect(
+                m_bounds.x(),
+                m_bounds.y(),
+                splitX - m_bounds.x() - splitterSize * 0.5f,
+                m_bounds.height());
         }
-    } else {
-        // Top-bottom split
-        float splitY = bounds.y() + bounds.height() * splitRatio;
-        
-        if (childIndex == 0) {
-            // Top child
-            return Rect(bounds.x(), bounds.y(),
-                       bounds.width(),
-                       splitY - bounds.y() - splitterSize * 0.5f);
-        } else {
-            // Bottom child
-            return Rect(bounds.x(), splitY + splitterSize * 0.5f,
-                       bounds.width(),
-                       bounds.bottom() - splitY - splitterSize * 0.5f);
-        }
+        return Rect(
+            splitX + splitterSize * 0.5f,
+            m_bounds.y(),
+            m_bounds.right() - splitX - splitterSize * 0.5f,
+            m_bounds.height());
     }
+
+    const float splitY =
+        m_bounds.y() + m_bounds.height() * m_splitRatio;
+    if (childIndex == 0) {
+        return Rect(
+            m_bounds.x(),
+            m_bounds.y(),
+            m_bounds.width(),
+            splitY - m_bounds.y() - splitterSize * 0.5f);
+    }
+    return Rect(
+        m_bounds.x(),
+        splitY + splitterSize * 0.5f,
+        m_bounds.width(),
+        m_bounds.bottom() - splitY - splitterSize * 0.5f);
 }
 
-//=============================================================================
-// Traversal
-//=============================================================================
-
-void DockNode::forEachNode(const std::function<void(DockNode*)>& callback) {
+void DockNode::forEachNode(
+    const std::function<void(DockNode*)>& callback) {
     callback(this);
-    
-    for (int i = 0; i < 2; ++i) {
-        if (children[i]) {
-            children[i]->forEachNode(callback);
+    for (auto& childNode : m_children) {
+        if (childNode) {
+            childNode->forEachNode(callback);
         }
     }
 }
 
-void DockNode::forEachLeaf(const std::function<void(DockNode*)>& callback) {
-    if (isLeafNode() || (!children[0] && !children[1])) {
+void DockNode::forEachLeaf(
+    const std::function<void(DockNode*)>& callback) {
+    if (isLeafNode() || (!m_children[0] && !m_children[1])) {
         callback(this);
-    } else {
-        for (int i = 0; i < 2; ++i) {
-            if (children[i]) {
-                children[i]->forEachLeaf(callback);
-            }
+        return;
+    }
+    for (auto& childNode : m_children) {
+        if (childNode) {
+            childNode->forEachLeaf(callback);
         }
     }
 }
-
-//=============================================================================
-// Debug
-//=============================================================================
 
 std::string DockNode::debugPrint(int depth) const {
     std::stringstream ss;
-    std::string indent(depth * 2, ' ');
-    
-    ss << indent << "DockNode[" << id << "] ";
-    
-    switch (type) {
+    const std::string indent(static_cast<std::size_t>(depth) * 2, ' ');
+    ss << indent << "DockNode[" << m_id << "] ";
+    switch (m_type) {
         case DockNodeType::Unknown: ss << "Unknown"; break;
         case DockNodeType::SplitHorizontal: ss << "SplitH"; break;
         case DockNodeType::SplitVertical: ss << "SplitV"; break;
         case DockNodeType::TabContainer: ss << "TabContainer"; break;
         case DockNodeType::Leaf: ss << "Leaf"; break;
     }
-    
-    ss << " bounds(" << bounds.x() << "," << bounds.y() 
-       << "," << bounds.width() << "," << bounds.height() << ")";
-    
-    if (!dockedWindows.empty()) {
+    ss << " bounds(" << m_bounds.x() << ',' << m_bounds.y() << ','
+       << m_bounds.width() << ',' << m_bounds.height() << ')';
+
+    if (!m_dockedWindows.empty()) {
         ss << " windows[";
-        for (size_t i = 0; i < dockedWindows.size(); ++i) {
-            if (i > 0) ss << ",";
-            ss << dockedWindows[i];
+        for (std::size_t index = 0;
+             index < m_dockedWindows.size();
+             ++index) {
+            if (index > 0) ss << ',';
+            ss << m_dockedWindows[index];
         }
-        ss << "]";
+        ss << ']';
     }
-    
-    ss << "\n";
-    
-    for (int i = 0; i < 2; ++i) {
-        if (children[i]) {
-            ss << children[i]->debugPrint(depth + 1);
+    ss << '\n';
+
+    for (const auto& childNode : m_children) {
+        if (childNode) {
+            ss << childNode->debugPrint(depth + 1);
         }
     }
-    
     return ss.str();
 }
 

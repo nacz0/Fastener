@@ -8,6 +8,9 @@
 
 namespace fst {
 
+class DockBuilder;
+class DockContext;
+
 //=============================================================================
 // DockNodeType - Type of dock node in the tree
 //=============================================================================
@@ -49,59 +52,80 @@ class DockNode {
 public:
     using Id = uint32_t;
     static constexpr Id INVALID_ID = 0;
-    
-    Id id = INVALID_ID;
-    DockNodeType type = DockNodeType::Unknown;
-    DockNodeFlags flags;
-    
-    // Tree structure
-    DockNode* parent = nullptr;
-    std::unique_ptr<DockNode> children[2];  // For split nodes
-    
-    // For TabContainer/Leaf nodes
-    std::vector<WidgetId> dockedWindows;
-    int selectedTabIndex = 0;
-    
-    // Layout
-    Rect bounds;
-    float splitRatio = 0.5f;  // Splitter position (0.0-1.0)
-    
+
     // Constructors
     DockNode() = default;
-    explicit DockNode(Id nodeId) : id(nodeId) {}
-    
+    explicit DockNode(Id nodeId) : m_id(nodeId) {}
+
+    Id id() const { return m_id; }
+    DockNodeType type() const { return m_type; }
+    const DockNodeFlags& flags() const { return m_flags; }
+    DockNode* parent() { return m_parent; }
+    const DockNode* parent() const { return m_parent; }
+    DockNode* child(int index);
+    const DockNode* child(int index) const;
+    const std::vector<WidgetId>& windows() const { return m_dockedWindows; }
+    int selectedTabIndex() const { return m_selectedTabIndex; }
+    const Rect& bounds() const { return m_bounds; }
+    float splitRatio() const { return m_splitRatio; }
+    bool selectTab(int index);
+    bool setSplitRatio(float ratio);
+
     // Tree queries
-    bool isRootNode() const { return parent == nullptr; }
-    bool isLeafNode() const { return type == DockNodeType::Leaf || type == DockNodeType::TabContainer; }
-    bool isSplitNode() const { return type == DockNodeType::SplitHorizontal || type == DockNodeType::SplitVertical; }
-    bool isEmpty() const { return dockedWindows.empty() && !children[0] && !children[1]; }
-    
+    bool isRootNode() const { return m_parent == nullptr; }
+    bool isLeafNode() const {
+        return m_type == DockNodeType::Leaf ||
+               m_type == DockNodeType::TabContainer;
+    }
+    bool isSplitNode() const {
+        return m_type == DockNodeType::SplitHorizontal ||
+               m_type == DockNodeType::SplitVertical;
+    }
+    bool isEmpty() const {
+        return m_dockedWindows.empty() && !m_children[0] && !m_children[1];
+    }
+
     // Window management
     DockNode* findNodeByWindowId(WidgetId windowId);
     const DockNode* findNodeByWindowId(WidgetId windowId) const;
     DockNode* findNodeById(Id nodeId);
     const DockNode* findNodeById(Id nodeId) const;
-    
-    void addWindow(WidgetId windowId);
-    void removeWindow(WidgetId windowId);
+
     bool hasWindow(WidgetId windowId) const;
-    
-    // Split operations. Child IDs must be distinct and valid, and ratio must
-    // be finite and strictly between zero and one. Invalid requests, existing
-    // split nodes, and nodes with noSplit set leave the subtree unchanged.
-    DockNode* splitNode(DockDirection direction, Id childId0, Id childId1, float ratio = 0.5f);
-    void mergeNodes();
-    
+
     // Layout calculation
     void updateLayout(const Rect& availableBounds);
     Rect getChildBounds(int childIndex) const;
-    
+
     // Traversal
     void forEachNode(const std::function<void(DockNode*)>& callback);
     void forEachLeaf(const std::function<void(DockNode*)>& callback);
-    
+
     // Debug
     std::string debugPrint(int depth = 0) const;
+
+private:
+    friend class DockBuilder;
+    friend class DockContext;
+
+    Id m_id = INVALID_ID;
+    DockNodeType m_type = DockNodeType::Unknown;
+    DockNodeFlags m_flags;
+    DockNode* m_parent = nullptr;
+    std::unique_ptr<DockNode> m_children[2];
+    std::vector<WidgetId> m_dockedWindows;
+    int m_selectedTabIndex = 0;
+    Rect m_bounds;
+    float m_splitRatio = 0.5f;
+
+    void addWindow(WidgetId windowId);
+    void removeWindow(WidgetId windowId);
+    DockNode* splitNode(
+        DockDirection direction,
+        Id childId0,
+        Id childId1,
+        float ratio = 0.5f);
+    void mergeNodes();
 };
 
 } // namespace fst

@@ -1,7 +1,13 @@
 #include "fastener/ui/dock_context.h"
 #include "fastener/core/context.h"
 #include "fastener/core/input.h"
+#include <algorithm>
+#include <cmath>
+#include <functional>
+#include <iomanip>
+#include <limits>
 #include <unordered_map>
+#include <unordered_set>
 #include <sstream>
 
 namespace fst {
@@ -50,16 +56,16 @@ DockNode::Id DockContext::createDockSpace(const std::string& id, const Rect& bou
     
     if (it != m_impl->dockSpaces.end()) {
         // Existing dock space - update bounds
-        it->second->bounds = bounds;
+        it->second->m_bounds = bounds;
         it->second->updateLayout(bounds);
-        return it->second->id;
+        return it->second->m_id;
     }
     
     // Create new dock space
     auto nodeId = m_impl->generateId();
     auto node = std::make_unique<DockNode>(nodeId);
-    node->type = DockNodeType::Leaf;
-    node->bounds = bounds;
+    node->m_type = DockNodeType::Leaf;
+    node->m_bounds = bounds;
     
     m_impl->dockSpaceIds[id] = nodeId;
     m_impl->dockSpaces[id] = std::move(node);
@@ -95,7 +101,7 @@ void DockContext::removeDockSpace(const std::string& id) {
     if (it != m_impl->dockSpaces.end()) {
         // Remove all window mappings for this dock space
         it->second->forEachLeaf([this](DockNode* leaf) {
-            for (auto winId : leaf->dockedWindows) {
+            for (auto winId : leaf->m_dockedWindows) {
                 m_impl->windowToNode.erase(winId);
             }
         });
@@ -116,19 +122,19 @@ void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId,
         direction == DockDirection::Center || direction == DockDirection::None;
     if (!targetNode ||
         !targetNode->isLeafNode() ||
-        (!tabDock && targetNode->flags.noSplit)) {
+        (!tabDock && targetNode->m_flags.noSplit)) {
         return;
     }
 
     DockNode* sourceNode = getWindowDockNode(windowId);
     const DockNode::Id sourceNodeId =
-        sourceNode ? sourceNode->id : DockNode::INVALID_ID;
+        sourceNode ? sourceNode->m_id : DockNode::INVALID_ID;
 
     // Docking a tab back into its current leaf is already satisfied. Splitting
     // a single-window leaf against itself would create an empty sibling that
     // immediately collapses, so preserve the existing layout as well.
     if (sourceNode == targetNode &&
-        (tabDock || sourceNode->dockedWindows.size() == 1)) {
+        (tabDock || sourceNode->m_dockedWindows.size() == 1)) {
         return;
     }
 
@@ -143,7 +149,7 @@ void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId,
     if (tabDock) {
         // Tab docking - add to existing node
         targetNode->addWindow(windowId);
-        m_impl->windowToNode[windowId] = targetNode->id;
+        m_impl->windowToNode[windowId] = targetNode->m_id;
         docked = true;
     } else {
         // Split docking - create new split
@@ -152,7 +158,7 @@ void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId,
         DockNode* newNode = targetNode->splitNode(direction, childId0, childId1);
         if (newNode) {
             newNode->addWindow(windowId);
-            m_impl->windowToNode[windowId] = newNode->id;
+            m_impl->windowToNode[windowId] = newNode->m_id;
             
             // Also refresh mappings for the targetNode (which now has children)
             refreshMappings(targetNodeId);
@@ -171,6 +177,40 @@ void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId,
     // Only now is it safe to collapse the empty source branch. Any destination
     // mappings moved into an absorbed parent are refreshed during the merge.
     collapseEmptyAncestors(sourceNodeId);
+}
+
+DockNode::Id DockContext::splitNode(
+    DockNode::Id targetNodeId,
+    DockDirection direction,
+    float ratio) {
+    DockNode* targetNode = getDockNode(targetNodeId);
+    if (!targetNode || !targetNode->isLeafNode()) {
+        return DockNode::INVALID_ID;
+    }
+
+    const DockNode::Id firstChildId = generateNodeId();
+    const DockNode::Id secondChildId = generateNodeId();
+    DockNode* newNode = targetNode->splitNode(
+        direction,
+        firstChildId,
+        secondChildId,
+        ratio);
+    if (!newNode) {
+        return DockNode::INVALID_ID;
+    }
+    refreshMappings(targetNodeId);
+    return newNode->m_id;
+}
+
+bool DockContext::setNodeFlags(
+    DockNode::Id nodeId,
+    const DockNodeFlags& flags) {
+    DockNode* node = getDockNode(nodeId);
+    if (!node) {
+        return false;
+    }
+    node->m_flags = flags;
+    return true;
 }
 
 void DockContext::undockWindow(WidgetId windowId) {
@@ -193,12 +233,12 @@ void DockContext::collapseEmptyAncestors(DockNode::Id nodeId) {
     DockNode::Id currentId = nodeId;
     while (currentId != DockNode::INVALID_ID) {
         DockNode* current = getDockNode(currentId);
-        if (!current || !current->isEmpty() || !current->parent) {
+        if (!current || !current->isEmpty() || !current->m_parent) {
             break;
         }
 
-        DockNode* parent = current->parent;
-        const DockNode::Id parentId = parent->id;
+        DockNode* parent = current->m_parent;
+        const DockNode::Id parentId = parent->m_id;
         parent->mergeNodes();
         refreshMappings(parentId);
         currentId = parentId;
@@ -209,7 +249,7 @@ void DockContext::refreshMappings(DockNode::Id nodeId) {
     if (nodeId == DockNode::INVALID_ID) {
         // Refresh all dock spaces
         for (auto& [name, root] : m_impl->dockSpaces) {
-            refreshMappings(root->id);
+            refreshMappings(root->m_id);
         }
         return;
     }
@@ -218,14 +258,18 @@ void DockContext::refreshMappings(DockNode::Id nodeId) {
     if (!node) return;
 
     // Update mappings for this node
-    for (auto winId : node->dockedWindows) {
-        m_impl->windowToNode[winId] = node->id;
+    for (auto winId : node->m_dockedWindows) {
+        m_impl->windowToNode[winId] = node->m_id;
     }
 
     // Recursively update children
     if (node->isSplitNode()) {
-        if (node->children[0]) refreshMappings(node->children[0]->id);
-        if (node->children[1]) refreshMappings(node->children[1]->id);
+        if (node->m_children[0]) {
+            refreshMappings(node->m_children[0]->m_id);
+        }
+        if (node->m_children[1]) {
+            refreshMappings(node->m_children[1]->m_id);
+        }
     }
 }
 
@@ -289,10 +333,10 @@ void DockContext::updateDrag(const Vec2& mousePos, DockNode* /*hoveredNode*/,
     
     for (auto& [name, root] : m_impl->dockSpaces) {
         root->forEachLeaf([&](DockNode* leaf) {
-            if (leaf->bounds.contains(mousePos)) {
-                m_impl->dragState.hoveredNodeId = leaf->id;
+            if (leaf->m_bounds.contains(mousePos)) {
+                m_impl->dragState.hoveredNodeId = leaf->m_id;
                 
-                const Rect& b = leaf->bounds;
+                const Rect& b = leaf->m_bounds;
                 float relX = (mousePos.x - b.x()) / b.width();
                 float relY = (mousePos.y - b.y()) / b.height();
                 const float t = 0.25f;
@@ -334,7 +378,7 @@ void DockContext::beginFrame(Context& ctx) {
     
     // Update layouts for all dock spaces
     for (auto& [name, root] : m_impl->dockSpaces) {
-        root->updateLayout(root->bounds);
+        root->updateLayout(root->m_bounds);
     }
 
     // Update drag state if active
@@ -365,21 +409,233 @@ void DockContext::endFrame() {
 
 std::string DockContext::serializeLayout() const {
     std::stringstream ss;
-    
-    for (const auto& [name, root] : m_impl->dockSpaces) {
-        ss << "[DockSpace:" << name << "]\n";
-        ss << root->debugPrint();
-        ss << "\n";
+    ss << std::setprecision(std::numeric_limits<float>::max_digits10);
+    ss << "FST_DOCK_LAYOUT 1\n";
+    ss << "SPACES " << m_impl->dockSpaces.size() << "\n";
+
+    std::vector<std::string> names;
+    names.reserve(m_impl->dockSpaces.size());
+    for (const auto& entry : m_impl->dockSpaces) {
+        names.push_back(entry.first);
     }
-    
+    std::sort(names.begin(), names.end());
+
+    const auto flagsToMask = [](const DockNodeFlags& flags) {
+        unsigned int mask = 0;
+        if (flags.noSplit) mask |= 1u << 0;
+        if (flags.noResize) mask |= 1u << 1;
+        if (flags.noTabBar) mask |= 1u << 2;
+        if (flags.keepAliveOnly) mask |= 1u << 3;
+        if (flags.passthruCentralNode) mask |= 1u << 4;
+        return mask;
+    };
+
+    std::function<void(const DockNode&)> writeNode =
+        [&](const DockNode& node) {
+            const int childCount =
+                (node.m_children[0] ? 1 : 0) +
+                (node.m_children[1] ? 1 : 0);
+            ss << "NODE "
+               << node.m_id << ' '
+               << static_cast<int>(node.m_type) << ' '
+               << flagsToMask(node.m_flags) << ' '
+               << node.m_splitRatio << ' '
+               << node.m_selectedTabIndex << ' '
+               << node.m_bounds.x() << ' '
+               << node.m_bounds.y() << ' '
+               << node.m_bounds.width() << ' '
+               << node.m_bounds.height() << ' '
+               << node.m_dockedWindows.size();
+            for (WidgetId windowId : node.m_dockedWindows) {
+                ss << ' ' << windowId;
+            }
+            ss << ' ' << childCount << '\n';
+            if (node.m_children[0]) writeNode(*node.m_children[0]);
+            if (node.m_children[1]) writeNode(*node.m_children[1]);
+        };
+
+    for (const std::string& name : names) {
+        const DockNode& root = *m_impl->dockSpaces.at(name);
+        ss << "SPACE " << std::quoted(name) << '\n';
+        writeNode(root);
+    }
+    ss << "END\n";
     return ss.str();
 }
 
 bool DockContext::deserializeLayout(const std::string& data) {
-    // TODO: Implement proper deserialization
-    // For now, this is a placeholder
-    (void)data;
-    return false;
+    constexpr std::size_t maxSpaces = 1024;
+    constexpr std::size_t maxNodes = 100000;
+    constexpr std::size_t maxWindowsPerNode = 100000;
+    constexpr std::size_t maxTreeDepth = 256;
+    constexpr unsigned int knownFlagMask = (1u << 5) - 1u;
+
+    std::istringstream input(data);
+    std::string token;
+    unsigned int version = 0;
+    if (!(input >> token >> version) ||
+        token != "FST_DOCK_LAYOUT" ||
+        version != 1) {
+        return false;
+    }
+
+    std::size_t spaceCount = 0;
+    if (!(input >> token >> spaceCount) ||
+        token != "SPACES" ||
+        spaceCount > maxSpaces) {
+        return false;
+    }
+
+    auto candidate = std::make_unique<Impl>();
+    std::unordered_set<DockNode::Id> nodeIds;
+    std::unordered_set<WidgetId> windowIds;
+    std::size_t nodeCount = 0;
+    DockNode::Id maximumNodeId = DockNode::INVALID_ID;
+
+    const auto maskToFlags = [](unsigned int mask) {
+        DockNodeFlags flags;
+        flags.noSplit = (mask & (1u << 0)) != 0;
+        flags.noResize = (mask & (1u << 1)) != 0;
+        flags.noTabBar = (mask & (1u << 2)) != 0;
+        flags.keepAliveOnly = (mask & (1u << 3)) != 0;
+        flags.passthruCentralNode = (mask & (1u << 4)) != 0;
+        return flags;
+    };
+
+    bool valid = true;
+    std::function<std::unique_ptr<DockNode>(DockNode*, std::size_t)> readNode;
+    readNode = [&](DockNode* parent, std::size_t depth)
+        -> std::unique_ptr<DockNode> {
+        if (!valid || depth > maxTreeDepth || nodeCount >= maxNodes) {
+            valid = false;
+            return nullptr;
+        }
+
+        DockNode::Id nodeId = DockNode::INVALID_ID;
+        int typeValue = 0;
+        unsigned int flagsMask = 0;
+        float splitRatio = 0.0f;
+        int selectedTabIndex = 0;
+        float x = 0.0f;
+        float y = 0.0f;
+        float width = 0.0f;
+        float height = 0.0f;
+        std::size_t windowCount = 0;
+        if (!(input >> token >> nodeId >> typeValue >> flagsMask >>
+              splitRatio >> selectedTabIndex >> x >> y >> width >> height >>
+              windowCount) ||
+            token != "NODE" ||
+            nodeId == DockNode::INVALID_ID ||
+            !nodeIds.insert(nodeId).second ||
+            typeValue < static_cast<int>(DockNodeType::SplitHorizontal) ||
+            typeValue > static_cast<int>(DockNodeType::Leaf) ||
+            (flagsMask & ~knownFlagMask) != 0 ||
+            !std::isfinite(splitRatio) ||
+            !std::isfinite(x) ||
+            !std::isfinite(y) ||
+            !std::isfinite(width) ||
+            !std::isfinite(height) ||
+            width < 0.0f ||
+            height < 0.0f ||
+            windowCount > maxWindowsPerNode) {
+            valid = false;
+            return nullptr;
+        }
+
+        auto node = std::make_unique<DockNode>(nodeId);
+        node->m_parent = parent;
+        node->m_type = static_cast<DockNodeType>(typeValue);
+        node->m_flags = maskToFlags(flagsMask);
+        node->m_splitRatio = splitRatio;
+        node->m_selectedTabIndex = selectedTabIndex;
+        node->m_bounds = Rect(x, y, width, height);
+        node->m_dockedWindows.reserve(windowCount);
+
+        for (std::size_t index = 0; index < windowCount; ++index) {
+            WidgetId windowId = INVALID_WIDGET_ID;
+            if (!(input >> windowId) ||
+                windowId == INVALID_WIDGET_ID ||
+                !windowIds.insert(windowId).second) {
+                valid = false;
+                return nullptr;
+            }
+            node->m_dockedWindows.push_back(windowId);
+            candidate->windowToNode.emplace(windowId, nodeId);
+        }
+
+        int childCount = 0;
+        if (!(input >> childCount) || (childCount != 0 && childCount != 2)) {
+            valid = false;
+            return nullptr;
+        }
+
+        const bool splitNode =
+            node->m_type == DockNodeType::SplitHorizontal ||
+            node->m_type == DockNodeType::SplitVertical;
+        const bool tabNode = node->m_type == DockNodeType::TabContainer;
+        if ((splitNode && (childCount != 2 ||
+                           !node->m_dockedWindows.empty() ||
+                           splitRatio <= 0.0f ||
+                           splitRatio >= 1.0f)) ||
+            (!splitNode && childCount != 0) ||
+            (tabNode && node->m_dockedWindows.size() < 2) ||
+            (node->m_type == DockNodeType::Leaf &&
+             node->m_dockedWindows.size() > 1) ||
+            (node->m_dockedWindows.empty() && selectedTabIndex != 0) ||
+            (!node->m_dockedWindows.empty() &&
+             (selectedTabIndex < 0 ||
+              selectedTabIndex >=
+                  static_cast<int>(node->m_dockedWindows.size())))) {
+            valid = false;
+            return nullptr;
+        }
+
+        ++nodeCount;
+        maximumNodeId = std::max(maximumNodeId, nodeId);
+        if (childCount == 2) {
+            node->m_children[0] = readNode(node.get(), depth + 1);
+            node->m_children[1] = readNode(node.get(), depth + 1);
+            if (!node->m_children[0] || !node->m_children[1]) {
+                valid = false;
+                return nullptr;
+            }
+        }
+        return node;
+    };
+
+    for (std::size_t index = 0; index < spaceCount && valid; ++index) {
+        std::string name;
+        if (!(input >> token >> std::quoted(name)) ||
+            token != "SPACE" ||
+            name.empty() ||
+            candidate->dockSpaces.find(name) != candidate->dockSpaces.end()) {
+            valid = false;
+            break;
+        }
+
+        std::unique_ptr<DockNode> root = readNode(nullptr, 0);
+        if (!root) {
+            valid = false;
+            break;
+        }
+        candidate->dockSpaceIds.emplace(name, root->m_id);
+        candidate->dockSpaces.emplace(std::move(name), std::move(root));
+    }
+
+    if (!valid ||
+        !(input >> token) ||
+        token != "END" ||
+        (input >> token) ||
+        maximumNodeId == std::numeric_limits<DockNode::Id>::max()) {
+        return false;
+    }
+
+    candidate->nextNodeId = maximumNodeId + 1;
+    if (candidate->nextNodeId == DockNode::INVALID_ID) {
+        candidate->nextNodeId = 1;
+    }
+    m_impl = std::move(candidate);
+    return true;
 }
 
 //=============================================================================

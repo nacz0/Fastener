@@ -9,12 +9,12 @@
  * 
  * @example
  * // Load translations and set locale
- * fst::I18n::instance().loadFromFile("translations.json");
- * fst::I18n::instance().setLocale("pl");
+ * fst::I18n translations;
+ * translations.loadFromFile("translations.json");
+ * translations.setLocale("pl");
  * 
  * // Use translations in UI
- * fst::Button(ctx, fst::i18n("button.save"));
- * fst::Label(ctx, fst::i18n("items.count", {std::to_string(count)}));
+ * fst::Button(ctx, ctx.i18n().translate("button.save"));
  */
 
 #include <string>
@@ -38,10 +38,8 @@ namespace fst {
  */
 class I18n {
 public:
-    /**
-     * @brief Get the singleton instance.
-     */
-    static I18n& instance();
+    I18n();
+    ~I18n();
     
     // Non-copyable
     I18n(const I18n&) = delete;
@@ -189,9 +187,6 @@ public:
                         const std::string& locale = "") const;
 
 private:
-    I18n();
-    ~I18n();
-    
     std::string lookupTranslation(const std::string& locale, 
                                    const std::string& key) const;
     std::string replacePlaceholders(const std::string& text, 
@@ -206,54 +201,5 @@ private:
     
     mutable std::mutex m_mutex;  // Thread safety for multi-window
 };
-
-//=============================================================================
-// Convenience Functions
-//=============================================================================
-
-/**
- * @brief Translate a key using the global I18n instance.
- * @param key Translation key
- * @return Translated text
- */
-inline std::string i18n(const std::string& key) {
-    return I18n::instance().translate(key);
-}
-
-/**
- * @brief Translate a key with placeholder arguments.
- * @param key Translation key
- * @param args Arguments for placeholder substitution
- * @return Translated text
- */
-inline std::string i18n(const std::string& key, const std::vector<std::string>& args) {
-    return I18n::instance().translate(key, args);
-}
-
-/**
- * @brief Translate a key with initializer list of arguments.
- * @param key Translation key
- * @param args Arguments for placeholder substitution
- * @return Translated text
- * 
- * @example
- * i18n("greeting", {"World", "42"})  // "Hello World, code 42"
- */
-inline std::string i18n(const std::string& key, std::initializer_list<std::string> args) {
-    return I18n::instance().translate(key, std::vector<std::string>(args));
-}
-
-/**
- * @brief Translate with plural form selection.
- * @param keySingular Key for singular form
- * @param keyPlural Key for plural form
- * @param count Number to determine form
- * @return Translated text
- */
-inline std::string i18n_plural(const std::string& keySingular,
-                                const std::string& keyPlural,
-                                int count) {
-    return I18n::instance().translatePlural(keySingular, keyPlural, count);
-}
 
 } // namespace fst

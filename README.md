@@ -54,17 +54,16 @@ int main() {
         window.swapBuffers();
     }
 
-    // Release GL-backed Fastener resources while the window/context still exists.
-    (void)ctx.shutdown(window);
     return 0;
 }
 ```
 
 Notes:
 - `ctx.input()` and `ctx.window()` are valid only between `beginFrame()` and `endFrame()`.
-- Renderer initialization and GL resource cleanup require a current OpenGL context.
-- Call `ctx.releaseWindowResources(window)` for each secondary window, then
-  `ctx.shutdown(primaryWindow)` before destroying the final window/context.
+- Renderer initialization and GL resource cleanup require a current graphics
+  context. Fastener `Window` objects coordinate cleanup automatically with
+  `Context`; foreign `IPlatformWindow` implementations can use
+  `releaseWindowResources()` and `shutdown()` explicitly.
 
 ## Building
 

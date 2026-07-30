@@ -9,14 +9,15 @@ The library is organized into four layers:
 1. Platform layer (Window): OS-specific window creation, OpenGL context, input events.
 2. Core layer (Context, InputState): frame lifecycle, widget IDs, focus, interaction.
 3. Graphics layer (DrawList, Font, Texture, Renderer): low-level rendering and batching.
-4. UI layer (Theme, Style, Layout): styling and layout primitives.
+4. UI layer (Theme, Style, Layout, DockContext): styling, layout, and retained
+   interaction state used by immediate-mode widgets.
 
 ```mermaid
 graph TD
     App[Application Code] --> Widgets[Widget Layer]
     Widgets --> UI[Theme and Layout]
     UI --> Core[Context and Input]
-    Core --> Graphics[DrawList and Renderer]
+    Core --> Graphics[DrawList and IRenderer]
     Graphics --> Platform[Window and OpenGL]
 ```
 
@@ -48,6 +49,11 @@ The context tracks:
 - ID stack for hierarchical widgets
 - Layout and docking state
 - Deferred rendering for popups and overlays
+- Context-owned localization and widget state
+
+`Context` consumes the `IRenderer` boundary. The built-in `Renderer` is the
+OpenGL implementation, while tests and applications may inject another
+implementation.
 
 ### `fst::DrawList`
 
@@ -59,9 +65,13 @@ Wraps the OS window and input events. It also exposes clipboard and cursor APIs 
 
 Each OpenGL context owns its own vertex array object (VAO), while buffers,
 programs, and textures can be shared by windows in the same share group.
-Applications must call `Context::releaseWindowResources()` before destroying
-each secondary window and `Context::shutdown()` before destroying the final
-window. Teardown is rejected while a frame is active.
+`Window` notifies `Context` before its native graphics context is destroyed.
+This releases per-window resources for secondary windows and shared resources
+for the final window. If `Context` is destroyed first, it performs the same
+cleanup against all still-live registered windows. Custom `IPlatformWindow`
+implementations that do not support resource listeners must use
+`releaseWindowResources()` and `shutdown()` explicitly. Teardown is rejected
+while a frame is active.
 
 ## Rendering Pipeline
 

@@ -380,8 +380,8 @@
     "header": "fastener/ui/drag_drop.h",
     "sourceFlow": [
       "BeginDragDropSource(ctx, flags)",
-      "SetDragDropPayload(type, data, size)",
-      "SetDragDropDisplayText(text)",
+      "SetDragDropPayload(ctx, type, data, size)",
+      "SetDragDropDisplayText(ctx, text)",
       "EndDragDropSource(ctx)"
     ],
     "targetFlow": [
@@ -390,9 +390,9 @@
       "EndDragDropTarget(ctx)"
     ],
     "utilities": [
-      "IsDragDropActive()",
-      "GetDragDropPayload()",
-      "CancelDragDrop()"
+      "IsDragDropActive(ctx)",
+      "GetDragDropPayload(ctx)",
+      "CancelDragDrop(ctx)"
     ]
   },
   "layout": {

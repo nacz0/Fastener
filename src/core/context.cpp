@@ -12,6 +12,7 @@
 #include "../ui/drag_drop_internal.h"
 #include "widget_state_registry.h"
 #include "fastener/core/profiler.h"
+#include "fastener/core/i18n.h"
 #include <vector>
 #include <chrono>
 #include <algorithm>
@@ -19,20 +20,11 @@
 
 namespace fst {
 
-// Thread-local context stack for multi-window/DI support
+// Thread-local frame stack validates nested multi-context frame ordering
+// without exposing an implicit context-routing API.
 namespace {
 
-enum class ContextStackEntryKind {
-    ExplicitScope,
-    Frame
-};
-
-struct ContextStackEntry {
-    Context* context = nullptr;
-    ContextStackEntryKind kind = ContextStackEntryKind::ExplicitScope;
-};
-
-thread_local std::vector<ContextStackEntry> s_contextStack;
+thread_local std::vector<Context*> s_frameStack;
 
 } // namespace
 
@@ -97,6 +89,7 @@ struct Context::Impl {
     LayoutContext layout;
     DockContext dockContext;
     Profiler profiler;
+    I18n translations;
     detail::DragDropContextState dragDrop;
     detail::WidgetStateRegistry widgetStates;
     
@@ -169,16 +162,15 @@ Context::Context(
 }
 
 Context::~Context() {
-    detail::CancelDragDropForContext(*this);
     releaseTrackedWindowResources();
 
-    s_contextStack.erase(
+    s_frameStack.erase(
         std::remove_if(
-            s_contextStack.begin(), s_contextStack.end(),
-            [this](const ContextStackEntry& entry) {
-                return entry.context == this;
+            s_frameStack.begin(), s_frameStack.end(),
+            [this](const Context* context) {
+                return context == this;
             }),
-        s_contextStack.end());
+        s_frameStack.end());
 }
 
 namespace detail {
@@ -203,7 +195,7 @@ void Context::beginFrame(IPlatformWindow& window) {
         return;
     }
 
-    s_contextStack.push_back({this, ContextStackEntryKind::Frame});
+    s_frameStack.push_back(this);
     m_impl->frameActive = true;
     m_impl->currentWindow = &window;
     m_impl->inputState = &window.input();
@@ -305,9 +297,7 @@ void Context::endFrame() {
         FST_LOG_ERROR("Context::endFrame called without an active frame");
         return;
     }
-    if (s_contextStack.empty() ||
-        s_contextStack.back().context != this ||
-        s_contextStack.back().kind != ContextStackEntryKind::Frame) {
+    if (s_frameStack.empty() || s_frameStack.back() != this) {
         FST_LOG_ERROR(
             "Context::endFrame must close the top-most active frame");
         return;
@@ -376,7 +366,7 @@ void Context::endFrame() {
     m_impl->layout.reset();
     m_impl->idStack.resize(1);
 
-    s_contextStack.pop_back();
+    s_frameStack.pop_back();
 
     if (deferredException) {
         std::rethrow_exception(deferredException);
@@ -557,6 +547,14 @@ DockContext& Context::docking() {
     return m_impl->dockContext;
 }
 
+I18n& Context::i18n() {
+    return m_impl->translations;
+}
+
+const I18n& Context::i18n() const {
+    return m_impl->translations;
+}
+
 Profiler& Context::profiler() {
     return m_impl->profiler;
 }
@@ -725,35 +723,6 @@ WidgetId Context::makeId(std::string_view str) const {
 WidgetId Context::makeId(int idx) const {
     return combineIds(m_impl->idStack.back(), static_cast<WidgetId>(idx));
 }
-
-void Context::pushContext(Context* ctx) {
-    s_contextStack.push_back({ctx, ContextStackEntryKind::ExplicitScope});
-}
-
-void Context::popContext() {
-    if (s_contextStack.empty()) {
-        FST_LOG_ERROR("Context::popContext called with an empty context stack");
-        return;
-    }
-    if (s_contextStack.back().kind != ContextStackEntryKind::ExplicitScope) {
-        FST_LOG_ERROR("Context::popContext cannot pop an active frame");
-        return;
-    }
-    s_contextStack.pop_back();
-}
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable: 4996)  // Disable deprecated warning for our own usage
-#endif
-
-Context* Context::current() {
-    return s_contextStack.empty() ? nullptr : s_contextStack.back().context;
-}
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 void Context::deferRender(std::function<void()> cmd) {
     m_impl->postRenderCommands.push_back(std::move(cmd));

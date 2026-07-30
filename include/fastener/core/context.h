@@ -21,6 +21,7 @@ class Font;
 class LayoutContext;
 class DockContext;
 class Profiler;
+class I18n;
 
 namespace detail {
 struct DragDropContextState;
@@ -51,14 +52,17 @@ public:
     [[nodiscard]] bool isFrameActive() const;
 
     /**
-     * Release renderer objects local to one platform window's GL context.
-     * Call this for each secondary/shared window before destroying it.
+     * Release renderer objects local to one platform window's graphics
+     * context. Fastener Window performs this automatically; use this for a
+     * foreign IPlatformWindow that does not support resource listeners.
      */
     [[nodiscard]] bool releaseWindowResources(IPlatformWindow& window);
 
     /**
      * Release fonts and shared renderer objects with the supplied window's
-     * GL context current. The context may be initialized again by beginFrame.
+     * graphics context current. Fastener Window performs this automatically
+     * for the final registered window. The Context may be initialized again
+     * by beginFrame.
      */
     [[nodiscard]] bool shutdown(IPlatformWindow& window);
     
@@ -97,6 +101,8 @@ public:
     LayoutContext& layout();
     IPlatformWindow& window() const;
     DockContext& docking();
+    I18n& i18n();
+    const I18n& i18n() const;
     
     // Time
     float deltaTime() const;
@@ -147,17 +153,6 @@ public:
     WidgetId makeId(std::string_view str) const;
     WidgetId makeId(int idx) const;
     
-    // Context stack management (for multi-window / DI support)
-    static void pushContext(Context* ctx);
-    static void popContext();
-    
-    /** 
-     * @brief Get current context from top of thread-local stack.
-     * @deprecated Use explicit context passing or WidgetScope for new code.
-     */
-    [[deprecated("Use explicit context passing or WidgetScope")]]
-    static Context* current();
-
     // Deferred rendering (for popups/tooltips). Commands queued while deferred
     // commands are executing run during the following frame.
     void deferRender(std::function<void()> cmd);
@@ -182,7 +177,6 @@ private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;
     
-    // Note: Context stack is now thread-local, managed via pushContext/popContext
 };
 
 } // namespace fst

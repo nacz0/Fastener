@@ -232,9 +232,6 @@ bool BeginDockableWindow(Context& ctx, const std::string& id, const DockableWind
     return true;
 }
 
-/* removed legacy BeginDockableWindow */
-
-
 //=============================================================================
 // EndDockableWindow
 //=============================================================================

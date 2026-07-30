@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 #include <fastener/core/context.h>
 #include <fastener/ui/layout.h>
-#include <fastener/ui/widget_scope.h>
 #include <fastener/ui/widget_utils.h>
 #include <fastener/platform/window_manager.h>
 #include <fastener/graphics/renderer.h>
@@ -150,10 +149,6 @@ TEST(ContextRendererTest, ContextDestructionCleansLiveWindowsInSafeOrder) {
 }
 
 //=============================================================================
-// WidgetScope RAII Tests
-//=============================================================================
-
-//=============================================================================
 // WidgetContext Factory Tests
 //=============================================================================
 
@@ -257,22 +252,6 @@ TEST(ContextFrameGuardTest, OutOfOrderEndCannotCloseAnotherContextsFrame) {
     first.endFrame();
     EXPECT_FALSE(first.isFrameActive());
     EXPECT_FALSE(second.isFrameActive());
-}
-
-TEST(ContextFrameGuardTest, WidgetScopeMustEndBeforeItsEnclosingFrame) {
-    Context frameContext(false);
-    Context scopedContext(false);
-    StubWindow window;
-
-    frameContext.beginFrame(window);
-    {
-        WidgetScope scope(scopedContext);
-        frameContext.endFrame();
-        EXPECT_TRUE(frameContext.isFrameActive());
-    }
-
-    frameContext.endFrame();
-    EXPECT_FALSE(frameContext.isFrameActive());
 }
 
 TEST(ContextFrameGuardTest, EndFrameRecoversUnbalancedIdStack) {

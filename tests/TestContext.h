@@ -6,7 +6,6 @@
  */
 
 #include <fastener/core/context.h>
-#include <fastener/ui/widget_scope.h>
 #include <fastener/ui/widget_utils.h>
 #include "MockDrawList.h"
 
@@ -57,7 +56,7 @@ private:
  * @brief RAII test helper that sets up minimal Context for widget tests.
  * 
  * TestContext creates a Context without a renderer, sets up a MockDrawList,
- * and manages the context stack automatically. This enables clean unit testing
+ * and binds a mock draw list directly to that Context. This enables unit testing
  * of widgets without requiring a real window or OpenGL context.
  * 
  * Usage:
@@ -68,7 +67,7 @@ private:
  *       EXPECT_CALL(mockDl, addRectFilled(_, _, _)).Times(1);
  *       
  *       tc.beginFrame();  // Optional - for widgets that need frame state
- *       Button("Test");   // Uses tc.context() via context stack
+ *       Button(tc.context(), "Test");
  *       tc.endFrame();
  *   }
  * @endcode

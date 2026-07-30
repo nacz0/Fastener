@@ -20,10 +20,6 @@
 
 namespace fst {
 
-// Legacy no-context queries need a routing hint after Context::endFrame() pops
-// the current context. Drag state itself remains owned by Context.
-static thread_local Context* s_legacyDragContext = nullptr;
-
 //=============================================================================
 // Internal Helpers
 //=============================================================================
@@ -153,7 +149,6 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
                 state.globalMousePressPos = GetGlobalCursorPos();  // Capture global position
                 state.potentialDrag = true;
                 state.potentialDragSource = lastWidgetId;
-                s_legacyDragContext = &ctx;
             }
         }
         
@@ -203,20 +198,6 @@ bool BeginDragDropSource(Context& ctx, DragDropFlags flags) {
     return false;
 }
 
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#elif defined(_MSC_VER)
-#pragma warning(push)
-#pragma warning(disable: 4996) 
-#endif
-
-bool BeginDragDropSource(DragDropFlags flags) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
-    return fst::BeginDragDropSource(*ctx, flags);
-}
-
 bool SetDragDropPayload(Context& ctx, const std::string& type, const void* data, size_t size) {
     auto& state = detail::dragDropState(ctx);
     if (!state.inSourceBlock || !state.active) return false;
@@ -230,20 +211,10 @@ bool SetDragDropPayload(Context& ctx, const std::string& type, const void* data,
     return true;
 }
 
-bool SetDragDropPayload(const std::string& type, const void* data, size_t size) {
-    Context* ctx = Context::current();
-    return ctx ? fst::SetDragDropPayload(*ctx, type, data, size) : false;
-}
-
 void SetDragDropDisplayText(Context& ctx, const std::string& text) {
     auto& state = detail::dragDropState(ctx);
     if (!state.inSourceBlock) return;
     state.payload.displayText = text;
-}
-
-void SetDragDropDisplayText(const std::string& text) {
-    Context* ctx = Context::current();
-    if (ctx) fst::SetDragDropDisplayText(*ctx, text);
 }
 
 void EndDragDropSource(Context& ctx) {
@@ -270,11 +241,6 @@ void EndDragDropSource(Context& ctx) {
     }
     
     state.inSourceBlock = false;
-}
-
-void EndDragDropSource() {
-    Context* ctx = Context::current();
-    if (ctx) fst::EndDragDropSource(*ctx);
 }
 
 //=============================================================================
@@ -304,12 +270,6 @@ bool BeginDragDropTarget(Context& ctx) {
     return false;
 }
 
-bool BeginDragDropTarget() {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
-    return fst::BeginDragDropTarget(*ctx);
-}
-
 bool BeginDragDropTarget(Context& ctx, const Rect& targetRect) {
     auto& state = detail::dragDropState(ctx);
     if (!state.active) return false;
@@ -330,12 +290,6 @@ bool BeginDragDropTarget(Context& ctx, const Rect& targetRect) {
     
     state.inTargetBlock = false;
     return false;
-}
-
-bool BeginDragDropTarget(const Rect& targetRect) {
-    Context* ctx = Context::current();
-    if (!ctx) return false;
-    return fst::BeginDragDropTarget(*ctx, targetRect);
 }
 
 const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, DragDropFlags flags) {
@@ -380,12 +334,6 @@ const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
     return nullptr;
 }
 
-const DragPayload* AcceptDragDropPayload(const std::string& type, DragDropFlags flags) {
-    Context* ctx = Context::current();
-    if (!ctx) return nullptr;
-    return fst::AcceptDragDropPayload(*ctx, type, flags);
-}
-
 void EndDragDropTarget(Context& ctx) {
     auto& state = detail::dragDropState(ctx);
     if (!state.inTargetBlock) return;
@@ -406,11 +354,6 @@ void EndDragDropTarget(Context& ctx) {
     state.inTargetBlock = false;
 }
 
-void EndDragDropTarget() {
-    Context* ctx = Context::current();
-    if (ctx) fst::EndDragDropTarget(*ctx);
-}
-
 //=============================================================================
 // Query API Implementation
 //=============================================================================
@@ -419,34 +362,13 @@ bool IsDragDropActive(const Context& ctx) {
     return detail::dragDropState(ctx).active;
 }
 
-bool IsDragDropActive() {
-    Context* ctx = Context::current();
-    if (!ctx) ctx = s_legacyDragContext;
-    return ctx ? fst::IsDragDropActive(*ctx) : false;
-}
-
 const DragPayload* GetDragDropPayload(const Context& ctx) {
     const auto& state = detail::dragDropState(ctx);
     return state.active ? &state.payload : nullptr;
 }
 
-const DragPayload* GetDragDropPayload() {
-    Context* ctx = Context::current();
-    if (!ctx) ctx = s_legacyDragContext;
-    return ctx ? fst::GetDragDropPayload(*ctx) : nullptr;
-}
-
 void CancelDragDrop(Context& ctx) {
     detail::dragDropState(ctx).clear();
-    if (s_legacyDragContext == &ctx) {
-        s_legacyDragContext = nullptr;
-    }
-}
-
-void CancelDragDrop() {
-    Context* ctx = Context::current();
-    if (!ctx) ctx = s_legacyDragContext;
-    if (ctx) fst::CancelDragDrop(*ctx);
 }
 
 void EndDragDropFrame(Context& ctx) {
@@ -461,34 +383,10 @@ void EndDragDropFrame(Context& ctx) {
     // we can safely clear the state now.
     if (state.pendingClear) {
         state.clear();
-        if (s_legacyDragContext == &ctx) {
-            s_legacyDragContext = nullptr;
-        }
     }
     
     // Reset frame-cumulative state
     state.isOverValidTarget = false;
 }
-
-void EndDragDropFrame() {
-    Context* ctx = Context::current();
-    if (ctx) fst::EndDragDropFrame(*ctx);
-}
-
-namespace detail {
-
-void CancelDragDropForContext(Context& ctx) {
-    if (s_legacyDragContext == &ctx) {
-        s_legacyDragContext = nullptr;
-    }
-}
-
-} // namespace detail
-
-#if defined(__GNUC__) || defined(__clang__)
-#pragma GCC diagnostic pop
-#elif defined(_MSC_VER)
-#pragma warning(pop)
-#endif
 
 } // namespace fst

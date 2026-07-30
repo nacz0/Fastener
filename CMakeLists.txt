@@ -36,6 +36,12 @@ target_link_libraries(fastener PUBLIC
     OpenGL::GL
 )
 
+if(MSVC)
+    # Context guarantees cleanup when deferred UI callbacks throw. MSVC does
+    # not enable standard C++ stack unwinding unless /EHsc is explicit.
+    target_compile_options(fastener PUBLIC /EHsc)
+endif()
+
 # Platform-specific libraries
 if(WIN32)
     target_link_libraries(fastener PUBLIC
@@ -89,6 +95,7 @@ if(FST_BUILD_TESTS)
         tests/test_widget_utils.cpp
         tests/test_layout.cpp
         tests/test_input.cpp
+        tests/test_log.cpp
         tests/test_docking.cpp
         tests/test_widget_rendering.cpp
         tests/test_context_di.cpp

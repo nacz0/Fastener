@@ -16,24 +16,23 @@ This document summarizes the core public API of Fastener.
 `fst::Context` manages frame lifecycle, state, and rendering:
 
 - Frame: `beginFrame(IPlatformWindow&)`, `endFrame()`, `isFrameActive()`
-- GL teardown: `releaseWindowResources(IPlatformWindow&)` for each secondary
-  context, then `shutdown(IPlatformWindow&)` for shared resources
+- GPU teardown: automatic for registered Fastener `Window` instances;
+  `releaseWindowResources(IPlatformWindow&)` and `shutdown(IPlatformWindow&)`
+  support foreign window implementations
 - Theme: `setTheme(Theme)`, `theme()`
 - Fonts: `loadFont(path, size)`, `font()`, `defaultFont()`; failed loads
   preserve the last valid font
 - Input: `input()`
-- Drawing: `drawList()`, `renderer()`, `layout()`, `docking()`
+- Drawing: `drawList()`, `renderer()` (`IRenderer`), `layout()`, `docking()`
+- Localization: context-owned `i18n()`
 - Time: `deltaTime()`, `time()`
 - Focus/hover/active: `getFocusedWidget()`, `setFocusedWidget()`, etc.
 - ID stack: `pushId(...)`, `popId()`, `currentId()`
 - Deferred rendering: `deferRender(lambda)`; commands queued by a deferred
   callback run during the following frame
 
-Context stack helpers:
-
-- `Context::pushContext(ctx)`, `Context::popContext()`
-- `Context::current()` is deprecated for new code.
-- `WidgetScope` (include/fastener/ui/widget_scope.h) is a RAII helper for push/pop.
+All widget and UI APIs take an explicit `Context&`. Fastener intentionally has
+no process-global or thread-local "current context" API.
 
 ## Window and Input (include/fastener/platform/window.h)
 
@@ -78,16 +77,16 @@ Flex-style containers with RAII macros:
 
 ## Drag and Drop (include/fastener/ui/drag_drop.h)
 
-Drag and drop uses explicit Context overloads. Deprecated overloads without Context still exist for legacy code.
+Drag and drop always uses an explicit `Context&`.
 
 Core flow:
 
-- Source: `BeginDragDropSource(ctx)`, `SetDragDropPayload(...)`, `EndDragDropSource(ctx)`
+- Source: `BeginDragDropSource(ctx)`, `SetDragDropPayload(ctx, ...)`, `EndDragDropSource(ctx)`
 - Target: `BeginDragDropTarget(ctx)`, `AcceptDragDropPayload(ctx, type)`, `EndDragDropTarget(ctx)`
 
 Utilities:
 
-- `IsDragDropActive()`, `GetDragDropPayload()`, `CancelDragDrop()`
+- `IsDragDropActive(ctx)`, `GetDragDropPayload(ctx)`, `CancelDragDrop(ctx)`
 
 ## Theming and Style (include/fastener/ui/theme.h, style.h)
 
@@ -97,9 +96,10 @@ Utilities:
 
 ## Localization (include/fastener/core/i18n.h)
 
-- `I18n::instance()` singleton
+- `Context::i18n()` for context-owned localization, or a standalone `I18n`
 - `loadFromFile`, `setLocale`, `translate`, `translatePlural`
-- Helpers: `i18n(key)`, `i18n(key, args)`, `i18n_plural(...)`
+- Instances are independent and safe to configure for separate applications
+  or UI contexts.
 
 ## Profiling (include/fastener/core/profiler.h, widgets/profiler_widget.h)
 

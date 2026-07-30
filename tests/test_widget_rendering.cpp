@@ -279,10 +279,10 @@ TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
     ctx->endFrame();
 }
 
-TEST(DragDropLifetimeTest, DestroyingSourceContextCancelsActiveDrag) {
+TEST(DragDropLifetimeTest, DestroyingOneContextDoesNotAffectAnother) {
     StubWindow sourceWindow;
     auto sourceContext = std::make_unique<Context>(false);
-    CancelDragDrop(*sourceContext);
+    Context unrelatedContext(false);
 
     sourceWindow.input().beginFrame();
     sourceContext->beginFrame(sourceWindow);
@@ -306,9 +306,7 @@ TEST(DragDropLifetimeTest, DestroyingSourceContextCancelsActiveDrag) {
 
     sourceContext.reset();
 
-    bool activeAfterContextDestruction = IsDragDropActive();
-    CancelDragDrop();
-    EXPECT_FALSE(activeAfterContextDestruction);
+    EXPECT_FALSE(IsDragDropActive(unrelatedContext));
 }
 
 TEST(DragDropContextTest, ActiveDragIsIsolatedBetweenContexts) {

@@ -180,7 +180,10 @@ bool Renderer::Impl::loadFunctions() {
 #elif defined(__linux__)
     #define LOAD_GL(name) name = (decltype(name))glXGetProcAddressARB((const GLubyte*)#name); if (!name) return false
 #else
-    #define LOAD_GL(name) // TODO: Other platforms
+    #define LOAD_GL(name) ((void)sizeof(#name))
+    FST_LOG_ERROR(
+        "The built-in OpenGL renderer has no function loader for this platform");
+    return false;
 #endif
     
     LOAD_GL(glAttachShader);

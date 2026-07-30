@@ -25,6 +25,7 @@ int main() {
     // Initialize context
     Context ctx;
     ctx.setTheme(Theme::dark());
+    I18n& translations = ctx.i18n();
     
     // Load font
 #ifdef _WIN32
@@ -40,7 +41,7 @@ int main() {
 #endif
     
     // Initialize localization
-    I18n::instance().loadFromString(R"({
+    translations.loadFromString(R"({
         "en": {
             "app.title": "Fastener IDE Demo",
             "menu.file": "File",
@@ -138,7 +139,7 @@ int main() {
             "localization.items.other": "{0} Elemente ausgewählt"
         }
     })");
-    I18n::instance().setLocale("en");
+    translations.setLocale("en");
     
     // Create file tree
     TreeView fileTree;
@@ -1150,7 +1151,7 @@ int main() {
                         targetRect.pos.y -= (i == 0) ? 15.0f : 2.0f; 
                         targetRect.size.y += (i == 0) ? 17.0f : 4.0f;
                         
-                        if (BeginDragDropTarget(targetRect)) {
+                        if (BeginDragDropTarget(ctx, targetRect)) {
                             itemTargetHit = true;
                             bool insertAfter = ctx.input().mousePos().y > itemRect.center().y;
                             
@@ -1162,13 +1163,13 @@ int main() {
                                 dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
                             }
 
-                            if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
+                            if (const DragPayload* payload = AcceptDragDropPayload(ctx, "DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
                                 pendingDrop = {(const char*)payload->data.data(), (int)i, insertAfter};
                             }
                             EndDragDropTarget(ctx);
                         }
                         
-                        if (BeginDragDropSource()) {
+                        if (BeginDragDropSource(ctx)) {
                             selectedDragItem1 = dragDropList1[i];
                             SetDragDropPayload(ctx, "DND_DEMO_ITEM", dragDropList1[i].c_str(), dragDropList1[i].size() + 1);
                             SetDragDropDisplayText(ctx, "Moving: " + dragDropList1[i]);
@@ -1203,8 +1204,8 @@ int main() {
                     }
 
                     // Container Drop Target (Fallback: Append)
-                    if (!itemTargetHit && BeginDragDropTarget(list1Rect)) {
-                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
+                    if (!itemTargetHit && BeginDragDropTarget(ctx, list1Rect)) {
+                        if (const DragPayload* payload = AcceptDragDropPayload(ctx, "DND_DEMO_ITEM")) {
                             std::string item = (const char*)payload->data.data();
                             auto it2 = std::find(dragDropList2.begin(), dragDropList2.end(), item);
                             if (it2 != dragDropList2.end()) {
@@ -1256,7 +1257,7 @@ int main() {
                         targetRect.pos.y -= (i == 0) ? 15.0f : 2.0f; 
                         targetRect.size.y += (i == 0) ? 17.0f : 4.0f;
                         
-                        if (BeginDragDropTarget(targetRect)) {
+                        if (BeginDragDropTarget(ctx, targetRect)) {
                             itemTargetHit = true;
                             bool insertAfter = ctx.input().mousePos().y > itemRect.center().y;
                             
@@ -1267,13 +1268,13 @@ int main() {
                                 dl.addLine(Vec2(itemRect.left(), lineY), Vec2(itemRect.right(), lineY), theme.colors.primary, 2.0f);
                             }
 
-                            if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
+                            if (const DragPayload* payload = AcceptDragDropPayload(ctx, "DND_DEMO_ITEM", DragDropFlags_AcceptNoHighlight)) {
                                 pendingDrop = {(const char*)payload->data.data(), (int)i, insertAfter};
                             }
                             EndDragDropTarget(ctx);
                         }
                         
-                        if (BeginDragDropSource()) {
+                        if (BeginDragDropSource(ctx)) {
                             selectedDragItem2 = dragDropList2[i];
                             SetDragDropPayload(ctx, "DND_DEMO_ITEM", dragDropList2[i].c_str(), dragDropList2[i].size() + 1);
                             SetDragDropDisplayText(ctx, "Moving: " + dragDropList2[i]);
@@ -1308,8 +1309,8 @@ int main() {
                     }
 
                     // Container Drop Target (Fallback: Append)
-                    if (!itemTargetHit && BeginDragDropTarget(list2Rect)) {
-                        if (const DragPayload* payload = AcceptDragDropPayload("DND_DEMO_ITEM")) {
+                    if (!itemTargetHit && BeginDragDropTarget(ctx, list2Rect)) {
+                        if (const DragPayload* payload = AcceptDragDropPayload(ctx, "DND_DEMO_ITEM")) {
                             std::string item = (const char*)payload->data.data();
                             auto it1 = std::find(dragDropList1.begin(), dragDropList1.end(), item);
                             if (it1 != dragDropList1.end()) {
@@ -1493,7 +1494,7 @@ int main() {
             Panel(ctx, "LocalizationDemoPanel", i18nPanelOpts) {
                 LabelOptions titleOpts;
                 titleOpts.color = theme.colors.primary;
-                Label(ctx, i18n("localization.title"), titleOpts);
+                Label(ctx, translations.translate("localization.title"), titleOpts);
                 Spacing(ctx, 10);
                 
                 LabelOptions sectionOpts;
@@ -1501,11 +1502,11 @@ int main() {
                 
                 // Language selector
                 BeginVertical(ctx, 10);
-                    Label(ctx, i18n("localization.select"), sectionOpts);
+                    Label(ctx, translations.translate("localization.select"), sectionOpts);
                     ComboBoxOptions comboOpts;
                     comboOpts.style = Style().withWidth(200);
                     if (ComboBox(ctx, "Language", selectedLocale, localeOptions, comboOpts)) {
-                        I18n::instance().setLocale(localeCodes[selectedLocale]);
+                        translations.setLocale(localeCodes[selectedLocale]);
                     }
                 EndVertical(ctx);
                 
@@ -1515,13 +1516,13 @@ int main() {
                 
                 // Show current locale info
                 BeginVertical(ctx, 10);
-                    Label(ctx, i18n("localization.current") + " " + I18n::instance().getLocale(), sectionOpts);
+                    Label(ctx, translations.translate("localization.current") + " " + translations.getLocale(), sectionOpts);
                     Spacing(ctx, 10);
                     
                     // Greeting example
                     LabelOptions greetingOpts;
                     greetingOpts.color = theme.colors.success;
-                    Label(ctx, i18n("localization.greeting"), greetingOpts);
+                    Label(ctx, translations.translate("localization.greeting"), greetingOpts);
                 EndVertical(ctx);
                 
                 Spacing(ctx, 20);
@@ -1538,7 +1539,7 @@ int main() {
                     (void)Slider(ctx, "Item Count", localizationItemCount, 0.0f, 10.0f, sliderOpts);
                     
                     // Show plural translation
-                    std::string pluralText = i18n_plural(
+                    std::string pluralText = translations.translatePlural(
                         "localization.items.one", 
                         "localization.items.other", 
                         static_cast<int>(localizationItemCount));
@@ -1556,9 +1557,9 @@ int main() {
                 BeginHorizontal(ctx, 10);
                     ButtonOptions btnOpts;
                     btnOpts.style = Style().withSize(100, 30);
-                    (void)Button(ctx, i18n("button.save"), btnOpts);
-                    (void)Button(ctx, i18n("button.cancel"), btnOpts);
-                    (void)Button(ctx, i18n("button.clear"), btnOpts);
+                    (void)Button(ctx, translations.translate("button.save"), btnOpts);
+                    (void)Button(ctx, translations.translate("button.cancel"), btnOpts);
+                    (void)Button(ctx, translations.translate("button.clear"), btnOpts);
                 EndHorizontal(ctx);
             }
             
@@ -1707,6 +1708,5 @@ int main() {
         renderFrame();
     }
 
-    (void)ctx.shutdown(window);
     return 0;
 }

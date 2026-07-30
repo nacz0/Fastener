@@ -19,7 +19,6 @@
 #include <shellapi.h>
 #include <gl/GL.h>
 #include <algorithm>
-#include <unordered_map>
 
 // OpenGL types and functions we need
 typedef HGLRC (WINAPI *PFNWGLCREATECONTEXTATTRIBSARBPROC)(HDC, HGLRC, const int*);
@@ -183,9 +182,6 @@ struct Window::Impl {
     static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
-// Global window map for WndProc
-static std::unordered_map<HWND, Window::Impl*> g_windowMap;
-
 void Window::Impl::loadWGLExtensions() {
     // Create dummy window to get WGL extensions
     WNDCLASSEXW wc = {};
@@ -314,12 +310,20 @@ void Window::Impl::updateModifiers() {
 }
 
 LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    auto it = g_windowMap.find(hwnd);
-    if (it == g_windowMap.end()) {
+    Impl* impl = reinterpret_cast<Impl*>(
+        GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    if (msg == WM_NCCREATE) {
+        const auto* create = reinterpret_cast<const CREATESTRUCTW*>(lParam);
+        impl = static_cast<Impl*>(create->lpCreateParams);
+        impl->hwnd = hwnd;
+        SetWindowLongPtrW(
+            hwnd,
+            GWLP_USERDATA,
+            reinterpret_cast<LONG_PTR>(impl));
+    }
+    if (!impl) {
         return DefWindowProcW(hwnd, msg, wParam, lParam);
     }
-    
-    Impl* impl = it->second;
     
     switch (msg) {
         case WM_CLOSE:
@@ -508,6 +512,11 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
             }
             return 0;
         }
+
+        case WM_NCDESTROY:
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
+            impl->hwnd = nullptr;
+            break;
     }
     
     return DefWindowProcW(hwnd, msg, wParam, lParam);
@@ -584,14 +593,12 @@ bool Window::create(const WindowConfig& config) {
         rect.bottom - rect.top,
         nullptr, nullptr,
         GetModuleHandleW(nullptr),
-        nullptr
+        m_impl.get()
     );
     
     if (!m_impl->hwnd) {
         return false;
     }
-    
-    g_windowMap[m_impl->hwnd] = m_impl.get();
     
     // Enable file drag and drop
     DragAcceptFiles(m_impl->hwnd, TRUE);
@@ -652,7 +659,6 @@ void Window::destroy() {
     }
     
     if (m_impl->hwnd) {
-        g_windowMap.erase(m_impl->hwnd);
         DestroyWindow(m_impl->hwnd);
         m_impl->hwnd = nullptr;
     }
@@ -969,14 +975,12 @@ bool Window::createWithSharedContext(const WindowConfig& config, Window* shareWi
         rect.bottom - rect.top,
         nullptr, nullptr,
         GetModuleHandleW(nullptr),
-        nullptr
+        m_impl.get()
     );
     
     if (!m_impl->hwnd) {
         return false;
     }
-    
-    g_windowMap[m_impl->hwnd] = m_impl.get();
     
     // Enable file drag and drop
     DragAcceptFiles(m_impl->hwnd, TRUE);

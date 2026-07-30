@@ -34,13 +34,12 @@ while (window.isOpen()) {
     window.swapBuffers();
 }
 
-// For multiple windows, release secondary-window resources first.
-(void)ctx.shutdown(window);
 ```
 
-Renderer-owned GL resources must be released before the final window/context is
-destroyed. Call `ctx.releaseWindowResources(secondaryWindow)` for every
-secondary window, then `ctx.shutdown(primaryWindow)`.
+Fastener `Window` instances coordinate renderer cleanup with `Context` before
+their native GL contexts are destroyed. Foreign `IPlatformWindow`
+implementations can call `releaseWindowResources()` and `shutdown()`
+explicitly.
 
 ## Widget API Quick Reference
 

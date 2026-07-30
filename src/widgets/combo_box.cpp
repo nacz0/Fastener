@@ -197,7 +197,7 @@ bool ComboBox(Context& ctx, std::string_view label, int& selectedIndex,
         int selectedIndexCopy = selectedIndex;
         
         ctx.deferRender([=, &ctx, &state]() mutable {
-            // Use captured context instead of Context::current()
+            // Deferred callbacks retain the submitting Context explicitly.
             IDrawList& dl = *ctx.activeDrawList();
             Font* font = ctx.font();
             InputState& input = ctx.input();

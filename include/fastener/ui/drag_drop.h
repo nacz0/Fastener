@@ -141,8 +141,6 @@ using FileDropCallback = std::function<void(const std::vector<std::string>& path
  * @return true if drag is active from this source
  */
 bool BeginDragDropSource(Context& ctx, DragDropFlags flags = DragDropFlags_None);
-[[deprecated("Use version with explicit Context")]]
-bool BeginDragDropSource(DragDropFlags flags = DragDropFlags_None);
 
 /**
  * @brief Set the payload for current drag operation
@@ -152,20 +150,16 @@ bool BeginDragDropSource(DragDropFlags flags = DragDropFlags_None);
  * @return true if payload was set
  */
 bool SetDragDropPayload(Context& ctx, const std::string& type, const void* data, size_t size);
-bool SetDragDropPayload(const std::string& type, const void* data, size_t size);
 
 /**
  * @brief Set display text for drag preview
  */
 void SetDragDropDisplayText(Context& ctx, const std::string& text);
-void SetDragDropDisplayText(const std::string& text);
 
 /**
  * @brief End drag source block
  */
 void EndDragDropSource(Context& ctx);
-[[deprecated("Use version with explicit Context")]]
-void EndDragDropSource();
 
 //=============================================================================
 // Drag and Drop API - Target Functions
@@ -176,8 +170,6 @@ void EndDragDropSource();
  * @return true if something is being dragged over this target
  */
 bool BeginDragDropTarget(Context& ctx);
-[[deprecated("Use version with explicit Context")]]
-bool BeginDragDropTarget();
 
 /**
  * @brief Begin a drop target with explicit bounds.
@@ -185,8 +177,6 @@ bool BeginDragDropTarget();
  * @return true if something is being dragged over this target
  */
 bool BeginDragDropTarget(Context& ctx, const Rect& targetRect);
-[[deprecated("Use version with explicit Context")]]
-bool BeginDragDropTarget(const Rect& targetRect);
 
 /**
  * @brief Accept a payload of specific type
@@ -196,16 +186,11 @@ bool BeginDragDropTarget(const Rect& targetRect);
  */
 const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
                                           DragDropFlags flags = DragDropFlags_None);
-[[deprecated("Use version with explicit Context")]]
-const DragPayload* AcceptDragDropPayload(const std::string& type, 
-                                          DragDropFlags flags = DragDropFlags_None);
 
 /**
  * @brief End drop target block
  */
 void EndDragDropTarget(Context& ctx);
-[[deprecated("Use version with explicit Context")]]
-void EndDragDropTarget();
 
 //=============================================================================
 // Drag and Drop API - Query Functions
@@ -215,34 +200,21 @@ void EndDragDropTarget();
  * @brief Check if a drag operation is in progress
  */
 bool IsDragDropActive(const Context& ctx);
-bool IsDragDropActive();
 
 /**
  * @brief Get the current drag payload (if any)
  */
 const DragPayload* GetDragDropPayload(const Context& ctx);
-const DragPayload* GetDragDropPayload();
 
 /**
  * @brief Cancel current drag operation
  */
 void CancelDragDrop(Context& ctx);
-void CancelDragDrop();
 
 /**
  * @brief Ends the drag and drop frame, performing cleanup.
  *        Called internally by the Context.
  */
 void EndDragDropFrame(Context& ctx);
-[[deprecated("Use version with explicit Context")]]
-void EndDragDropFrame();
-
-namespace detail {
-/**
- * Clears legacy routing references to a Context that is being destroyed.
- * This is an internal lifecycle hook, not a widget API.
- */
-void CancelDragDropForContext(Context& ctx);
-}
 
 } // namespace fst

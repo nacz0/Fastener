@@ -11,14 +11,19 @@
 
 namespace fst {
 
-// Thread-local display connection for cursor queries
-static thread_local Display* s_display = nullptr;
+struct ThreadDisplay {
+    Display* value = XOpenDisplay(nullptr);
+
+    ~ThreadDisplay() {
+        if (value) {
+            XCloseDisplay(value);
+        }
+    }
+};
 
 static Display* getDisplay() {
-    if (!s_display) {
-        s_display = XOpenDisplay(nullptr);
-    }
-    return s_display;
+    static thread_local ThreadDisplay display;
+    return display.value;
 }
 
 Vec2 GetGlobalCursorPos() {

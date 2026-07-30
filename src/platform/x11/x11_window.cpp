@@ -18,7 +18,6 @@
 #include <GL/glx.h>
 #include <unistd.h>
 #include <algorithm>
-#include <unordered_map>
 #include <cstring>
 
 namespace fst {
@@ -186,9 +185,6 @@ struct Window::Impl {
     void initAtoms();
     void initCursors();
 };
-
-// Global window map for event dispatch
-static std::unordered_map<::Window, Window::Impl*> g_windowMap;
 
 void Window::Impl::loadGLXExtensions() {
     glXCreateContextAttribsARB = (PFNGLXCREATECONTEXTATTRIBSARBPROC)
@@ -397,8 +393,6 @@ bool Window::create(const WindowConfig& config) {
         return false;
     }
     
-    g_windowMap[m_impl->window] = m_impl.get();
-    
     // Set window title
     XStoreName(m_impl->display, m_impl->window, config.title.c_str());
     
@@ -455,8 +449,6 @@ bool Window::createWithSharedContext(const WindowConfig& config, Window* shareWi
         return false;
     }
     
-    g_windowMap[m_impl->window] = m_impl.get();
-    
     XStoreName(m_impl->display, m_impl->window, config.title.c_str());
     XSetWMProtocols(m_impl->display, m_impl->window, &m_impl->wmDeleteWindow, 1);
     m_impl->initCursors();
@@ -511,7 +503,6 @@ void Window::destroy() {
     }
     
     if (m_impl->window) {
-        g_windowMap.erase(m_impl->window);
         XDestroyWindow(m_impl->display, m_impl->window);
         m_impl->window = 0;
     }

@@ -16,10 +16,10 @@
  * 
  * @example
  *   static std::string username;
- *   fst::TextInput("user_input", username, {.placeholder = "Username..."});
+ *   fst::TextInput(ctx, "user_input", username, {.placeholder = "Username..."});
  *   
  *   // With visible label:
- *   fst::TextInputWithLabel("Email", email);
+ *   fst::TextInputWithLabel(ctx, "Email", email);
  */
 
 namespace fst {

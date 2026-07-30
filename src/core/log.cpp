@@ -7,6 +7,9 @@
 #include <cstdio>
 #include <cstdarg>
 #include <cstring>
+#include <atomic>
+#include <mutex>
+#include <utility>
 
 namespace fst {
 
@@ -14,8 +17,9 @@ namespace fst {
 // Static State
 //=============================================================================
 
-static LogHandler g_logHandler = nullptr;
-static LogLevel g_minLogLevel = LogLevel::Warning;
+static std::mutex g_logHandlerMutex;
+static LogHandler g_logHandler;
+static std::atomic<LogLevel> g_minLogLevel{LogLevel::Warning};
 
 //=============================================================================
 // Helper Functions
@@ -32,10 +36,16 @@ static const char* levelToString(LogLevel level) {
 }
 
 static const char* getFileName(const char* path) {
+    if (!path) {
+        return "";
+    }
     // Extract just the filename from full path
     const char* lastSlash = std::strrchr(path, '/');
     const char* lastBackslash = std::strrchr(path, '\\');
-    const char* last = lastSlash > lastBackslash ? lastSlash : lastBackslash;
+    const char* last = lastSlash;
+    if (!last || (lastBackslash && lastBackslash > last)) {
+        last = lastBackslash;
+    }
     return last ? last + 1 : path;
 }
 
@@ -50,25 +60,32 @@ static void defaultLogHandler(LogLevel level, const char* file, int line, const 
 //=============================================================================
 
 void setLogHandler(LogHandler handler) {
-    g_logHandler = handler;
+    std::lock_guard<std::mutex> lock(g_logHandlerMutex);
+    g_logHandler = std::move(handler);
 }
 
 LogLevel getMinLogLevel() {
-    return g_minLogLevel;
+    return g_minLogLevel.load(std::memory_order_relaxed);
 }
 
 void setMinLogLevel(LogLevel level) {
-    g_minLogLevel = level;
+    g_minLogLevel.store(level, std::memory_order_relaxed);
 }
 
 void logMessage(LogLevel level, const char* file, int line, const char* message) {
     // Filter by minimum level
-    if (static_cast<int>(level) < static_cast<int>(g_minLogLevel)) {
+    if (static_cast<int>(level) <
+        static_cast<int>(g_minLogLevel.load(std::memory_order_relaxed))) {
         return;
     }
-    
-    if (g_logHandler) {
-        g_logHandler(level, file, line, message);
+
+    LogHandler handler;
+    {
+        std::lock_guard<std::mutex> lock(g_logHandlerMutex);
+        handler = g_logHandler;
+    }
+    if (handler) {
+        handler(level, file, line, message);
     } else {
         defaultLogHandler(level, file, line, message);
     }
@@ -76,7 +93,8 @@ void logMessage(LogLevel level, const char* file, int line, const char* message)
 
 void logMessageF(LogLevel level, const char* file, int line, const char* fmt, ...) {
     // Filter by minimum level
-    if (static_cast<int>(level) < static_cast<int>(g_minLogLevel)) {
+    if (static_cast<int>(level) <
+        static_cast<int>(g_minLogLevel.load(std::memory_order_relaxed))) {
         return;
     }
     
@@ -87,8 +105,13 @@ void logMessageF(LogLevel level, const char* file, int line, const char* fmt, ..
     std::vsnprintf(buffer, sizeof(buffer), fmt, args);
     va_end(args);
     
-    if (g_logHandler) {
-        g_logHandler(level, file, line, buffer);
+    LogHandler handler;
+    {
+        std::lock_guard<std::mutex> lock(g_logHandlerMutex);
+        handler = g_logHandler;
+    }
+    if (handler) {
+        handler(level, file, line, buffer);
     } else {
         defaultLogHandler(level, file, line, buffer);
     }

@@ -75,8 +75,6 @@ int main() {
         window.swapBuffers();
     }
 
-    // Keep the window and its GL context alive through renderer teardown.
-    (void)ctx.shutdown(window);
     return 0;
 }
 ```
@@ -92,8 +90,9 @@ int main() {
   double-begin, unmatched, recursive, and out-of-order end calls are logged and
   ignored.
 - GL context: renderer initialization and cleanup require a current context.
-  Call `releaseWindowResources()` for every secondary window before destroying
-  it, then call `shutdown()` with the final window still alive.
+  Fastener `Window` instances coordinate cleanup automatically; foreign
+  `IPlatformWindow` implementations can use `releaseWindowResources()` and
+  `shutdown()` explicitly.
 
 ---
 Next: ARCHITECTURE.md

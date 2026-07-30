@@ -59,11 +59,11 @@ public:
     explicit Window(const WindowConfig& config);
     ~Window();
     
-    // Non-copyable, movable
+    // Native windows have stable addresses while resource listeners are bound.
     Window(const Window&) = delete;
     Window& operator=(const Window&) = delete;
-    Window(Window&& other) noexcept;
-    Window& operator=(Window&& other) noexcept;
+    Window(Window&& other) = delete;
+    Window& operator=(Window&& other) = delete;
     
     // Lifecycle
     bool create(const WindowConfig& config);
@@ -150,12 +150,18 @@ public:
     
     // Platform handle (use with caution)
     void* nativeHandle() const override;
+    bool addResourceListener(IWindowResourceListener& listener) override;
+    void removeResourceListener(IWindowResourceListener& listener) override;
     
     // Implementation (public for MSVC compatibility)
     struct Impl;
     
 private:
+    void notifyResourceListeners();
+
     std::unique_ptr<Impl> m_impl;
+    std::vector<IWindowResourceListener*> m_resourceListeners;
+    bool m_notifyingResourceListeners = false;
 };
 
 } // namespace fst

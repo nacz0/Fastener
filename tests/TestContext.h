@@ -76,7 +76,7 @@ private:
 class TestContext {
 public:
     TestContext() : m_ctx(false) {  // No renderer
-        Context::setTestDrawList(&m_mockDl);
+        m_ctx.setDrawListOverride(&m_mockDl);
         
         // Setup default mock behaviors
         ON_CALL(m_mockDl, resolveColor(::testing::_))
@@ -93,7 +93,7 @@ public:
         if (m_frameActive) {
             m_ctx.endFrame();
         }
-        Context::setTestDrawList(nullptr);
+        m_ctx.setDrawListOverride(nullptr);
     }
     
     // Non-copyable

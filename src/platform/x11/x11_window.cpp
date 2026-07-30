@@ -17,6 +17,7 @@
 #include <X11/keysym.h>
 #include <GL/glx.h>
 #include <unistd.h>
+#include <algorithm>
 #include <unordered_map>
 #include <cstring>
 
@@ -369,9 +370,6 @@ Window::~Window() {
     destroy();
 }
 
-Window::Window(Window&& other) noexcept = default;
-Window& Window::operator=(Window&& other) noexcept = default;
-
 bool Window::create(const WindowConfig& config) {
     if (m_impl->isOpen) {
         destroy();
@@ -485,6 +483,10 @@ bool Window::createWithSharedContext(const WindowConfig& config, Window* shareWi
 }
 
 void Window::destroy() {
+    if (m_impl->glxContext) {
+        notifyResourceListeners();
+    }
+
     if (m_impl->xic) {
         XDestroyIC(m_impl->xic);
         m_impl->xic = nullptr;
@@ -525,6 +527,40 @@ void Window::destroy() {
     }
     
     m_impl->isOpen = false;
+}
+
+bool Window::addResourceListener(IWindowResourceListener& listener) {
+    if (std::find(
+            m_resourceListeners.begin(),
+            m_resourceListeners.end(),
+            &listener) == m_resourceListeners.end()) {
+        m_resourceListeners.push_back(&listener);
+    }
+    return true;
+}
+
+void Window::removeResourceListener(IWindowResourceListener& listener) {
+    m_resourceListeners.erase(
+        std::remove(
+            m_resourceListeners.begin(),
+            m_resourceListeners.end(),
+            &listener),
+        m_resourceListeners.end());
+}
+
+void Window::notifyResourceListeners() {
+    if (m_notifyingResourceListeners) {
+        return;
+    }
+    m_notifyingResourceListeners = true;
+    const auto listeners = m_resourceListeners;
+    for (IWindowResourceListener* listener : listeners) {
+        if (listener) {
+            listener->beforeWindowDestroyed(*this);
+        }
+    }
+    m_resourceListeners.clear();
+    m_notifyingResourceListeners = false;
 }
 
 bool Window::isOpen() const {

@@ -18,6 +18,7 @@
 #include <dwmapi.h>
 #include <shellapi.h>
 #include <gl/GL.h>
+#include <algorithm>
 #include <unordered_map>
 
 // OpenGL types and functions we need
@@ -537,9 +538,6 @@ Window::~Window() {
     destroy();
 }
 
-Window::Window(Window&& other) noexcept = default;
-Window& Window::operator=(Window&& other) noexcept = default;
-
 bool Window::create(const WindowConfig& config) {
     if (m_impl->isOpen) {
         destroy();
@@ -639,6 +637,10 @@ bool Window::create(const WindowConfig& config) {
 
 void Window::destroy() {
     if (m_impl->hglrc) {
+        notifyResourceListeners();
+    }
+
+    if (m_impl->hglrc) {
         wglMakeCurrent(nullptr, nullptr);
         wglDeleteContext(m_impl->hglrc);
         m_impl->hglrc = nullptr;
@@ -656,6 +658,40 @@ void Window::destroy() {
     }
     
     m_impl->isOpen = false;
+}
+
+bool Window::addResourceListener(IWindowResourceListener& listener) {
+    if (std::find(
+            m_resourceListeners.begin(),
+            m_resourceListeners.end(),
+            &listener) == m_resourceListeners.end()) {
+        m_resourceListeners.push_back(&listener);
+    }
+    return true;
+}
+
+void Window::removeResourceListener(IWindowResourceListener& listener) {
+    m_resourceListeners.erase(
+        std::remove(
+            m_resourceListeners.begin(),
+            m_resourceListeners.end(),
+            &listener),
+        m_resourceListeners.end());
+}
+
+void Window::notifyResourceListeners() {
+    if (m_notifyingResourceListeners) {
+        return;
+    }
+    m_notifyingResourceListeners = true;
+    const auto listeners = m_resourceListeners;
+    for (IWindowResourceListener* listener : listeners) {
+        if (listener) {
+            listener->beforeWindowDestroyed(*this);
+        }
+    }
+    m_resourceListeners.clear();
+    m_notifyingResourceListeners = false;
 }
 
 bool Window::isOpen() const {

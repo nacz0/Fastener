@@ -13,7 +13,7 @@ namespace fst {
 
 // Forward declarations
 class Context;
-class Renderer;
+class IRenderer;
 class DrawList;
 class IDrawList;
 class Theme;
@@ -33,9 +33,12 @@ WidgetStateRegistry& widgetStates(Context& ctx);
 //=============================================================================
 // Context - Main application context
 //=============================================================================
-class Context {
+class Context : private IWindowResourceListener {
 public:
     Context(bool initializeRenderer = true);
+    explicit Context(
+        std::unique_ptr<IRenderer> renderer,
+        bool initializeRenderer = true);
     ~Context();
     
     // Non-copyable
@@ -82,8 +85,15 @@ public:
     
     // Drawing
     DrawList& drawList();
-    IDrawList* activeDrawList();  ///< Returns test DrawList if set, otherwise normal drawList
-    Renderer& renderer();
+    IDrawList* activeDrawList();
+    const IDrawList* activeDrawList() const;
+    /**
+     * Override drawing for this context, primarily for tests and tooling.
+     * The caller retains ownership and must keep the object alive until the
+     * override is cleared or this Context is destroyed.
+     */
+    void setDrawListOverride(IDrawList* drawList);
+    IRenderer& renderer();
     LayoutContext& layout();
     IPlatformWindow& window() const;
     DockContext& docking();
@@ -161,12 +171,10 @@ public:
     };
     MenuState& menuState();
     
-    // Testing support
-    /** @brief Set a mock DrawList for testing (pass nullptr to reset). */
-    static void setTestDrawList(IDrawList* testDl);
-    static IDrawList* testDrawList();
-    
 private:
+    void beforeWindowDestroyed(IPlatformWindow& window) override;
+    void releaseTrackedWindowResources();
+
     friend detail::DragDropContextState& detail::dragDropState(Context& ctx);
     friend const detail::DragDropContextState& detail::dragDropState(const Context& ctx);
     friend detail::WidgetStateRegistry& detail::widgetStates(Context& ctx);

@@ -36,8 +36,6 @@ thread_local std::vector<ContextStackEntry> s_contextStack;
 
 } // namespace
 
-static IDrawList* s_testDrawList = nullptr;
-
 namespace {
 
 class NullWindow final : public IPlatformWindow {
@@ -93,8 +91,9 @@ private:
 
 struct Context::Impl {
     // Components
-    Renderer renderer;
+    std::unique_ptr<IRenderer> renderer;
     DrawList drawList;
+    IDrawList* drawListOverride = nullptr;
     LayoutContext layout;
     DockContext dockContext;
     Profiler profiler;
@@ -111,6 +110,7 @@ struct Context::Impl {
     // Input
     InputState* inputState = nullptr;
     IPlatformWindow* currentWindow = nullptr;
+    std::vector<IPlatformWindow*> resourceWindows;
     InputState nullInput;
     NullWindow nullWindow{nullInput};
 
@@ -136,7 +136,11 @@ struct Context::Impl {
     // Menu state (moved from global variables in menu.cpp)
     Context::MenuState menuState;
     
-    Impl() {
+    explicit Impl(std::unique_ptr<IRenderer> rendererOverride = {})
+        : renderer(
+              rendererOverride
+                  ? std::move(rendererOverride)
+                  : std::make_unique<Renderer>()) {
         startTime = std::chrono::steady_clock::now();
         lastFrameTime = startTime;
         idStack.push_back(0);
@@ -157,8 +161,16 @@ Context::Context(bool initializeRenderer) : m_impl(std::make_unique<Impl>()) {
     m_impl->rendererEnabled = initializeRenderer;
 }
 
+Context::Context(
+    std::unique_ptr<IRenderer> renderer,
+    bool initializeRenderer)
+    : m_impl(std::make_unique<Impl>(std::move(renderer))) {
+    m_impl->rendererEnabled = initializeRenderer;
+}
+
 Context::~Context() {
     detail::CancelDragDropForContext(*this);
+    releaseTrackedWindowResources();
 
     s_contextStack.erase(
         std::remove_if(
@@ -197,6 +209,15 @@ void Context::beginFrame(IPlatformWindow& window) {
     m_impl->inputState = &window.input();
     m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
 
+    if (m_impl->rendererEnabled &&
+        std::find(
+            m_impl->resourceWindows.begin(),
+            m_impl->resourceWindows.end(),
+            &window) == m_impl->resourceWindows.end() &&
+        window.addResourceListener(*this)) {
+        m_impl->resourceWindows.push_back(&window);
+    }
+
     
     // Calculate delta time
     auto now = std::chrono::steady_clock::now();
@@ -219,7 +240,7 @@ void Context::beginFrame(IPlatformWindow& window) {
     if (m_impl->rendererEnabled) {
         window.makeContextCurrent();
         if (!m_impl->rendererInitialized) {
-            if (m_impl->renderer.init()) {
+            if (m_impl->renderer->init()) {
                 m_impl->rendererInitialized = true;
             } else {
                 FST_LOG_ERROR("Context::beginFrame failed to initialize renderer");
@@ -229,7 +250,7 @@ void Context::beginFrame(IPlatformWindow& window) {
     }
     if (m_impl->rendererInitialized) {
         Vec2 fbSize = window.framebufferSize();
-        m_impl->renderer.beginFrame(
+        m_impl->renderer->beginFrame(
             static_cast<int>(fbSize.x), 
             static_cast<int>(fbSize.y), 
             window.dpiScale()
@@ -339,8 +360,8 @@ void Context::endFrame() {
     // Render
     m_impl->drawList.mergeLayers();
     if (m_impl->rendererInitialized) {
-        m_impl->renderer.render(m_impl->drawList);
-        m_impl->renderer.endFrame();
+        m_impl->renderer->render(m_impl->drawList);
+        m_impl->renderer->endFrame();
     }
     
     m_impl->profiler.endSection(); // Internal
@@ -374,7 +395,7 @@ bool Context::releaseWindowResources(IPlatformWindow& window) {
     }
 
     window.makeContextCurrent();
-    return m_impl->renderer.releaseCurrentContextResources();
+    return m_impl->renderer->releaseCurrentContextResources();
 }
 
 bool Context::shutdown(IPlatformWindow& window) {
@@ -387,10 +408,64 @@ bool Context::shutdown(IPlatformWindow& window) {
 
     m_impl->currentFont = nullptr;
     m_impl->defaultFont.reset();
-    (void)m_impl->renderer.releaseCurrentContextResources();
-    m_impl->renderer.shutdown();
+    (void)m_impl->renderer->releaseCurrentContextResources();
+    m_impl->renderer->shutdown();
     m_impl->rendererInitialized = false;
     return true;
+}
+
+void Context::beforeWindowDestroyed(IPlatformWindow& window) {
+    auto it = std::find(
+        m_impl->resourceWindows.begin(),
+        m_impl->resourceWindows.end(),
+        &window);
+    if (it == m_impl->resourceWindows.end()) {
+        return;
+    }
+
+    if (m_impl->frameActive) {
+        FST_LOG_ERROR(
+            "A platform window was destroyed during an active Context frame");
+    } else if (m_impl->resourceWindows.size() == 1) {
+        (void)shutdown(window);
+    } else {
+        (void)releaseWindowResources(window);
+    }
+
+    m_impl->resourceWindows.erase(it);
+}
+
+void Context::releaseTrackedWindowResources() {
+    if (m_impl->resourceWindows.empty()) {
+        return;
+    }
+    if (m_impl->frameActive) {
+        FST_LOG_ERROR(
+            "Context destroyed during an active frame; GPU cleanup cannot be guaranteed");
+        for (IPlatformWindow* window : m_impl->resourceWindows) {
+            if (window) {
+                window->removeResourceListener(*this);
+            }
+        }
+        m_impl->resourceWindows.clear();
+        return;
+    }
+
+    while (m_impl->resourceWindows.size() > 1) {
+        IPlatformWindow* window = m_impl->resourceWindows.back();
+        m_impl->resourceWindows.pop_back();
+        if (window) {
+            (void)releaseWindowResources(*window);
+            window->removeResourceListener(*this);
+        }
+    }
+
+    IPlatformWindow* finalWindow = m_impl->resourceWindows.back();
+    m_impl->resourceWindows.clear();
+    if (finalWindow) {
+        (void)shutdown(*finalWindow);
+        finalWindow->removeResourceListener(*this);
+    }
 }
 
 void Context::setTheme(const Theme& theme) {
@@ -441,8 +516,8 @@ const InputState& Context::input() const {
     return *m_impl->inputState;
 }
 
-[[nodiscard]] Renderer& Context::renderer() {
-    return m_impl->renderer;
+[[nodiscard]] IRenderer& Context::renderer() {
+    return *m_impl->renderer;
 }
 
 DrawList& Context::drawList() {
@@ -450,7 +525,19 @@ DrawList& Context::drawList() {
 }
 
 IDrawList* Context::activeDrawList() {
-    return s_testDrawList ? s_testDrawList : &m_impl->drawList;
+    return m_impl->drawListOverride
+        ? m_impl->drawListOverride
+        : &m_impl->drawList;
+}
+
+const IDrawList* Context::activeDrawList() const {
+    return m_impl->drawListOverride
+        ? m_impl->drawListOverride
+        : &m_impl->drawList;
+}
+
+void Context::setDrawListOverride(IDrawList* drawList) {
+    m_impl->drawListOverride = drawList;
 }
 
 
@@ -586,7 +673,7 @@ bool Context::isOccluded(const Vec2& pos) const {
     }
     
     // For non-fullscreen floating windows, only block default layer
-    IDrawList* dl = s_testDrawList ? s_testDrawList : &m_impl->drawList;
+    const IDrawList* dl = activeDrawList();
     if (dl->currentLayer() != DrawLayer::Default) {
         return false;
     }
@@ -674,14 +761,6 @@ void Context::deferRender(std::function<void()> cmd) {
 
 Context::MenuState& Context::menuState() {
     return m_impl->menuState;
-}
-
-void Context::setTestDrawList(IDrawList* testDl) {
-    s_testDrawList = testDl;
-}
-
-IDrawList* Context::testDrawList() {
-    return s_testDrawList;
 }
 
 } // namespace fst

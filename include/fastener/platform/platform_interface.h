@@ -13,6 +13,19 @@ struct WindowResizeEvent;
 struct WindowCloseEvent;
 struct WindowFocusEvent;
 
+class IPlatformWindow;
+
+/**
+ * Receives a notification while a native graphics context is still valid.
+ * Backends use this to release context-local and shared GPU objects before
+ * destroying the window.
+ */
+class IWindowResourceListener {
+public:
+    virtual ~IWindowResourceListener() = default;
+    virtual void beforeWindowDestroyed(IPlatformWindow& window) = 0;
+};
+
 /**
  * @brief Interface for platform-specific window implementations.
  */
@@ -60,6 +73,15 @@ public:
     virtual const InputState& input() const = 0;
     
     virtual void* nativeHandle() const = 0;
+
+    /**
+     * Register for pre-destruction resource cleanup. Lightweight test or
+     * foreign window implementations may return false when unsupported.
+     */
+    virtual bool addResourceListener(IWindowResourceListener&) {
+        return false;
+    }
+    virtual void removeResourceListener(IWindowResourceListener&) {}
 };
 
 } // namespace fst

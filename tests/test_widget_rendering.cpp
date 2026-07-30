@@ -73,7 +73,7 @@ protected:
     void SetUp() override {
         ctx = new Context(false);
         // Set up mock draw list for tests
-        Context::setTestDrawList(&mockDl);
+        ctx->setDrawListOverride(&mockDl);
         
         // Set up default mock behaviors
         ON_CALL(mockDl, resolveColor(_))
@@ -88,7 +88,7 @@ protected:
     
     void TearDown() override {
         // Clean up test draw list
-        Context::setTestDrawList(nullptr);
+        ctx->setDrawListOverride(nullptr);
         delete ctx;
     }
 };
@@ -391,6 +391,5 @@ TEST(DragDropContextTest, RejectedSourceCannotOverwriteActivePayload) {
 //=============================================================================
 
 TEST_F(WidgetRenderingTest, TestModeDrawListInjection) {
-    // Verify that Context::testDrawList() returns our mock
-    EXPECT_EQ(Context::testDrawList(), &mockDl);
+    EXPECT_EQ(ctx->activeDrawList(), &mockDl);
 }

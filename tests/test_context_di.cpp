@@ -9,12 +9,74 @@
 #include <fastener/ui/widget_scope.h>
 #include <fastener/ui/widget_utils.h>
 #include <fastener/platform/window_manager.h>
+#include <fastener/graphics/renderer.h>
 #include <fastener/widgets/menu.h>
 #include "TestContext.h"
+#include <memory>
 #include <stdexcept>
 
 using namespace fst;
 using namespace fst::testing;
+
+namespace {
+
+struct RendererCalls {
+    int init = 0;
+    int shutdown = 0;
+    int release = 0;
+    int beginFrame = 0;
+    int render = 0;
+    int endFrame = 0;
+};
+
+class RecordingRenderer final : public IRenderer {
+public:
+    explicit RecordingRenderer(RendererCalls& calls) : m_calls(calls) {}
+
+    bool init() override {
+        ++m_calls.init;
+        return true;
+    }
+    void shutdown() override { ++m_calls.shutdown; }
+    bool releaseCurrentContextResources() override {
+        ++m_calls.release;
+        return true;
+    }
+    void beginFrame(int, int, float) override { ++m_calls.beginFrame; }
+    void endFrame() override { ++m_calls.endFrame; }
+    void render(const DrawList&) override { ++m_calls.render; }
+    uint32_t whiteTexture() const override { return 0; }
+
+private:
+    RendererCalls& m_calls;
+};
+
+class LifecycleStubWindow final : public StubWindow {
+public:
+    bool addResourceListener(IWindowResourceListener& listener) override {
+        m_listener = &listener;
+        return true;
+    }
+
+    void removeResourceListener(IWindowResourceListener& listener) override {
+        if (m_listener == &listener) {
+            m_listener = nullptr;
+        }
+    }
+
+    void destroyNativeResources() {
+        if (m_listener) {
+            IWindowResourceListener* listener = m_listener;
+            m_listener = nullptr;
+            listener->beforeWindowDestroyed(*this);
+        }
+    }
+
+private:
+    IWindowResourceListener* m_listener = nullptr;
+};
+
+} // namespace
 
 TEST(WindowManagerTest, WindowViewsAreOwnedByTheirManager) {
     WindowManager first;
@@ -24,6 +86,67 @@ TEST(WindowManagerTest, WindowViewsAreOwnedByTheirManager) {
     const auto* secondView = &second.windows();
 
     EXPECT_NE(firstView, secondView);
+}
+
+TEST(ContextRendererTest, InjectedRendererOwnsFrameAndShutdownLifecycle) {
+    RendererCalls calls;
+    auto renderer = std::make_unique<RecordingRenderer>(calls);
+    Context ctx(std::move(renderer));
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    ctx.endFrame();
+
+    EXPECT_EQ(calls.init, 1);
+    EXPECT_EQ(calls.beginFrame, 1);
+    EXPECT_EQ(calls.render, 1);
+    EXPECT_EQ(calls.endFrame, 1);
+
+    EXPECT_TRUE(ctx.releaseWindowResources(window));
+    EXPECT_TRUE(ctx.shutdown(window));
+    EXPECT_EQ(calls.release, 2);
+    EXPECT_EQ(calls.shutdown, 1);
+}
+
+TEST(ContextRendererTest, WindowDestructionReleasesAllRendererResources) {
+    RendererCalls calls;
+    auto renderer = std::make_unique<RecordingRenderer>(calls);
+    Context ctx(std::move(renderer));
+    LifecycleStubWindow first;
+    LifecycleStubWindow second;
+
+    first.input().beginFrame();
+    ctx.beginFrame(first);
+    ctx.endFrame();
+    second.input().beginFrame();
+    ctx.beginFrame(second);
+    ctx.endFrame();
+
+    second.destroyNativeResources();
+    EXPECT_EQ(calls.release, 1);
+    EXPECT_EQ(calls.shutdown, 0);
+
+    first.destroyNativeResources();
+    EXPECT_EQ(calls.release, 2);
+    EXPECT_EQ(calls.shutdown, 1);
+}
+
+TEST(ContextRendererTest, ContextDestructionCleansLiveWindowsInSafeOrder) {
+    RendererCalls calls;
+    LifecycleStubWindow first;
+    LifecycleStubWindow second;
+
+    {
+        auto renderer = std::make_unique<RecordingRenderer>(calls);
+        Context ctx(std::move(renderer));
+        ctx.beginFrame(first);
+        ctx.endFrame();
+        ctx.beginFrame(second);
+        ctx.endFrame();
+    }
+
+    EXPECT_EQ(calls.release, 2);
+    EXPECT_EQ(calls.shutdown, 1);
 }
 
 //=============================================================================
@@ -82,6 +205,17 @@ TEST(TestContextTest, MockDrawListAvailable) {
         .Times(1);
     
     mockDl.addRectFilled(Rect(0, 0, 100, 100), Color::red(), 5.0f);
+}
+
+TEST(TestContextTest, DrawListOverridesAreIsolatedPerContext) {
+    TestContext first;
+    IDrawList* firstDrawList = first.context().activeDrawList();
+
+    TestContext second;
+
+    EXPECT_EQ(first.context().activeDrawList(), firstDrawList);
+    EXPECT_EQ(second.context().activeDrawList(), &second.mockDrawList());
+    EXPECT_NE(first.context().activeDrawList(), second.context().activeDrawList());
 }
 
 TEST(ContextFrameGuardTest, DoubleBeginDoesNotRequireExtraEnd) {

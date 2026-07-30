@@ -244,32 +244,29 @@ TEST_F(WidgetRenderingTest, DragDrop_OcclusionPreventsHighlight) {
 }
 
 TEST_F(WidgetRenderingTest, DragDrop_LateTargetUpdatesPreviewHighlight) {
-    // Step 1: Start drag
+    // Frame A: record the press on the source widget.
     window.input().beginFrame();
     ctx->beginFrame(window);
     auto& input = ctx->input();
     input.onMouseMove(50, 50);
-    
     ctx->setLastWidgetId(hashString("source"));
     ctx->setLastWidgetBounds(Rect(0, 0, 100, 100));
     input.onMouseDown(MouseButton::Left);
-    input.onMouseMove(60, 60);
-    
     BeginDragDropSource(*ctx);
-    SetDragDropPayload(*ctx, "test", nullptr, 0);
-    EndDragDropSource(*ctx);
     ctx->endFrame();
-    
-    // Step 2: Move to target and verify late update
+
+    // Frame B: submit the source again, cross the drag threshold, then process
+    // a target later in the same frame.
     window.input().beginFrame();
     ctx->beginFrame(window);
-    input.onMouseMove(150, 150); 
-    
-    // Source processed first
-    BeginDragDropSource(*ctx);
+    input.onMouseMove(150, 150);
+    ctx->setLastWidgetId(hashString("source"));
+    ctx->setLastWidgetBounds(Rect(0, 0, 100, 100));
+
+    ASSERT_TRUE(BeginDragDropSource(*ctx));
+    SetDragDropPayload(*ctx, "test", nullptr, 0);
     EndDragDropSource(*ctx);
-    
-    // Target processed second
+
     bool isTarget = BeginDragDropTarget(*ctx, Rect(140, 140, 40, 40));
     if (isTarget) {
         AcceptDragDropPayload(*ctx, "test");

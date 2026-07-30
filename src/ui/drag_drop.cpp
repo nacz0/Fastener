@@ -361,9 +361,14 @@ const DragPayload* AcceptDragDropPayload(Context& ctx, const std::string& type, 
         dl.addRect(state.currentTargetRect, theme.colors.primary, 2.0f);
     }
     
-    // Check for drop using GLOBAL mouse state (works for cross-window D&D)
-    // GetAsyncKeyState checks actual physical button state regardless of window focus
-    if (!IsGlobalMouseButtonDown(&ctx, MouseButton::Left)) {
+    // Real windows need OS-global state for cross-window drops. Injected and
+    // headless windows must use their own input state; consulting the physical
+    // desktop mouse would make behavior nondeterministic and untestable.
+    const bool hasNativeHandle = ctx.window().nativeHandle() != nullptr;
+    const bool mouseDown = hasNativeHandle
+        ? IsGlobalMouseButtonDown(&ctx, MouseButton::Left)
+        : ctx.input().isMouseDown(MouseButton::Left);
+    if (!mouseDown) {
         state.payload.isDelivered = true;
         // IMPORTANT: Clear activeWidget because after D&D reorder, the source widget's
         // ID may have changed (e.g., pushId(index) where index changes). If we don't

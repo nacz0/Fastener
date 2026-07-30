@@ -48,6 +48,10 @@ public:
     Font& operator=(Font&& other) noexcept;
     
     // Loading
+    /**
+     * Replace the font only after the new data has been validated and loaded.
+     * Failed loads leave an existing valid font unchanged.
+     */
     bool loadFromFile(const std::string& path, float size);
     bool loadFromMemory(const void* data, size_t dataSize, float size);
     void destroy();
@@ -105,6 +109,7 @@ private:
     int m_packY = 0;
     int m_packRowHeight = 0;
     
+    bool initializeFromMemory(const void* data, size_t dataSize, float size);
     bool bakeGlyph(uint32_t codepoint);
     void updateAtlasTexture();
 };

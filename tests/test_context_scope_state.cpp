@@ -103,6 +103,34 @@ TEST(TreeViewSimpleContextStateTest, MatchingIdsRetainIndependentScrollState) {
     EXPECT_EQ(selectedId, "first-3");
 }
 
+TEST(ContextFontLifetimeTest, FailedReloadPreservesTheCurrentFont) {
+    Context ctx(false);
+    ASSERT_TRUE(ctx.loadFont(testFontPath(), 16.0f));
+    Font* originalFont = ctx.font();
+    ASSERT_NE(originalFont, nullptr);
+
+    EXPECT_FALSE(ctx.loadFont("this/font/does/not/exist.ttf", 18.0f));
+
+    EXPECT_EQ(ctx.font(), originalFont);
+    EXPECT_EQ(ctx.defaultFont(), originalFont);
+}
+
+TEST(FontLifetimeTest, InvalidMemoryReloadPreservesValidFont) {
+    Font font;
+    ASSERT_TRUE(font.loadFromFile(testFontPath(), 16.0f));
+    const Vec2 originalMeasurement = font.measureText("Fastener");
+    const std::uint8_t invalidData[] = {0x00, 0x01, 0x02, 0x03};
+
+    EXPECT_FALSE(font.loadFromMemory(invalidData, sizeof(invalidData), 18.0f));
+
+    EXPECT_TRUE(font.isValid());
+    EXPECT_EQ(font.measureText("Fastener"), originalMeasurement);
+
+    EXPECT_FALSE(font.loadFromMemory(nullptr, 4, 18.0f));
+    EXPECT_TRUE(font.isValid());
+    EXPECT_EQ(font.measureText("Fastener"), originalMeasurement);
+}
+
 TEST(PanelContextStateTest, OpenPanelInAnotherContextIsStillTopLevel) {
     Context first(false);
     Context second(false);

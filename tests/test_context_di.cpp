@@ -168,6 +168,23 @@ TEST(ContextFrameGuardTest, EndFrameRecoversUnbalancedLayoutStack) {
               Rect(0.0f, 0.0f, 10.0f, 10.0f));
 }
 
+TEST(ContextFrameStateTest, LastWidgetDoesNotLeakIntoTheNextFrame) {
+    Context ctx(false);
+    StubWindow window;
+
+    ctx.beginFrame(window);
+    ctx.setLastWidgetId(WidgetId{42});
+    ctx.setLastWidgetBounds(Rect(10.0f, 20.0f, 30.0f, 40.0f));
+    ctx.endFrame();
+
+    ctx.beginFrame(window);
+
+    EXPECT_EQ(ctx.getLastWidgetId(), INVALID_WIDGET_ID);
+    EXPECT_EQ(ctx.getLastWidgetBounds(), Rect{});
+
+    ctx.endFrame();
+}
+
 TEST(ContextShutdownTest, WindowResourceReleaseMakesTargetContextCurrent) {
     Context ctx(false);
     StubWindow window;

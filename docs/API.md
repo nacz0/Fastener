@@ -19,7 +19,8 @@ This document summarizes the core public API of Fastener.
 - GL teardown: `releaseWindowResources(IPlatformWindow&)` for each secondary
   context, then `shutdown(IPlatformWindow&)` for shared resources
 - Theme: `setTheme(Theme)`, `theme()`
-- Fonts: `loadFont(path, size)`, `font()`, `defaultFont()`
+- Fonts: `loadFont(path, size)`, `font()`, `defaultFont()`; failed loads
+  preserve the last valid font
 - Input: `input()`
 - Drawing: `drawList()`, `renderer()`, `layout()`, `docking()`
 - Time: `deltaTime()`, `time()`

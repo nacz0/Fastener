@@ -244,9 +244,11 @@ void Context::beginFrame(IPlatformWindow& window) {
         LayoutDirection::Vertical
     );
     
-    // Reset cursor and hovered widget
+    // Reset frame-local interaction state.
     window.setCursor(Cursor::Arrow);
     m_impl->hoveredWidget = INVALID_WIDGET_ID;
+    m_impl->lastWidgetId = INVALID_WIDGET_ID;
+    m_impl->lastWidgetBounds = Rect{};
     
     // Swap floating rects for occlusion testing
     m_impl->prevFloatingRects = m_impl->currentFloatingRects;
@@ -392,12 +394,13 @@ const Theme& Context::theme() const {
 }
 
 bool Context::loadFont(const std::string& path, float size) {
-    m_impl->defaultFont = std::make_unique<Font>();
-    if (!m_impl->defaultFont->loadFromFile(path, size)) {
+    auto candidate = std::make_unique<Font>();
+    if (!candidate->loadFromFile(path, size)) {
         FST_LOGF_ERROR("Context::loadFont failed - path: %s, size: %.1f", path.c_str(), size);
-        m_impl->defaultFont.reset();
         return false;
     }
+
+    m_impl->defaultFont = std::move(candidate);
     m_impl->currentFont = m_impl->defaultFont.get();
     return true;
 }

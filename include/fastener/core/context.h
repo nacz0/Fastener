@@ -68,6 +68,10 @@ public:
     const Theme& theme() const;
     
     // Font
+    /**
+     * Load and select the default font. A failed load leaves the current font
+     * unchanged.
+     */
     bool loadFont(const std::string& path, float size);
     Font* font() const;
     Font* defaultFont() const;
@@ -102,7 +106,7 @@ public:
     void setActiveWidget(WidgetId id);
     void clearActiveWidget();
 
-    // Last used widget (for Drag & Drop etc.)
+    // Last widget submitted in the current frame (for Drag & Drop etc.)
     WidgetId getLastWidgetId() const;
     void setLastWidgetId(WidgetId id);
     Rect getLastWidgetBounds() const;

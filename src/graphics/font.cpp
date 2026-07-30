@@ -10,6 +10,78 @@
 
 namespace fst {
 
+namespace {
+
+std::uint16_t readBigEndian16(const std::uint8_t* data) {
+    return (static_cast<std::uint16_t>(data[0]) << 8) |
+           static_cast<std::uint16_t>(data[1]);
+}
+
+std::uint32_t readBigEndian32(const std::uint8_t* data) {
+    return (static_cast<std::uint32_t>(data[0]) << 24) |
+           (static_cast<std::uint32_t>(data[1]) << 16) |
+           (static_cast<std::uint32_t>(data[2]) << 8) |
+           static_cast<std::uint32_t>(data[3]);
+}
+
+bool hasSupportedSfntSignature(std::uint32_t signature) {
+    return signature == 0x00010000u || // TrueType
+           signature == 0x4F54544Fu || // OTTO
+           signature == 0x74727565u || // true
+           signature == 0x74797031u;   // typ1
+}
+
+bool validateSfntDirectory(
+    const std::uint8_t* data,
+    std::size_t dataSize,
+    std::size_t fontOffset) {
+    if (fontOffset > dataSize || dataSize - fontOffset < 12) {
+        return false;
+    }
+
+    const std::uint8_t* header = data + fontOffset;
+    if (!hasSupportedSfntSignature(readBigEndian32(header))) {
+        return false;
+    }
+
+    const std::size_t tableCount = readBigEndian16(header + 4);
+    if (tableCount == 0 ||
+        tableCount > (dataSize - fontOffset - 12) / 16) {
+        return false;
+    }
+
+    const std::uint8_t* table = header + 12;
+    for (std::size_t index = 0; index < tableCount; ++index, table += 16) {
+        const std::size_t tableOffset = readBigEndian32(table + 8);
+        const std::size_t tableLength = readBigEndian32(table + 12);
+        if (tableOffset > dataSize ||
+            tableLength > dataSize - tableOffset) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool validateFontData(const void* data, std::size_t dataSize) {
+    if (!data || dataSize < 12) {
+        return false;
+    }
+
+    const auto* bytes = static_cast<const std::uint8_t*>(data);
+    constexpr std::uint32_t ttcSignature = 0x74746366u; // ttcf
+    if (readBigEndian32(bytes) != ttcSignature) {
+        return validateSfntDirectory(bytes, dataSize, 0);
+    }
+
+    if (dataSize < 16 || readBigEndian32(bytes + 8) == 0) {
+        return false;
+    }
+    const std::size_t firstFontOffset = readBigEndian32(bytes + 12);
+    return validateSfntDirectory(bytes, dataSize, firstFontOffset);
+}
+
+} // namespace
+
 Font::Font() = default;
 
 Font::~Font() {
@@ -81,8 +153,23 @@ bool Font::loadFromFile(const std::string& path, float size) {
 }
 
 bool Font::loadFromMemory(const void* data, size_t dataSize, float size) {
-    destroy();
-    
+    if (!validateFontData(data, dataSize) ||
+        !std::isfinite(size) ||
+        size <= 0.0f) {
+        FST_LOG_ERROR("Failed to initialize font - invalid font data or size");
+        return false;
+    }
+
+    Font candidate;
+    if (!candidate.initializeFromMemory(data, dataSize, size)) {
+        return false;
+    }
+
+    *this = std::move(candidate);
+    return true;
+}
+
+bool Font::initializeFromMemory(const void* data, size_t dataSize, float size) {
     // Copy font data
     m_fontData.resize(dataSize);
     std::memcpy(m_fontData.data(), data, dataSize);

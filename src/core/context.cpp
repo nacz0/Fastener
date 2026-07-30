@@ -198,99 +198,146 @@ void Context::beginFrame(IPlatformWindow& window) {
 
     s_frameStack.push_back(this);
     m_impl->frameActive = true;
-    m_impl->currentWindow = &window;
-    m_impl->inputState = &window.input();
-    m_impl->idStack.resize(1);
-    m_impl->idStack.front() = combineIds(
-        0,
-        static_cast<WidgetId>(reinterpret_cast<std::uintptr_t>(&window)));
-    m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
+    bool rendererFrameAttempted = false;
+    bool profilerFrameStarted = false;
+    const auto previousLastFrameTime = m_impl->lastFrameTime;
+    const float previousDeltaTime = m_impl->deltaTime;
+    const float previousTotalTime = m_impl->totalTime;
 
-    if (m_impl->rendererEnabled &&
-        std::find(
-            m_impl->resourceWindows.begin(),
-            m_impl->resourceWindows.end(),
-            &window) == m_impl->resourceWindows.end() &&
-        window.addResourceListener(*this)) {
-        m_impl->resourceWindows.push_back(&window);
-    }
+    try {
+        m_impl->currentWindow = &window;
+        m_impl->inputState = &window.input();
+        m_impl->idStack.resize(1);
+        m_impl->idStack.front() = combineIds(
+            0,
+            static_cast<WidgetId>(reinterpret_cast<std::uintptr_t>(&window)));
+        m_impl->inputState->onResize(static_cast<float>(window.width()), static_cast<float>(window.height()));
 
-    
-    // Calculate delta time
-    auto now = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - m_impl->lastFrameTime);
-    m_impl->deltaTime = elapsed.count() / 1000000.0f;
-    m_impl->lastFrameTime = now;
-    
-    auto total = std::chrono::duration_cast<std::chrono::microseconds>(now - m_impl->startTime);
-    m_impl->totalTime = total.count() / 1000000.0f;
-    
-    // Profiler
-    m_impl->profiler.beginFrame();
-    m_impl->profiler.beginSection("Frame");
+        if (m_impl->rendererEnabled &&
+            std::find(
+                m_impl->resourceWindows.begin(),
+                m_impl->resourceWindows.end(),
+                &window) == m_impl->resourceWindows.end() &&
+            window.addResourceListener(*this)) {
+            m_impl->resourceWindows.push_back(&window);
+        }
 
-    // Clear draw list
-    m_impl->inputState->setFrameTime(m_impl->totalTime);
-    m_impl->drawList.clear();
-    
-    // Begin rendering
-    if (m_impl->rendererEnabled) {
-        window.makeContextCurrent();
-        if (!m_impl->rendererInitialized) {
-            if (m_impl->renderer->init()) {
-                m_impl->rendererInitialized = true;
-            } else {
-                FST_LOG_ERROR("Context::beginFrame failed to initialize renderer");
-                m_impl->rendererEnabled = false;
+        // Calculate delta time
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(now - m_impl->lastFrameTime);
+        m_impl->deltaTime = elapsed.count() / 1000000.0f;
+        m_impl->lastFrameTime = now;
+
+        auto total = std::chrono::duration_cast<std::chrono::microseconds>(now - m_impl->startTime);
+        m_impl->totalTime = total.count() / 1000000.0f;
+
+        // Profiler
+        m_impl->profiler.beginFrame();
+        profilerFrameStarted = true;
+        m_impl->profiler.beginSection("Frame");
+
+        // Clear draw list
+        m_impl->inputState->setFrameTime(m_impl->totalTime);
+        m_impl->drawList.clear();
+
+        // Begin rendering
+        if (m_impl->rendererEnabled) {
+            window.makeContextCurrent();
+            if (!m_impl->rendererInitialized) {
+                if (m_impl->renderer->init()) {
+                    m_impl->rendererInitialized = true;
+                } else {
+                    FST_LOG_ERROR("Context::beginFrame failed to initialize renderer");
+                    m_impl->rendererEnabled = false;
+                }
             }
         }
-    }
-    if (m_impl->rendererInitialized) {
-        Vec2 fbSize = window.framebufferSize();
-        m_impl->renderer->beginFrame(
-            static_cast<int>(fbSize.x), 
-            static_cast<int>(fbSize.y), 
-            window.dpiScale()
+        if (m_impl->rendererInitialized) {
+            Vec2 fbSize = window.framebufferSize();
+            rendererFrameAttempted = true;
+            m_impl->renderer->beginFrame(
+                static_cast<int>(fbSize.x),
+                static_cast<int>(fbSize.y),
+                window.dpiScale()
+            );
+        }
+
+        // Push fullscreen clip rect
+        m_impl->drawList.pushClipRectFullScreen(window.size());
+
+        // Begin root layout container
+        m_impl->layout.beginContainer(
+            Rect(0.0f, 0.0f, static_cast<float>(window.width()), static_cast<float>(window.height())),
+            LayoutDirection::Vertical
         );
-    }
-    
-    // Push fullscreen clip rect
-    m_impl->drawList.pushClipRectFullScreen(window.size());
-    
-    // Begin root layout container
-    m_impl->layout.beginContainer(
-        Rect(0.0f, 0.0f, static_cast<float>(window.width()), static_cast<float>(window.height())),
-        LayoutDirection::Vertical
-    );
-    
-    // Reset frame-local interaction state.
-    window.setCursor(Cursor::Arrow);
-    m_impl->hoveredWidget = INVALID_WIDGET_ID;
-    m_impl->lastWidgetId = INVALID_WIDGET_ID;
-    m_impl->lastWidgetBounds = Rect{};
-    
-    // Swap floating rects for occlusion testing
-    m_impl->prevFloatingRects = m_impl->currentFloatingRects;
-    m_impl->currentFloatingRects.clear();
-    m_impl->prevGlobalOcclusionRects = m_impl->currentGlobalOcclusionRects;
-    m_impl->currentGlobalOcclusionRects.clear();
 
-    // If the mouse is over a previous-frame occluder, consume input early so
-    // widgets rendered before overlays don't steal the click.
-    if (m_impl->inputState) {
-        Vec2 mousePos = m_impl->inputState->mousePos();
-        for (const auto& r : m_impl->prevGlobalOcclusionRects) {
-            if (r.contains(mousePos)) {
-                m_impl->inputState->consumeMouse();
-                break;
+        // Reset frame-local interaction state.
+        window.setCursor(Cursor::Arrow);
+        m_impl->hoveredWidget = INVALID_WIDGET_ID;
+        m_impl->lastWidgetId = INVALID_WIDGET_ID;
+        m_impl->lastWidgetBounds = Rect{};
+
+        // Swap floating rects for occlusion testing
+        m_impl->prevFloatingRects = m_impl->currentFloatingRects;
+        m_impl->currentFloatingRects.clear();
+        m_impl->prevGlobalOcclusionRects = m_impl->currentGlobalOcclusionRects;
+        m_impl->currentGlobalOcclusionRects.clear();
+
+        // If the mouse is over a previous-frame occluder, consume input early so
+        // widgets rendered before overlays don't steal the click.
+        if (m_impl->inputState) {
+            Vec2 mousePos = m_impl->inputState->mousePos();
+            for (const auto& r : m_impl->prevGlobalOcclusionRects) {
+                if (r.contains(mousePos)) {
+                    m_impl->inputState->consumeMouse();
+                    break;
+                }
             }
         }
-    }
-    
-    // Begin docking frame
-    m_impl->dockContext.beginFrame(*this);
 
-    m_impl->profiler.beginSection("UI");
+        // Begin docking frame
+        m_impl->dockContext.beginFrame(*this);
+
+        m_impl->profiler.beginSection("UI");
+    } catch (...) {
+        const std::exception_ptr startupException = std::current_exception();
+
+        if (rendererFrameAttempted && m_impl->rendererInitialized) {
+            try {
+                m_impl->renderer->endFrame();
+            } catch (...) {
+                // Preserve the startup failure.
+            }
+        }
+        if (profilerFrameStarted) {
+            try {
+                m_impl->profiler.endSection();
+                m_impl->profiler.endSection();
+                m_impl->profiler.endFrame();
+            } catch (...) {
+                // Preserve the startup failure.
+            }
+        }
+
+        m_impl->drawList.clear();
+        m_impl->layout.reset();
+        m_impl->lastFrameTime = previousLastFrameTime;
+        m_impl->deltaTime = previousDeltaTime;
+        m_impl->totalTime = previousTotalTime;
+        m_impl->inputState = nullptr;
+        m_impl->currentWindow = nullptr;
+        m_impl->frameActive = false;
+        m_impl->frameEnding = false;
+        m_impl->idStack.resize(1);
+        m_impl->idStack.front() = 0;
+
+        auto frameIt = std::find(s_frameStack.begin(), s_frameStack.end(), this);
+        if (frameIt != s_frameStack.end()) {
+            s_frameStack.erase(frameIt);
+        }
+
+        std::rethrow_exception(startupException);
+    }
 }
 
 void Context::endFrame() {

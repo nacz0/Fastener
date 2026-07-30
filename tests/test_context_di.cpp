@@ -26,6 +26,7 @@ struct RendererCalls {
     int beginFrame = 0;
     int render = 0;
     int endFrame = 0;
+    bool throwOnBeginFrame = false;
     bool throwOnRender = false;
 };
 
@@ -42,7 +43,12 @@ public:
         ++m_calls.release;
         return true;
     }
-    void beginFrame(int, int, float) override { ++m_calls.beginFrame; }
+    void beginFrame(int, int, float) override {
+        ++m_calls.beginFrame;
+        if (m_calls.throwOnBeginFrame) {
+            throw std::runtime_error("renderer begin failure");
+        }
+    }
     void endFrame() override { ++m_calls.endFrame; }
     void render(const DrawList&) override {
         ++m_calls.render;
@@ -170,6 +176,25 @@ TEST(ContextRendererTest, ThrowingRendererCannotWedgeTheFrame) {
 
     calls.throwOnRender = false;
     ctx.beginFrame(window);
+    EXPECT_NO_THROW(ctx.endFrame());
+    EXPECT_FALSE(ctx.isFrameActive());
+}
+
+TEST(ContextRendererTest, ThrowingRendererCannotWedgeFrameStartup) {
+    RendererCalls calls;
+    calls.throwOnBeginFrame = true;
+    auto renderer = std::make_unique<RecordingRenderer>(calls);
+    Context ctx(std::move(renderer));
+    StubWindow window;
+
+    EXPECT_THROW(ctx.beginFrame(window), std::runtime_error);
+
+    EXPECT_FALSE(ctx.isFrameActive());
+    EXPECT_EQ(ctx.currentId(), WidgetId{0});
+
+    calls.throwOnBeginFrame = false;
+    EXPECT_NO_THROW(ctx.beginFrame(window));
+    EXPECT_TRUE(ctx.isFrameActive());
     EXPECT_NO_THROW(ctx.endFrame());
     EXPECT_FALSE(ctx.isFrameActive());
 }

@@ -103,6 +103,7 @@ if(FST_BUILD_TESTS)
         tests/test_i18n.cpp
         tests/test_rich_text_preview.cpp
         tests/test_text_area.cpp
+        tests/test_x11_clipboard_protocol.cpp
         tests/test_svg.cpp
         tests/test_svg_widget.cpp
         tests/test_chart_widget.cpp

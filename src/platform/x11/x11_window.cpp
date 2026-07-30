@@ -9,6 +9,7 @@
 #if defined(__linux__) && !defined(__ANDROID__)
 
 #include "fastener/platform/window.h"
+#include "x11_clipboard_protocol.h"
 #include <X11/Xlib.h>
 #include <X11/Xresource.h>
 #include <X11/Xutil.h>
@@ -18,9 +19,18 @@
 #include <GL/glx.h>
 #include <unistd.h>
 #include <algorithm>
+#include <chrono>
+#include <climits>
 #include <cstring>
+#include <poll.h>
 
 namespace fst {
+
+static Bool eventTargetsWindow(Display*, XEvent* event, XPointer target) {
+    const auto window =
+        *reinterpret_cast<const ::Window*>(target);
+    return event->xany.window == window ? True : False;
+}
 
 //=============================================================================
 // X11 Key Code to Key mapping
@@ -172,6 +182,7 @@ struct Window::Impl {
     Atom clipboard;
     Atom utf8String;
     Atom targets;
+    std::string clipboardText;
     
     // GLX functions
     PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB = nullptr;
@@ -184,6 +195,7 @@ struct Window::Impl {
     void updateModifiers(unsigned int state);
     void initAtoms();
     void initCursors();
+    void handleSelectionRequest(const XSelectionRequestEvent& request);
 };
 
 void Window::Impl::loadGLXExtensions() {
@@ -339,6 +351,61 @@ void Window::Impl::initCursors() {
     cursors[static_cast<int>(fst::Cursor::Move)] = XCreateFontCursor(display, XC_fleur);
     cursors[static_cast<int>(fst::Cursor::NotAllowed)] = XCreateFontCursor(display, XC_X_cursor);
     cursors[static_cast<int>(fst::Cursor::Wait)] = XCreateFontCursor(display, XC_watch);
+}
+
+void Window::Impl::handleSelectionRequest(
+    const XSelectionRequestEvent& request) {
+    XSelectionEvent response = {};
+    response.type = SelectionNotify;
+    response.display = request.display;
+    response.requestor = request.requestor;
+    response.selection = request.selection;
+    response.target = request.target;
+    response.property = None;
+    response.time = request.time;
+
+    if (request.selection == clipboard &&
+        XGetSelectionOwner(display, clipboard) == window) {
+        const detail::X11ClipboardAtoms atoms{
+            targets,
+            utf8String,
+            XA_STRING,
+            XA_ATOM};
+        const auto payload = detail::buildX11ClipboardResponse(
+            request.target,
+            atoms,
+            clipboardText);
+
+        if (payload.supported()) {
+            const Atom property =
+                request.property != None ? request.property : request.target;
+            const unsigned char* data = payload.format == 32
+                ? reinterpret_cast<const unsigned char*>(payload.atoms.data())
+                : payload.bytes.data();
+            const int itemCount = payload.format == 32
+                ? static_cast<int>(payload.atoms.size())
+                : static_cast<int>(payload.bytes.size());
+
+            XChangeProperty(
+                display,
+                request.requestor,
+                property,
+                static_cast<Atom>(payload.propertyType),
+                payload.format,
+                PropModeReplace,
+                data,
+                itemCount);
+            response.property = property;
+        }
+    }
+
+    XSendEvent(
+        display,
+        request.requestor,
+        False,
+        NoEventMask,
+        reinterpret_cast<XEvent*>(&response));
+    XFlush(display);
 }
 
 //=============================================================================
@@ -567,10 +634,13 @@ void Window::close() {
 
 void Window::pollEvents() {
     m_impl->inputState.beginFrame();
-    
-    while (XPending(m_impl->display) > 0) {
-        XEvent event;
-        XNextEvent(m_impl->display, &event);
+
+    XEvent event;
+    while (XCheckIfEvent(
+        m_impl->display,
+        &event,
+        eventTargetsWindow,
+        reinterpret_cast<XPointer>(&m_impl->window))) {
         
         // Filter for input method
         if (m_impl->xic && XFilterEvent(&event, m_impl->window)) {
@@ -736,6 +806,16 @@ void Window::pollEvents() {
                     m_impl->refreshCallback();
                 }
                 break;
+
+            case SelectionRequest:
+                m_impl->handleSelectionRequest(event.xselectionrequest);
+                break;
+
+            case SelectionClear:
+                if (event.xselectionclear.selection == m_impl->clipboard) {
+                    m_impl->clipboardText.clear();
+                }
+                break;
         }
     }
 }
@@ -889,22 +969,45 @@ void Window::showCursor() {
 }
 
 std::string Window::getClipboardText() const {
+    if (!m_impl->display || !m_impl->window) {
+        return "";
+    }
+
     // Request clipboard data
-    ::Window owner = XGetSelectionOwner(m_impl->display, m_impl->clipboard);
+    Atom selection = m_impl->clipboard;
+    ::Window owner = XGetSelectionOwner(m_impl->display, selection);
     if (owner == None) {
         // Try PRIMARY selection
-        owner = XGetSelectionOwner(m_impl->display, XA_PRIMARY);
+        selection = XA_PRIMARY;
+        owner = XGetSelectionOwner(m_impl->display, selection);
     }
     if (owner == None) return "";
+    if (owner == m_impl->window && selection == m_impl->clipboard) {
+        return m_impl->clipboardText;
+    }
     
     Atom property = XInternAtom(m_impl->display, "FST_CLIPBOARD", False);
-    XConvertSelection(m_impl->display, m_impl->clipboard, m_impl->utf8String, property, m_impl->window, CurrentTime);
+    XDeleteProperty(m_impl->display, m_impl->window, property);
+    XConvertSelection(
+        m_impl->display,
+        selection,
+        m_impl->utf8String,
+        property,
+        m_impl->window,
+        CurrentTime);
     XFlush(m_impl->display);
     
-    // Wait for SelectionNotify
-    XEvent event;
-    for (int i = 0; i < 100; ++i) {
+    // The public API is synchronous, so wait for the owner without spinning.
+    // A bounded wait prevents an unresponsive selection owner from hanging UI.
+    const auto deadline =
+        std::chrono::steady_clock::now() + std::chrono::milliseconds(100);
+    for (;;) {
+        XEvent event = {};
         if (XCheckTypedWindowEvent(m_impl->display, m_impl->window, SelectionNotify, &event)) {
+            if (event.xselection.selection != selection ||
+                event.xselection.target != m_impl->utf8String) {
+                continue;
+            }
             if (event.xselection.property == None) return "";
             
             Atom actualType;
@@ -912,27 +1015,56 @@ std::string Window::getClipboardText() const {
             unsigned long nitems, bytesAfter;
             unsigned char* data = nullptr;
             
-            XGetWindowProperty(m_impl->display, m_impl->window, property,
-                              0, (~0L), True, AnyPropertyType,
-                              &actualType, &actualFormat, &nitems, &bytesAfter, &data);
+            const int status = XGetWindowProperty(
+                m_impl->display,
+                m_impl->window,
+                property,
+                0,
+                LONG_MAX / 4,
+                True,
+                AnyPropertyType,
+                &actualType,
+                &actualFormat,
+                &nitems,
+                &bytesAfter,
+                &data);
             
             std::string result;
+            if (status == Success && actualFormat == 8 && data) {
+                result.assign(
+                    reinterpret_cast<const char*>(data),
+                    static_cast<size_t>(nitems));
+            }
             if (data) {
-                result = reinterpret_cast<char*>(data);
                 XFree(data);
             }
             return result;
         }
-        usleep(1000); // 1ms
+
+        const auto now = std::chrono::steady_clock::now();
+        if (now >= deadline) {
+            return "";
+        }
+
+        const auto remaining = std::chrono::duration_cast<
+            std::chrono::milliseconds>(deadline - now);
+        pollfd descriptor{
+            ConnectionNumber(m_impl->display),
+            POLLIN,
+            0};
+        if (poll(&descriptor, 1, static_cast<int>(remaining.count())) <= 0) {
+            return "";
+        }
     }
-    
-    return "";
 }
 
 void Window::setClipboardText(const std::string& text) {
+    if (!m_impl->display || !m_impl->window) {
+        return;
+    }
+
     // Store text locally and claim ownership
-    static std::string s_clipboardText;
-    s_clipboardText = text;
+    m_impl->clipboardText = text;
     
     XSetSelectionOwner(m_impl->display, m_impl->clipboard, m_impl->window, CurrentTime);
     XFlush(m_impl->display);

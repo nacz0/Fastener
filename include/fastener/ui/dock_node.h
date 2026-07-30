@@ -86,7 +86,9 @@ public:
     void removeWindow(WidgetId windowId);
     bool hasWindow(WidgetId windowId) const;
     
-    // Split operations
+    // Split operations. Child IDs must be distinct and valid, and ratio must
+    // be finite and strictly between zero and one. Invalid requests, existing
+    // split nodes, and nodes with noSplit set leave the subtree unchanged.
     DockNode* splitNode(DockDirection direction, Id childId0, Id childId1, float ratio = 0.5f);
     void mergeNodes();
     

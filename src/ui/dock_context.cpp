@@ -111,18 +111,40 @@ void DockContext::removeDockSpace(const std::string& id) {
 
 void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId, 
                               DockDirection direction) {
-    // First undock if already docked elsewhere
-    undockWindow(windowId);
-    
     DockNode* targetNode = getDockNode(targetNodeId);
-    if (!targetNode) {
+    const bool tabDock =
+        direction == DockDirection::Center || direction == DockDirection::None;
+    if (!targetNode ||
+        !targetNode->isLeafNode() ||
+        (!tabDock && targetNode->flags.noSplit)) {
         return;
     }
-    
-    if (direction == DockDirection::Center || direction == DockDirection::None) {
+
+    DockNode* sourceNode = getWindowDockNode(windowId);
+    const DockNode::Id sourceNodeId =
+        sourceNode ? sourceNode->id : DockNode::INVALID_ID;
+
+    // Docking a tab back into its current leaf is already satisfied. Splitting
+    // a single-window leaf against itself would create an empty sibling that
+    // immediately collapses, so preserve the existing layout as well.
+    if (sourceNode == targetNode &&
+        (tabDock || sourceNode->dockedWindows.size() == 1)) {
+        return;
+    }
+
+    // Remove the source without collapsing its ancestors yet. Collapsing first
+    // can destroy a sibling target node and invalidate the requested move.
+    if (sourceNode) {
+        sourceNode->removeWindow(windowId);
+        m_impl->windowToNode.erase(windowId);
+    }
+
+    bool docked = false;
+    if (tabDock) {
         // Tab docking - add to existing node
         targetNode->addWindow(windowId);
         m_impl->windowToNode[windowId] = targetNode->id;
+        docked = true;
     } else {
         // Split docking - create new split
         DockNode::Id childId0 = generateNodeId();
@@ -134,8 +156,21 @@ void DockContext::dockWindow(WidgetId windowId, DockNode::Id targetNodeId,
             
             // Also refresh mappings for the targetNode (which now has children)
             refreshMappings(targetNodeId);
+            docked = true;
         }
     }
+
+    if (!docked) {
+        if (sourceNode) {
+            sourceNode->addWindow(windowId);
+            m_impl->windowToNode[windowId] = sourceNodeId;
+        }
+        return;
+    }
+
+    // Only now is it safe to collapse the empty source branch. Any destination
+    // mappings moved into an absorbed parent are refreshed during the merge.
+    collapseEmptyAncestors(sourceNodeId);
 }
 
 void DockContext::undockWindow(WidgetId windowId) {
@@ -150,20 +185,23 @@ void DockContext::undockWindow(WidgetId windowId) {
     DockNode* node = getDockNode(nodeId);
     if (node) {
         node->removeWindow(windowId);
-        
-        // Merge parent if this node is now empty
-        DockNode::Id currentId = nodeId;
-        while (currentId != DockNode::INVALID_ID) {
-            DockNode* current = getDockNode(currentId);
-            if (!current || !current->isEmpty() || !current->parent) break;
-            
-            DockNode* parent = current->parent;
-            DockNode::Id parentId = parent->id;
-            
-            parent->mergeNodes();
-            refreshMappings(parentId);
-            currentId = parentId;
+        collapseEmptyAncestors(nodeId);
+    }
+}
+
+void DockContext::collapseEmptyAncestors(DockNode::Id nodeId) {
+    DockNode::Id currentId = nodeId;
+    while (currentId != DockNode::INVALID_ID) {
+        DockNode* current = getDockNode(currentId);
+        if (!current || !current->isEmpty() || !current->parent) {
+            break;
         }
+
+        DockNode* parent = current->parent;
+        const DockNode::Id parentId = parent->id;
+        parent->mergeNodes();
+        refreshMappings(parentId);
+        currentId = parentId;
     }
 }
 

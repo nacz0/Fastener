@@ -1,5 +1,6 @@
 #include "fastener/ui/dock_node.h"
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 
 namespace fst {
@@ -99,7 +100,20 @@ bool DockNode::hasWindow(WidgetId windowId) const {
 
 
 DockNode* DockNode::splitNode(DockDirection direction, Id childId0, Id childId1, float ratio) {
-    if (direction == DockDirection::None || direction == DockDirection::Center) {
+    if (direction == DockDirection::None ||
+        direction == DockDirection::Center ||
+        flags.noSplit ||
+        isSplitNode() ||
+        children[0] ||
+        children[1] ||
+        childId0 == INVALID_ID ||
+        childId1 == INVALID_ID ||
+        childId0 == id ||
+        childId1 == id ||
+        childId0 == childId1 ||
+        !std::isfinite(ratio) ||
+        ratio <= 0.0f ||
+        ratio >= 1.0f) {
         return nullptr;
     }
     

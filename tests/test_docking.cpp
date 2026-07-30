@@ -6,6 +6,7 @@
 #include <fastener/widgets/dock_space.h>
 #include <fastener/widgets/dockable_window.h>
 #include "TestContext.h"
+#include <limits>
 
 using namespace fst;
 
@@ -67,6 +68,133 @@ TEST_F(DockingTest, IdUniqueness) {
             EXPECT_NE(ids[i], ids[j]) << "Duplicate ID found at " << i << " and " << j;
         }
     }
+}
+
+TEST_F(DockingTest, InvalidMoveTargetPreservesExistingDocking) {
+    DockContext docking;
+    const DockNode::Id rootId =
+        docking.createDockSpace("Main", Rect(0, 0, 1000, 800));
+    constexpr WidgetId windowId = 101;
+    docking.dockWindow(windowId, rootId);
+    DockNode* originalNode = docking.getWindowDockNode(windowId);
+    ASSERT_NE(originalNode, nullptr);
+    const DockNode::Id originalNodeId = originalNode->id;
+
+    docking.dockWindow(windowId, DockNode::INVALID_ID);
+
+    EXPECT_TRUE(docking.isWindowDocked(windowId));
+    ASSERT_NE(docking.getWindowDockNode(windowId), nullptr);
+    EXPECT_EQ(docking.getWindowDockNode(windowId)->id, originalNodeId);
+    EXPECT_TRUE(docking.getWindowDockNode(windowId)->hasWindow(windowId));
+}
+
+TEST_F(DockingTest, SplitContainerCannotBeUsedAsALeafDockTarget) {
+    DockContext docking;
+    const DockNode::Id rootId =
+        docking.createDockSpace("Main", Rect(0, 0, 1000, 800));
+    DockNode* root = docking.getDockNode(rootId);
+    ASSERT_NE(root, nullptr);
+    DockNode* left = root->splitNode(
+        DockDirection::Left,
+        docking.generateNodeId(),
+        docking.generateNodeId());
+    ASSERT_NE(left, nullptr);
+
+    constexpr WidgetId windowId = 202;
+    docking.dockWindow(windowId, left->id);
+    DockNode* originalNode = docking.getWindowDockNode(windowId);
+    ASSERT_EQ(originalNode, left);
+    const DockNode::Id originalNodeId = originalNode->id;
+
+    docking.dockWindow(windowId, rootId, DockDirection::Center);
+
+    ASSERT_NE(docking.getWindowDockNode(windowId), nullptr);
+    EXPECT_EQ(docking.getWindowDockNode(windowId)->id, originalNodeId);
+    EXPECT_TRUE(docking.getWindowDockNode(windowId)->hasWindow(windowId));
+    EXPECT_TRUE(root->isSplitNode());
+    EXPECT_FALSE(root->hasWindow(windowId));
+}
+
+TEST_F(DockingTest, MovingBetweenSiblingLeavesSurvivesSourceCollapse) {
+    DockContext docking;
+    const DockNode::Id rootId =
+        docking.createDockSpace("Main", Rect(0, 0, 1000, 800));
+    DockNode* root = docking.getDockNode(rootId);
+    ASSERT_NE(root, nullptr);
+    DockNode* left = root->splitNode(
+        DockDirection::Left,
+        docking.generateNodeId(),
+        docking.generateNodeId());
+    ASSERT_NE(left, nullptr);
+    ASSERT_NE(root->children[1], nullptr);
+    const DockNode::Id rightId = root->children[1]->id;
+
+    constexpr WidgetId movedWindow = 401;
+    constexpr WidgetId existingWindow = 402;
+    docking.dockWindow(movedWindow, left->id);
+    docking.dockWindow(existingWindow, rightId);
+
+    docking.dockWindow(movedWindow, rightId, DockDirection::Center);
+
+    const DockNode* destination = docking.getWindowDockNode(movedWindow);
+    ASSERT_NE(destination, nullptr);
+    EXPECT_TRUE(destination->hasWindow(movedWindow));
+    EXPECT_TRUE(destination->hasWindow(existingWindow));
+    EXPECT_EQ(docking.getWindowDockNode(existingWindow), destination);
+}
+
+TEST_F(DockingTest, ExistingSplitTreeCannotBeDestructivelySplitAgain) {
+    DockNode root(1);
+    root.type = DockNodeType::Leaf;
+    root.addWindow(303);
+    ASSERT_NE(root.splitNode(DockDirection::Left, 2, 3), nullptr);
+    ASSERT_NE(root.children[0], nullptr);
+    ASSERT_NE(root.children[1], nullptr);
+    const DockNode::Id firstChildId = root.children[0]->id;
+    const DockNode::Id secondChildId = root.children[1]->id;
+
+    EXPECT_EQ(root.splitNode(DockDirection::Top, 4, 5), nullptr);
+
+    ASSERT_NE(root.children[0], nullptr);
+    ASSERT_NE(root.children[1], nullptr);
+    EXPECT_EQ(root.children[0]->id, firstChildId);
+    EXPECT_EQ(root.children[1]->id, secondChildId);
+    EXPECT_NE(root.findNodeByWindowId(303), nullptr);
+}
+
+TEST_F(DockingTest, NoSplitFlagPreventsSplitting) {
+    DockNode node(1);
+    node.type = DockNodeType::Leaf;
+    node.flags.noSplit = true;
+
+    EXPECT_EQ(node.splitNode(DockDirection::Left, 2, 3), nullptr);
+    EXPECT_TRUE(node.isLeafNode());
+    EXPECT_EQ(node.children[0], nullptr);
+    EXPECT_EQ(node.children[1], nullptr);
+}
+
+TEST_F(DockingTest, InvalidSplitParametersPreserveLeaf) {
+    DockNode node(1);
+    node.type = DockNodeType::Leaf;
+    node.addWindow(404);
+
+    EXPECT_EQ(node.splitNode(DockDirection::Left, DockNode::INVALID_ID, 2), nullptr);
+    EXPECT_EQ(node.splitNode(DockDirection::Left, node.id, 2), nullptr);
+    EXPECT_EQ(node.splitNode(DockDirection::Left, 2, 2), nullptr);
+    EXPECT_EQ(
+        node.splitNode(
+            DockDirection::Left,
+            2,
+            3,
+            std::numeric_limits<float>::quiet_NaN()),
+        nullptr);
+    EXPECT_EQ(node.splitNode(DockDirection::Left, 2, 3, 0.0f), nullptr);
+    EXPECT_EQ(node.splitNode(DockDirection::Left, 2, 3, 1.0f), nullptr);
+
+    EXPECT_TRUE(node.isLeafNode());
+    EXPECT_TRUE(node.hasWindow(404));
+    EXPECT_EQ(node.children[0], nullptr);
+    EXPECT_EQ(node.children[1], nullptr);
 }
 
 TEST_F(DockingTest, ClearDockSpaceRemovesEveryWindowMappingFromSplitLeaves) {

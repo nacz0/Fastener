@@ -59,6 +59,9 @@ public:
      * @param windowId The widget ID of the window to dock
      * @param targetNode Target node ID to dock to
      * @param direction Where to dock relative to target (Center = tab)
+     *
+     * Invalid targets and split-container targets are ignored without
+     * changing the window's existing docking state.
      */
     void dockWindow(WidgetId windowId, DockNode::Id targetNode, 
                     DockDirection direction = DockDirection::Center);
@@ -136,6 +139,8 @@ public:
     DockNode::Id getNodeIdFromString(const std::string& str) const;
     
 private:
+    void collapseEmptyAncestors(DockNode::Id nodeId);
+
     struct Impl;
     std::unique_ptr<Impl> m_impl;
 };

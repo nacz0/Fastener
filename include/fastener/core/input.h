@@ -159,6 +159,7 @@ public:
     void onMouseScroll(float dx, float dy);
     void onTextInput(char32_t codepoint);
     void onModifiersChanged(bool shift, bool ctrl, bool alt, bool super);
+    void onFocusLost();
     void onResize(float width, float height);
     void setFrameTime(float time);
     

@@ -351,6 +351,7 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         
         case WM_KILLFOCUS:
             impl->isFocused = false;
+            impl->inputState.onFocusLost();
             if (impl->focusCallback) {
                 impl->focusCallback({false});
             }

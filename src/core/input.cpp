@@ -166,6 +166,23 @@ void InputState::onModifiersChanged(bool shift, bool ctrl, bool alt, bool super)
     m_modifiers.super = super;
 }
 
+void InputState::onFocusLost() {
+    for (std::size_t index = 0; index < m_keysDown.size(); ++index) {
+        m_keysReleased[index] = m_keysReleased[index] || m_keysDown[index];
+        m_keysDown[index] = false;
+        m_keysPressed[index] = false;
+    }
+
+    for (std::size_t index = 0; index < m_mouseDown.size(); ++index) {
+        m_mouseReleased[index] = m_mouseReleased[index] || m_mouseDown[index];
+        m_mouseDown[index] = false;
+        m_mousePressed[index] = false;
+        m_mouseDoubleClicked[index] = false;
+    }
+
+    m_modifiers = {};
+}
+
 void InputState::onResize(float width, float height) {
     m_windowSize = {width, height};
 }

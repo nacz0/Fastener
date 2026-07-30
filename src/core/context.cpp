@@ -15,6 +15,7 @@
 #include <vector>
 #include <chrono>
 #include <algorithm>
+#include <exception>
 
 namespace fst {
 
@@ -319,9 +320,16 @@ void Context::endFrame() {
     // to the next frame and remain in postRenderCommands.
     std::deque<std::function<void()>> commands;
     commands.swap(m_impl->postRenderCommands);
+    std::exception_ptr deferredException;
     for (const auto& cmd : commands) {
         if (cmd) {
-            cmd();
+            try {
+                cmd();
+            } catch (...) {
+                if (!deferredException) {
+                    deferredException = std::current_exception();
+                }
+            }
         }
     }
 
@@ -348,6 +356,10 @@ void Context::endFrame() {
     m_impl->idStack.resize(1);
 
     s_contextStack.pop_back();
+
+    if (deferredException) {
+        std::rethrow_exception(deferredException);
+    }
 }
 
 bool Context::isFrameActive() const {

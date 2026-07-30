@@ -582,6 +582,7 @@ void Window::pollEvents() {
                 
             case FocusOut:
                 m_impl->isFocused = false;
+                m_impl->inputState.onFocusLost();
                 if (m_impl->focusCallback) {
                     m_impl->focusCallback({false});
                 }

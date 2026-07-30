@@ -11,6 +11,7 @@
 #include <fastener/platform/window_manager.h>
 #include <fastener/widgets/menu.h>
 #include "TestContext.h"
+#include <stdexcept>
 
 using namespace fst;
 using namespace fst::testing;
@@ -252,6 +253,28 @@ TEST(ContextDeferredRenderTest, RecursiveEndFrameCannotCloseTheOuterFrame) {
     ctx.endFrame();
 
     EXPECT_EQ(callbackCount, 1);
+    EXPECT_FALSE(ctx.isFrameActive());
+
+    ctx.beginFrame(window);
+    EXPECT_TRUE(ctx.isFrameActive());
+    ctx.endFrame();
+}
+
+TEST(ContextDeferredRenderTest, ThrowingCommandCannotWedgeTheFrame) {
+    Context ctx(false);
+    StubWindow window;
+    bool laterCommandRan = false;
+
+    ctx.beginFrame(window);
+    ctx.deferRender([] {
+        throw std::runtime_error("deferred failure");
+    });
+    ctx.deferRender([&] {
+        laterCommandRan = true;
+    });
+
+    EXPECT_THROW(ctx.endFrame(), std::runtime_error);
+    EXPECT_TRUE(laterCommandRan);
     EXPECT_FALSE(ctx.isFrameActive());
 
     ctx.beginFrame(window);

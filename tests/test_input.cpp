@@ -184,6 +184,23 @@ TEST(InputStateTest, ModifiersNone) {
     EXPECT_TRUE(m.any());
 }
 
+TEST(InputStateTest, FocusLossReleasesHeldInputAndModifiers) {
+    InputState input;
+    input.onKeyDown(Key::A);
+    input.onMouseDown(MouseButton::Left);
+    input.onModifiersChanged(true, true, true, true);
+
+    input.onFocusLost();
+
+    EXPECT_FALSE(input.isKeyDown(Key::A));
+    EXPECT_TRUE(input.isKeyReleased(Key::A));
+    EXPECT_FALSE(input.isMouseDown(MouseButton::Left));
+    EXPECT_TRUE(input.isMouseReleasedRaw(MouseButton::Left));
+    EXPECT_TRUE(input.modifiers().none());
+    EXPECT_FALSE(input.isKeyPressed(Key::A));
+    EXPECT_FALSE(input.isMousePressedRaw(MouseButton::Left));
+}
+
 //=============================================================================
 // InputState Text Input Tests
 //=============================================================================

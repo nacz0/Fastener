@@ -380,7 +380,7 @@ LRESULT CALLBACK Window::Impl::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARA
         
         case WM_CHAR: {
             if (wParam >= 32 && wParam != 127) {
-                impl->inputState.onTextInput(static_cast<char32_t>(wParam));
+                impl->inputState.onTextInputUtf16(static_cast<char16_t>(wParam));
             }
             return 0;
         }

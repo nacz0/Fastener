@@ -158,6 +158,8 @@ public:
     void onMouseMove(float x, float y);
     void onMouseScroll(float dx, float dy);
     void onTextInput(char32_t codepoint);
+    // Platform adapter for UTF-16 event streams; assembles surrogate pairs.
+    void onTextInputUtf16(char16_t codeUnit);
     void onModifiersChanged(bool shift, bool ctrl, bool alt, bool super);
     void onFocusLost();
     void onResize(float width, float height);
@@ -184,6 +186,7 @@ private:
     
     Modifiers m_modifiers;
     std::string m_textInput;
+    char16_t m_pendingHighSurrogate = 0;
     float m_frameTime = 0.0f;
     bool m_mouseConsumed = false;
     

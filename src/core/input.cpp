@@ -141,6 +141,11 @@ void InputState::onMouseScroll(float dx, float dy) {
 }
 
 void InputState::onTextInput(char32_t codepoint) {
+    if (codepoint > 0x10FFFF ||
+        (codepoint >= 0xD800 && codepoint <= 0xDFFF)) {
+        return;
+    }
+
     // Convert UTF-32 to UTF-8
     if (codepoint < 0x80) {
         m_textInput += static_cast<char>(codepoint);
@@ -157,6 +162,29 @@ void InputState::onTextInput(char32_t codepoint) {
         m_textInput += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
         m_textInput += static_cast<char>(0x80 | (codepoint & 0x3F));
     }
+}
+
+void InputState::onTextInputUtf16(char16_t codeUnit) {
+    if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF) {
+        m_pendingHighSurrogate = codeUnit;
+        return;
+    }
+
+    if (codeUnit >= 0xDC00 && codeUnit <= 0xDFFF) {
+        if (m_pendingHighSurrogate == 0) {
+            return;
+        }
+
+        const char32_t high =
+            static_cast<char32_t>(m_pendingHighSurrogate) - 0xD800;
+        const char32_t low = static_cast<char32_t>(codeUnit) - 0xDC00;
+        m_pendingHighSurrogate = 0;
+        onTextInput(0x10000 + (high << 10) + low);
+        return;
+    }
+
+    m_pendingHighSurrogate = 0;
+    onTextInput(static_cast<char32_t>(codeUnit));
 }
 
 void InputState::onModifiersChanged(bool shift, bool ctrl, bool alt, bool super) {
@@ -181,6 +209,7 @@ void InputState::onFocusLost() {
     }
 
     m_modifiers = {};
+    m_pendingHighSurrogate = 0;
 }
 
 void InputState::onResize(float width, float height) {

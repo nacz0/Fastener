@@ -213,6 +213,36 @@ TEST(InputStateTest, TextInput) {
     EXPECT_EQ(input.textInput(), "A");
 }
 
+TEST(InputStateTest, Utf16SurrogatePairProducesOneUtf8Codepoint) {
+    InputState input;
+
+    input.onTextInputUtf16(0xD83D);
+    EXPECT_TRUE(input.textInput().empty());
+
+    input.onTextInputUtf16(0xDE42);
+    EXPECT_EQ(input.textInput(), "\xF0\x9F\x99\x82");
+}
+
+TEST(InputStateTest, InvalidUnicodeScalarsAreIgnored) {
+    InputState input;
+
+    input.onTextInput(0xD800);
+    input.onTextInput(0x110000);
+    input.onTextInputUtf16(0xDE42);
+
+    EXPECT_TRUE(input.textInput().empty());
+}
+
+TEST(InputStateTest, FocusLossClearsPendingUtf16Surrogate) {
+    InputState input;
+
+    input.onTextInputUtf16(0xD83D);
+    input.onFocusLost();
+    input.onTextInputUtf16(0xDE42);
+
+    EXPECT_TRUE(input.textInput().empty());
+}
+
 TEST(InputStateTest, TextInputCleared) {
     InputState input;
     
